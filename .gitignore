@@ -1,2 +1,6 @@
-/storage/uploads/
+# Real account data, images, backups, locks, and password overrides never go to git.
+/storage/*
+!/storage/index.php
+!/storage/.htaccess
 .playwright-mcp/
+/tests/.artifacts/
