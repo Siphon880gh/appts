@@ -32,6 +32,10 @@ A critic compares Appts screenshots with the reference blind and picks the clear
 | G20 | Rich-text formatting (bold, bullet list, link) in entry and condition notes persists across reload | browser test PASS |
 | G21 | Image pasted into notes persists across reload | browser test PASS |
 | G22 | Script/handler injection never survives (client paste, direct API) | storage + api + browser tests PASS |
+| G23 | PDF and image uploads persist across a php -S restart | api test PASS |
+| G24 | A custom document label created on the fly is saved and offered/reused on the next upload | api + browser tests PASS |
+| G25 | Documents page filters by file type and by label (chips derived from existing uploads) | node + browser tests PASS |
+| G26 | Cross-account access to an upload (PDF or image) is denied | api test PASS |
 | G13 | Fresh critic reviews headless screenshots + live app and returns WIN | `state.json` verdict log |
 
 ## Hard boundaries

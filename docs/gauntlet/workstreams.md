@@ -11,6 +11,7 @@ Coupled pieces (storage format ↔ schema ↔ rendering) are built in one sequen
 | W3c | Type icons + colors | W3b | W3 rendering | G17–G19 |
 | W4 | Pictures: paste / drop / pick into notes and entries | W1, W3 | — | G11 |
 | W4b | Rich-text notes | W4 | W3 rendering | G20–G22 |
+| W4c | Documents (PDF/image uploads, labels, Documents page) | W4b | W1 storage, W3 rendering | G23–G26 |
 | W5 | Demo seed | W1, W2 | — | G12 |
 | W6 | Brand, README, .impeccable.md, screenshots | W3–W5 | — | G13 |
 

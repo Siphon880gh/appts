@@ -32,6 +32,9 @@ Adapt `js/richText.js` and `js/images.js` to the account-scoped API. Paste/drag/
 ## P4b — Rich-text notes (parents: P4)
 Mount `richEditor()`/`bindEditor()` in the entry form and the condition form; render saved notes with `noteHTML()`. Keep accountability's toolbar, paste and expanded-editor behavior. Prove with the browser test: bold + bullet list + link survive save and reload; a pasted image inside notes survives reload; a `<script>`/`onerror` payload pasted or sent directly to the API never survives.
 
+## P4c — Documents (parents: P4b)
+Generalize uploads to PDF + images (`inspect_file_bytes`, `FILE_ID_PATTERN`), add `doc.docLabels` with seeds and `docLabel` ops, store `attachments` as `{id,name,mime,bytes,label,addedAt}` on entries and conditions. Client: `js/documents.js` helpers (`documentList`, `documentKinds`, `filterDocuments`, `groupDocuments`), attachment zone with label combo (type-ahead + create), Documents page (filters, grouping, viewer, back-links), quick upload dialog. Add Lab work to the Visit kind seed. Prove with api tests (PDF+image persist across restart, isolation for PDFs, custom label reused) and browser tests (filters by file type and label).
+
 ## P5 — Demo seed (parents: P1, P2)
 `includes/demo-seed.php` builds clearly synthetic conditions and entries (names end in "(sample)", "Dr. Example …") relative to today, exercising every type and every link. `reset-demo` restores it. wf gets only the type seeds.
 

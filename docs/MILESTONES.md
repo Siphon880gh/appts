@@ -11,6 +11,7 @@ Each milestone ends with its gates green and a small focused commit set. Gate id
 | M3c | Type icons + colors: SVG icon set, placeholder, icon picker, color swatches, readable-text helper used everywhere | E8 | G17, G18, G19 |
 | M4 | Pictures: upload API on files, paste into entry + rich notes, drag-drop, picker | E5 | G11 paste-image test |
 | M4b | Rich-text notes on entries and conditions (accountability editor), double sanitization | E9 | G20, G21, G22 |
+| M4c | Documents: PDF + image uploads on entries and conditions, per-account document labels (seeded + on the fly), Documents page with type/label/condition filters and viewer; Lab work visit kind | E10 | G23–G26 |
 | M5 | Demo seed data (clearly synthetic) for demo account; wf starts empty | E1, E2 | G5, G12 seed sanity |
 | M3b | Tags + timeline filters: per-account tags, type-ahead create, timeline type chips derived from present types, multi-tag filter | E7 | G14, G15, G16 |
 | M6 | Docs + screenshots: README, `.impeccable.md`, IMPLEMENTATION.md, headless screenshots; fresh critic review; loop until WIN | E6 | G13 critic WIN, all gates green |

@@ -53,3 +53,10 @@ Source of truth for the request: `docs/gauntlet/request.md` (verbatim). Quality 
 - Every entry and every condition has a rich-text notes field built from accountability's editor (`js/richText.js`): same toolbar (Bold, Italic, Underline, Bullet list, Numbered list, Link, Add image, My images, Expand editor), same paste/drop behavior, same allowlist.
 - Images pasted, dropped, or picked inside notes are uploaded to the account and inserted inline by stored image id; remote image URLs are never kept.
 - HTML is sanitized twice: client-side (`cleanHTML`) before save and on display, and server-side (`sanitize_html`, DOM allowlist) before it is written.
+
+## E10 — Documents: PDF and image uploads with labels (added by Weng, t9u-appts)
+- Visits cover lab work too: the Visit kind select includes **Lab work** (and Imaging); the doctor link is optional, so a lab draw needs no doctor.
+- Any entry and any condition can carry documents: PDFs and images added by file picker, drag-and-drop, or paste (Ctrl/⌘+V). Stored as guarded files in `storage/uploads/<account>/` (content-addressed), validated by magic bytes + MIME (PDF ≤ 20 MB, images ≤ 8 MB), served only through authenticated `api.php`.
+- Every document has a **document label**. Seeds per account: Lab, Consultation Note, PCP Note, Progress Note, Imaging, Discharge Summary, Insurance Letter, Other. Typing a new label creates it on the fly; it is saved per account and offered everywhere afterwards.
+- A **Documents** page lists every upload across conditions with thumbnails (images) or a PDF tile, filter chips by file type (derived from what exists), by label, and by condition, grouping by label or file type, an inline viewer (image or embedded PDF), and a link back to the owning entry or condition. "Upload documents" on that page attaches files to a chosen condition/entry in one step.
+- Rich notes per entry (t8u-appts) are confirmed: every entry has its own rich-text note (E9).
