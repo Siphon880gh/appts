@@ -2,7 +2,7 @@
 logins, custom types (create/use/reload/remove field/archive), icons + colors, tags on the fly,
 timeline type/tag filters, paste + drop images/PDFs, rich-text persistence, injection, Documents
 filters, 390px overflow, and README screenshots. Run: python3 tests/browser.test.py [--no-screens]"""
-import base64, json, pathlib, shutil, subprocess, sys, tempfile
+import base64, json, os, pathlib, shutil, subprocess, sys, tempfile
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from serve import ROOT, Server, demo_password
 from playwright.sync_api import sync_playwright
@@ -36,7 +36,9 @@ pw = demo_password()
 base = server.url('')
 try:
     with sync_playwright() as p:
-        browser = p.chromium.launch()
+        # APPTS_BROWSER_CHANNEL=chrome uses installed Chrome (temporary profile) so the PDF viewer renders in screenshots.
+        channel = os.environ.get('APPTS_BROWSER_CHANNEL')
+        browser = p.chromium.launch(**({'channel': channel} if channel else {}))
         errors = []
         def page_for(width=1440, height=1000):
             pg = browser.new_context(viewport={'width': width, 'height': height}).new_page()
@@ -127,7 +129,10 @@ try:
         det = wf.locator('dialog[open]')
         text = det.inner_text()
         ok(all(s in text for s in ['7.2', 'High', 'Yes', 'Mild elevation', 'CBC-77', 'Dr. Real Wound Specialist', 'Fasting labs', 'Billing']), 'custom-type entry with every field kind survives reload (G4)')
-        ok(det.locator('.note-content img[data-image-id]').count() == 1 and det.locator('.note-content img').evaluate('i => i.complete && i.naturalWidth > 1'), 'pasted notes image persists and loads after reload (G21)')
+        det.locator('.note-content img[data-image-id]').first.scroll_into_view_if_needed()  # images are loading=lazy
+        try: wf.wait_for_function("(() => { const i = document.querySelector('dialog[open] .note-content img[data-image-id]'); return i && i.complete && i.naturalWidth > 1; })()", timeout=5000); img_ok = True
+        except Exception: img_ok = False
+        ok(img_ok and det.locator('.note-content img[data-image-id]').count() == 1, 'pasted notes image persists and loads after reload (G21)' + ('' if img_ok else ': ' + det.locator('.note-content').first.inner_html()[:600]))
         ok(det.locator('.attachments small:has-text("Blood panel")').count() == 1 and det.locator('.attachments .pdf-tile').count() == 1, 'PDF saved with the custom label (G24)')
         det.locator('button.link:has-text("Dr. Real")').click(); wf.wait_for_selector('dialog[open] h3:has-text("Linked from")')
         ok(True, 'link opens the doctor; backlink shows the lab result')

@@ -135,7 +135,7 @@ sh tests/run-all.sh --screens       # also regenerate docs/screenshots
 | `tests/api.test.py` | Real `php -S`: logins, account isolation, blocked storage URLs, concurrent writes, restart persistence, uploads, labels |
 | `tests/browser.test.py` | Playwright: sign-in, custom types and fields, paste and drag-drop uploads, tags, rich notes, XSS stripping, Documents filters, 390px layout |
 
-The browser test needs Python Playwright with Chromium. Tests use temporary storage and never touch `storage/`.
+The browser test needs Python Playwright with Chromium. `--screens` uses installed Google Chrome when it's present (`APPTS_BROWSER_CHANNEL=chrome`, temporary profile) because Playwright's headless shell can't render PDFs. Tests use temporary storage and never touch `storage/`.
 
 ## Files
 
