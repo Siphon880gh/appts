@@ -1,0 +1,31 @@
+# Weng's request (verbatim, from APP All Root chat, Nov 17 2026)
+
+## t8u (9:49 AM PT)
+Look at app/motivation/accountability and clone that into app/healthcare/appts. We will also move postop to app/healthcare/postop.
+
+Then create an index.php page at app/healthcare/ that has the same design philosophy as app/adhd, app/motivation trainer/, etc. There's a hero, there's etc etc
+
+Then then: Make a new bot into the section Draining
+
+The purpose of it is to track all my visits to different doctors. Instead of each person, it's each condition/dz. And inside it you can have different dr / specialist, their name VS authorization letters VS etc etc. Make pasting pictures possible. Use index.php no composer vendors and no router.
+
+You may want to create epics and milestones first, then graph prompt md files with loop prompt md files, gauntlet approach with quality bars to meet, and auto verification.
+
+Once you've made the documents for epics, milestones, graph prompt, loop prompt, etc - then execute the graph prompts to implement everything. 
+
+Do not stop at batches of work. Do not stop to ask me for any decision. Make the decisions for me. Drain the tokens all the way
+
+## t9u (9:50 AM PT)
+another type besides vs and authorization letters is appealing/coordinating with insurance, and another may be to get medical supplies and another may be care (wound care etc), another may be treatment (radiation etc)
+
+## t11u (9:51 AM PT)
+And perhaps make those entry types extensible. There could be a page where user can edit in additional types and modify the current types.
+
+## t12u (9:52 AM PT)
+Keep the data persistent file storage based. Make sure there's a demo account that user can click to quickly fill. But make sure there's a wf account too, same password
+
+## t13u (9:52 AM PT)
+Make sure not to stop to ask me decisions, just go all the way
+
+## t14u (9:53 AM PT)
+We should do all this work at APP Appts bot
