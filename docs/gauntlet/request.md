@@ -32,3 +32,6 @@ We should do all this work at APP Appts bot
 
 ## t4u-appts (10:00 AM PT, APP Appts chat)
 Add to your plans that user can filter the timeline by entry type (the entry types will render based on the entry types that exist in the timeline). Also allow filtering the timeline by tags. User can add one or more tags creating the tags on the fly too
+
+## t5u-appts (10:03 AM PT, APP Appts chat)
+Add these base entry types too: Clinical event (eg. wounds worse), Insurance event (denied), Logistics event (please come up with a better name - eg. surgery machine broken)

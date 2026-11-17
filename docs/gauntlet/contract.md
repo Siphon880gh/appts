@@ -13,7 +13,7 @@ A critic compares Appts screenshots with the reference blind and picks the clear
 |----|------|----------|
 | G1 | `php -l` passes on every PHP file | `tests/run-all.sh` output |
 | G2 | Storage unit tests: guarded round-trip, atomic temp+rename, backups capped, lock, HTML sanitizer | `php tests/storage.test.php` PASS |
-| G3 | Domain tests for **every** built-in entry type (valid entry, required field, events, links, search, filter) | `node tests/schema.test.mjs` PASS |
+| G3 | Domain tests for **every** built-in entry type (all 10, including Clinical events, Insurance events, Care disruptions) (valid entry, required field, events, links, search, filter) | `node tests/schema.test.mjs` PASS |
 | G4 | Custom type: create, add every field kind, use it for an entry, survive reload; removing a field / archiving a type keeps data | node + browser tests PASS |
 | G5 | Login works for `demo` and `wf`; wrong password rejected; only `password_hash` values on disk | `tests/api.test.py` PASS + grep shows no plaintext |
 | G6 | Account isolation: data and images of one account unreadable by the other | `tests/api.test.py` PASS |
@@ -22,7 +22,7 @@ A critic compares Appts screenshots with the reference blind and picks the clear
 | G9 | Browser flows: demo row click-fills, sign in, add condition, add entry with link, filter, search, timeline, upcoming | `tests/browser.test.py` PASS |
 | G10 | 390px: no horizontal overflow on overview, condition, types, timeline | `tests/browser.test.py` PASS |
 | G11 | Paste image (Ctrl/Cmd+V) into rich notes and entry attachments; drag-drop + picker wired | `tests/browser.test.py` PASS |
-| G12 | Demo seed is clearly synthetic, exercises every type and link; wf starts empty | api + browser tests |
+| G12 | Demo seed is clearly synthetic, exercises all 10 built-in types and every link field; wf starts empty | api + browser tests |
 | G14 | Timeline type-filter options equal the set of types present in the timeline events, and filtering by them is correct | node + browser tests PASS |
 | G15 | Tag created on the fly in an entry form persists across reload | browser + api tests PASS |
 | G16 | Timeline tag filter works for one and for multiple tags (AND) | node + browser tests PASS |

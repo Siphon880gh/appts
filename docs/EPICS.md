@@ -17,7 +17,8 @@ Source of truth for the request: `docs/gauntlet/request.md` (verbatim). Quality 
 - Cross-links: link fields point at other entries (visit → doctor, letter → visit, appeal → visit, supply → doctor, care → doctor, treatment → doctor). Backlinks are computed and shown.
 
 ## E3 — Extensible entry types
-- Seven built-in types are only seed definitions stored per account: Doctors/specialists, Visits, Authorization/referral letters, Insurance appeals/coordination, Medical supplies, Care, Treatment.
+- Ten built-in types are only seed definitions stored per account: Doctors/specialists, Visits, Authorization/referral letters, Insurance appeals/coordination, Medical supplies, Care, Treatment, and (Weng, t5u-appts) Clinical events, Insurance events, Care disruptions.
+- Naming decision: Weng's "Logistics event" is named **Care disruptions** (singular "Care disruption"): it says what the record is for — something outside the body that broke the plan (machine down, appointment cancelled, supply late) — and reads clearly beside Clinical events and Insurance events. Clinical event = a change in the body (e.g. wound worse); Insurance event = a coverage decision or request (e.g. denied).
 - An **Entry types** page adds new types and edits existing ones: rename, icon, color, add / remove / reorder fields. Field kinds: text, long text, date, number, select, checkbox, link (to doctor, visit, or any type).
 - Types can be archived and restored. Removing a field moves it to `retiredFields`; values stay in entries and remain visible. Archiving a type keeps all its entries.
 - Forms, detail views, timeline events, and filters all render from the definitions.
