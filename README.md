@@ -1,156 +1,150 @@
-# Accountability
+# Appts
 
 By Weng (Weng Fei Fung)
 
-![Last Commit](https://img.shields.io/github/last-commit/Siphon880gh/accountability/main)
-<a target="_blank" href="https://github.com/Siphon880gh" rel="nofollow"><img src="https://img.shields.io/badge/GitHub--blue?style=social&logo=GitHub" alt="Github" data-canonical-src="https://img.shields.io/badge/GitHub--blue?style=social&logo=GitHub" style="max-width:8.5ch;"></a>
-<a target="_blank" href="https://www.linkedin.com/in/weng-fung/" rel="nofollow"><img src="https://img.shields.io/badge/LinkedIn-blue?style=flat&logo=linkedin&labelColor=blue" alt="Linked-In" data-canonical-src="https://img.shields.io/badge/LinkedIn-blue?style=flat&amp;logo=linkedin&amp;labelColor=blue" style="max-width:10ch;"></a>
-<a target="_blank" href="https://www.youtube.com/@WengTeachesCode/" rel="nofollow"><img src="https://img.shields.io/badge/Youtube-red?style=flat&logo=youtube&labelColor=red" alt="Youtube" data-canonical-src="https://img.shields.io/badge/Youtube-red?style=flat&amp;logo=youtube&amp;labelColor=red" style="max-width:10ch;"></a>
+<a target="_blank" href="https://github.com/Siphon880gh" rel="nofollow"><img src="https://img.shields.io/badge/GitHub--blue?style=social&logo=GitHub" alt="Github" style="max-width:8.5ch;"></a>
+<a target="_blank" href="https://www.linkedin.com/in/weng-fung/" rel="nofollow"><img src="https://img.shields.io/badge/LinkedIn-blue?style=flat&logo=linkedin&labelColor=blue" alt="Linked-In" style="max-width:10ch;"></a>
+<a target="_blank" href="https://www.youtube.com/@WengTeachesCode/" rel="nofollow"><img src="https://img.shields.io/badge/Youtube-red?style=flat&logo=youtube&labelColor=red" alt="Youtube" style="max-width:10ch;"></a>
 
-A accountability app for keeping a daily record with partners: shared goals, check-ins, reflections, and images. 
+A personal medical-visit tracker organized by **condition**. For each condition you keep the doctors and specialists, visits (including lab work), authorization and referral letters, insurance appeals, medical supplies, care routines, treatments, clinical events, insurance events, and care disruptions, all linked together. A timeline and an upcoming view show everything that's dated, and a Documents area collects every uploaded PDF and image.
 
-The interface follows a **focused training log** direction: navy, warm white, yellow actions, condensed headings, and readable sans-serif text. Design decisions live in [.impeccable.md](.impeccable.md).
+The design keeps the accountability app's training-log look (navy ink, warm paper, condensed headings) with a sky-blue accent. It aims for patient-portal clarity: what's next, who you're seeing, and whether referrals and appeals are on track. The design rules are in [.impeccable.md](.impeccable.md).
 
 ## Run
 
-Serve this folder with an existing PHP-enabled web server and open `index.php`.
-
-For a local preview:
-
 ```sh
-php -S 127.0.0.1:8765 -t .
+sh tools/serve.sh          # http://127.0.0.1:8631
+sh tools/serve.sh 8700     # or pick a port
 ```
 
-Open http://127.0.0.1:8765. Use localhost or HTTPS for Web Crypto. PHP 8.1+ with the Fileinfo extension is required for image validation. There is no application database to configure.
+`tools/serve.sh` runs `php -S` with `upload_max_filesize=20M` and `post_max_size=24M` so PDF uploads up to 20 MB work. Plain `php -S` uses PHP's default 2 MB limit. Requires PHP 8.1+ with the `fileinfo`, `dom`, and `gd` extensions. There's no database, Composer, npm, or router: `index.php` is the page and `api.php` is the only endpoint.
 
-Click the **Demo-only credentials** row to fill both fields, then **Sign in**. A fresh browser receives three synthetic accountability partners and goals demonstrating current streaks, past streaks, sparse activity, and empty states. Existing chosen passwords are preserved unless you explicitly confirm switching to demo credentials.
+## Accounts
 
-![Sign-in screen with demo credentials ready to fill](docs/screenshots/sign-in.png)
+| Account | Starts with | Notes |
+| --- | --- | --- |
+| `demo` | Three synthetic "(sample)" conditions, 29 entries, 5 documents | **Reset demo** restores the seed. Click the **Demo-only credentials** row to fill the form. |
+| `wf` | Nothing | Your real records. Its data is git-ignored under `storage/`. |
 
-## Find partners by goal
-
-**Goals across your circle** lists active goals and how many distinct partners have them. Matching ignores case, spaces, and special characters, while preserving the original display names. Duplicate matching goals within one partner count once.
-
-![Partner circle with shared goals, streaks, and an empty goal](docs/screenshots/partners.png)
-
-Click a goal to filter the partner cards. Matching partners remain prominent and switch to that goal’s carousel panel; other partners stay visible but gray out. Only one goal can be selected at a time. Choosing another replaces the current filter; clicking the selected goal again clears it. The **Filter on** bar displays the selection and a prominent **× Clear filters** button. Archived goals are excluded.
-
-Click a partner card’s name, summary, or empty space to open its workspace. Carousel controls and the scrollable heatmap retain their own interactions; the Open workspace button also supports keyboard access.
-
-![Strength training selected, with matching and muted partner cards](docs/screenshots/goal-filter.png)
-
-## Check in and look back
-
-![Workspace in Days view, with the streak, day strip, saved note, and reflection editor](docs/screenshots/workspace.png)
-
-- The workspace is divided into **Progress**, **Choose a day**, and **Notes & reflection**, with quick section links and a prominent selected date. Saved notes and the new-note composer have distinct visual treatments.
-- Add, edit, archive, restore, or delete goals in each partner’s workspace.
-- Each goal has its own heatmap and streak, with yesterday grace. Broken streaks show up to three recent completed runs.
-- Use **Months** for a zoomed-out year view with monthly check-in and note counts. Empty months remain visible. Select a month to open its days.
-- Use **Days** to select a date, including days without activity. A subtle vertical divider follows each Sunday, grouping the strip into Monday–Sunday weeks.
-- Check in explicitly or let a saved note mark the day. The note checkbox defaults on. Deleting a note leaves its check-in intact.
-
-### Month timeline
-
-![Month overview with monthly check-in meters and note counts](docs/screenshots/month-timeline.png)
-
-## Rich notes and images
-
-A compact, optional **Tags** picker sits above the full-width note editor. Choose several tags, remove selected chips with ×, or type a name and press Enter to create one. Write with bold, italic, underline, lists, or links. Existing plain-text notes remain readable and editable.
-
-Use **Expand editor** for a nearly full-screen writing space. **Done editing** or Escape returns the same draft to its original form without saving or discarding it. Formatting and image controls work in either view.
-
-Paste an image directly into the editor, use **Add image**, or reuse an upload through **My images**. Image-only notes are supported. Upload status and errors appear beside the editor; saving waits until uploads finish.
-
-Supported formats: PNG, JPEG, GIF, and WebP, up to **8 MB** and **40 megapixels**. SVGs and non-image files are rejected. The server validates content instead of trusting filenames or browser MIME declarations.
-
-Rich HTML is sanitized on save and display. Only approved formatting, safe links, and uploaded image identifiers survive; arbitrary attributes, scripts, remote images, and embedded content are stripped.
-
-## Tag management and calendar colors
-
-Tags belong to a goal and can be attached to multiple notes. Notes can have several tags or no tags.
-
-![Manage tags dialog for renaming, recoloring, and removing goal tags](docs/screenshots/manage-tags.png)
-
-- Search existing tags in the compact picker, choose several, or type a new name and press Enter. New tags receive a consistent default color.
-- Use **Manage tags** beside the calendar legend to create tags, rename them, choose colors, and see how many notes use each tag.
-- Rename/color changes update every use of the tag. Removing a tag asks for confirmation and removes only that tag’s references; note content stays intact.
-- Calendar dates show one small colored dot per distinct tag used that day. The legend maps those colors to names, and accessible labels/tooltips list the names as well.
-- Existing single-tag records are supported. Editing a note saves the new `tagIds` array without losing its prior tag.
-
-## A separate image library for each partner
-
-Open **Image library** from a partner workspace to see that partner’s uploaded images. From the partner-selection screen, the same control first asks you to choose a partner.
-
-![A partner image library before any uploads](docs/screenshots/image-library.png)
-
-- Each library has its own random capability key and isolated server directory.
-- A thumbnail shows the number of saved notes using the image.
-- If there is one reference, clicking the image opens and focuses that note.
-- If there are several references, clicking lists the matching partner/goal/date links. Choose one to jump to the note, including notes in archived goals.
-- Uploads with no saved references remain visible and can be reused. Use **Not in a note** to show only those images. Open one and choose **Delete image** to remove the file. Cancelling an editor or deleting a note does not delete the uploaded file.
-
-## Image storage and deployment
-
-`api.php` is a single endpoint, with actions for upload, listing, deletion, and serving images. It includes `includes/uploads.php`; no router or dependency package is involved.
-
-Uploads are saved under a **SHA-256 content hash plus a validated extension**, such as `<64-character-hash>.png`. Re-uploading identical bytes within a partner’s library reuses the file. Original filenames are not used as filesystem paths.
-
-Default storage is `storage/uploads/<hash-of-library-key>/`. PHP needs permission to create and write this directory. For deployment, prefer a directory outside the document root:
+Both accounts start with the demo password shown on the sign-in screen. **Change `wf`'s password before entering real data:**
 
 ```sh
-ACCOUNTABILITY_UPLOAD_DIR=/absolute/private/path/accountability-images php -S 127.0.0.1:8765 -t .
+php tools/set-password.php wf     # prompts without echo; stores only a password_hash()
 ```
 
-Keep this path stable. The included `storage/.htaccess` denies direct access on Apache when overrides are enabled; on Nginx, deny `/storage/` in your site configuration or use the private directory above.
+Only `password_hash()` values are stored (in `includes/accounts.php`, overridden by `storage/accounts.json.php`). Sessions use an HttpOnly, SameSite=Strict cookie, and every write needs a same-origin `X-Appts` header.
 
-Set PHP `upload_max_filesize` to at least `8M` and `post_max_size` to at least `10M`. The application still enforces its own 8 MB file limit. Images are returned through `api.php` with explicit MIME types, `nosniff`, and a no-referrer policy.
+![Sign-in screen with the demo credentials row](docs/screenshots/sign-in.png)
 
-## What is stored where?
+## Conditions overview
 
-| Data | Storage |
+**Next up** lists the soonest dated item for each record across all your conditions. Each condition card counts its records by type and shows what's next. The search box searches doctors, visits, reference numbers, and notes.
+
+![Overview with Next up and three condition cards](docs/screenshots/overview.png)
+
+## A condition's workspace
+
+Records are grouped by entry type, each with its own icon and color. You can filter by type, tag, or text. Every group has its own **+ Add** button, and **Add another kind of record** offers types that aren't in use yet. The sidebar shows this condition's next items and its rich-text notes.
+
+![Condition workspace for the sample basal cell carcinoma](docs/screenshots/condition.png)
+
+Open a record to see its details. Each record shows its link fields (for example, *Visit → Doctor* or *Appeal → Letter*), backlinks from other records that point to it, notes, tags, and attached documents.
+
+![Entry detail for a prior authorization letter](docs/screenshots/entry-detail.png)
+![Entry form with fields, tags, rich notes, and documents](docs/screenshots/entry-form.png)
+
+### Built-in entry types
+
+| Type | Tracks |
 | --- | --- |
-| Partners, goals, activity, tags, note text, sanitized HTML, image references | Browser IndexedDB: `accountability-app` |
-| Salted password verifier | Browser IndexedDB |
-| Per-partner image-library capability keys | Browser IndexedDB metadata |
-| Uploaded image bytes | PHP server filesystem |
-| Signed-in state | Browser memory only |
+| Doctors & specialists | Name, specialty, role, clinic, contact |
+| Visits | Date and time, kind (In person, **Lab work**, Imaging, Telehealth, Phone, Urgent / ER, Procedure), doctor (optional for lab work), follow-up |
+| Authorization & referral letters | Kind, status, reference number, valid until |
+| Insurance appeals & coordination | Insurer, reference number, deadline, linked letter |
+| Medical supplies | Supplier, quantity, status, reorder by |
+| Care | Routine, who does it, next due |
+| Treatment | Course, start and end dates, sessions |
+| Clinical events | Severity, related visit (for example, "wound edges worse") |
+| Insurance events | Outcome, reference, related letter (for example, "claim denied") |
+| Care disruptions | What broke, affected treatment, rescheduled date (for example, "radiation machine down") |
 
-This remains a **local demo**, not production authentication. Capability keys grant access to a library; image request URLs include the key, so protect server logs and do not share those URLs. No cross-device note sync or account-based server login is provided. Clearing browser site data removes notes and library keys; server image files remain but that browser loses access to them. Keep the same browser profile and origin/port between visits.
+"Care disruptions" is the name chosen for the requested "logistics event". Every date field becomes a timeline event.
 
-**Reset demo** replaces seeded examples while preserving user-origin data and credentials. It does not delete uploaded files or library keys. User-created notes attached to demo partners keep their image references.
+## Timeline and Upcoming
+
+The timeline groups events by month and marks today. Filter by condition, past or upcoming, text, **entry type** (chips show only the types that appear in the timeline), and **one or more tags**. Type chips combine with OR; tag chips with AND.
+
+![Timeline filtered to the Follow-up needed tag](docs/screenshots/timeline-filtered.png)
+![Upcoming view](docs/screenshots/upcoming.png)
+
+## Tags
+
+Tags are optional. Type a new name in a record's tag picker and press Enter to create one on the fly. Records can have several tags.
+
+## Rich notes and attachments
+
+Every record and every condition has a rich-text note (bold, italic, underline, lists, links). Paste an image with **Ctrl/Cmd+V**, drag and drop it, or use the file picker. The server sanitizes HTML on save and the browser sanitizes it again on display. Only approved formatting, `http(s)`/`mailto` links, and this account's uploaded images survive.
+
+## Documents
+
+Attach PDFs or images to any record or condition, each with a **document label**: Lab, Consultation Note, PCP Note, Progress Note, Imaging, Discharge Summary, Insurance Letter, or Other. Type a new label to create one; it's saved and offered again next time. The **Documents** page filters by condition, file type, label, and name, groups by label or file type, opens PDFs in an inline viewer, and links each file back to its record.
+
+![Documents grouped by label](docs/screenshots/documents.png)
+![PDF viewer](docs/screenshots/document-viewer.png)
+
+Accepted: PDF up to 20 MB (it must really be a PDF), and PNG, JPEG, GIF, or WebP up to 8 MB and 40 megapixels. Files are stored under their SHA-256 hash, per account.
+
+## Extensible entry types
+
+**Entry types** lets you rename any type, choose its icon and color, add, remove, or reorder fields, and add new types. Field kinds are text, long text, date, number, select, checkbox, and link to another record. A custom type with no icon gets a placeholder icon. Badge text is always black or white, whichever reads better.
+
+Removing a field or archiving a type **never deletes data**. Removed fields' values stay visible on the record under "Removed fields". Archived types leave the Add menus, but their records stay.
+
+![Entry types page](docs/screenshots/entry-types.png)
+![Editing the Visits type](docs/screenshots/type-editor.png)
+
+## Mobile
+
+<img src="docs/screenshots/mobile-overview.png" width="260" alt="Overview at 390px"> <img src="docs/screenshots/mobile-condition.png" width="260" alt="Condition at 390px">
+
+## Where data lives
+
+All data is stored on the server, per account, under `storage/` (or `APPTS_STORAGE_DIR`):
+
+| Path | Contents |
+| --- | --- |
+| `storage/data/<account>.json.php` | Conditions, types, entries, tags, labels, sanitized notes |
+| `storage/backups/<account>/` | The last 20 versions, written before each save |
+| `storage/uploads/<account>/` | Uploaded images and PDFs (`<sha256>.<ext>.php`) |
+| `storage/locks/` | Per-account `flock` files |
+
+Every stored file is a `.php` file that starts with `<?php http_response_code(404); exit; ?>`, so even `php -S` without a router returns 404 instead of the bytes. Apache also gets `storage/.htaccess` (`Require all denied`). Writes are atomic (temp file plus rename) under an exclusive lock. Files are served only through `api.php` after the session check, with `nosniff`. Images also get a sandbox CSP.
+
+## Tests
+
+```sh
+sh tests/run-all.sh                 # every gate
+sh tests/run-all.sh --screens       # also regenerate docs/screenshots
+```
+
+| Test | Covers |
+| --- | --- |
+| `php -l` | Every PHP file |
+| `tests/storage.test.php` | Guarded storage, atomic writes, locks, backups, sanitizer, domain ops |
+| `tests/schema.test.mjs` | Type, field, timeline, filter, tag, icon, contrast, and document helpers |
+| `tests/api.test.py` | Real `php -S`: logins, account isolation, blocked storage URLs, concurrent writes, restart persistence, uploads, labels |
+| `tests/browser.test.py` | Playwright: sign-in, custom types and fields, paste and drag-drop uploads, tags, rich notes, XSS stripping, Documents filters, 390px layout |
+
+The browser test needs Python Playwright with Chromium. Tests use temporary storage and never touch `storage/`.
 
 ## Files
 
-- `index.php`, `includes/head.php`, `includes/layout.php`, `includes/footer.php`: page shell.
-- `api.php`, `includes/uploads.php`: image endpoint and storage validation.
-- `js/app.js`: partners, goals, filtering, note navigation, and page rendering.
-- `js/richText.js`, `js/images.js`: editor, HTML sanitizer, and upload/library client.
-- `js/tags.js`: multiple-tag picker, legacy compatibility, color mapping, and date-dot aggregation.
-- `js/dates.js`, `js/timeline.js`, `js/goalSummary.js`: date, timeline, and matching rules.
-- `js/db.js`, `js/seed.js`, `js/demoAccount.js`: browser persistence and demo identity/data.
-- `styles.css`: training-log design, responsive layouts, and interaction states.
+- `index.php`, `includes/head.php`, `includes/layout.php`, `includes/footer.php`: the page shell and security headers.
+- `api.php`: session, login, data, ops, uploads, and file serving.
+- `includes/storage.php`, `includes/uploads.php`, `includes/sanitize.php`: guarded storage, upload validation, and the HTML allowlist.
+- `includes/domain.php`, `includes/seed-types.json`, `includes/demo-seed.php`: types, validation, operations, and synthetic demo data.
+- `includes/auth.php`, `includes/accounts.php`, `tools/set-password.php`: accounts.
+- `js/app.js` (views), `js/forms.js` (forms and detail), `js/typesPage.js`, `js/schema.js` (pure domain), `js/documents.js`, `js/icons.js`, `js/richText.js`, `js/store.js`, `js/api.js`, `js/images.js`, `js/ui.js`.
+- `docs/`: epics, milestones, prompts, implementation notes, and the gauntlet contract and state.
 
-## Verification
-
-PHP syntax and upload/storage tests:
-
-```sh
-php -l index.php
-php -l api.php
-php -l includes/uploads.php
-php tests/uploads.php
-```
-
-Optional developer tests (not needed to run or deploy):
-
-```sh
-TZ=America/Los_Angeles node --experimental-default-type=module --test tests/*.test.mjs
-python3 tests/api.test.py
-```
-
-The Python integration test requires `php-cgi` and exercises actual multipart upload parsing and the real endpoint without opening a network socket. It verifies hashed names, deduplication, library isolation, byte-for-byte image retrieval, invalid types, HTTP methods, keys, and path traversal.
-
-Browser checks exercised pasted-image upload through real PHP CGI, image rendering, image-only notes, reuse across multiple notes, note navigation, separate partner libraries, HTML sanitization, month/day selection, Sunday separators, goal filtering, carousel selection, clearing filters, multiple-tag edits, rename/recolor/create/remove actions, untagged notes, and responsive overflow at 390px.
-
-The original Postop application and its storage remain untouched. Photos are no longer deferred: image attachments are now supported; export/import, server account authentication, automatic orphan-file cleanup, and cross-device sync remain future work.
+Appts is a personal record-keeper, not a medical device or an official health record. Demo data is fictional.
