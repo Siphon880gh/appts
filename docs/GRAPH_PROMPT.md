@@ -3,7 +3,7 @@
 Each node is a self-contained build prompt. A node may start only when all of its parents are frozen (their gates pass). Coupled parts (schema, storage format, rendering) are kept in one chain so they never drift.
 
 ```
-P0 docs ──► P1 storage+auth ──► P2 schema+types ──► P3 UI shell+views ──► P4 pictures ──► P6 docs+screens ──► P7 final gauntlet
+P0 docs ──► P1 storage+auth ──► P2 schema+types ──► P3 UI shell+views ──► P3b tags+timeline filters ──► P4 pictures ──► P6 docs+screens ──► P7 final gauntlet
                      │                  │                                   ▲
                      └──────────────────┴──► P5 demo seed ──────────────────┘
 ```
@@ -20,7 +20,10 @@ Seed seven built-in types in `includes/seed-types.json` with stable field ids. I
 ## P3 — UI shell and views (parents: P2)
 Rebrand head/layout. `js/app.js` renders login, overview (hero, condition cards, upcoming), condition workspace (type chips, status filter, search, grouped entries), entry form and detail from definitions, Entry types page, timeline and upcoming views. Hash state (`#/condition/<id>`, `#/types`, `#/timeline`) so reloads return to the same view.
 
-## P4 — Pictures (parents: P3)
+## P3b — Tags and timeline filters (parents: P3)
+Add `doc.tags` and `entry.tagIds` (server-validated; unknown tag ids dropped on save). Tag picker in the entry form: type-ahead over existing tags, Enter or "+ Create" makes a new tag in the same save. Pure helpers in `js/schema.js`: `timelineTypes(events)` (types present, in definition order), `timelineTags(events)`, `filterEvents(events,{typeIds,tagIds,conditionId,query})` with AND semantics for tags. Timeline renders type and tag chips only from what is present. Prove with node tests and the browser test (create tag on the fly → reload → still there → filter by one and two tags).
+
+## P4 — Pictures (parents: P3b)
 Adapt `js/richText.js` and `js/images.js` to the account-scoped API. Paste/drag/pick into rich notes (inline) and into the entry form (attachments gallery). Prove with Playwright synthetic ClipboardEvent carrying a PNG `File`.
 
 ## P5 — Demo seed (parents: P1, P2)

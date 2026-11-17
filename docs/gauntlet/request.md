@@ -29,3 +29,6 @@ Make sure not to stop to ask me decisions, just go all the way
 
 ## t14u (9:53 AM PT)
 We should do all this work at APP Appts bot
+
+## t4u-appts (10:00 AM PT, APP Appts chat)
+Add to your plans that user can filter the timeline by entry type (the entry types will render based on the entry types that exist in the timeline). Also allow filtering the timeline by tags. User can add one or more tags creating the tags on the fly too

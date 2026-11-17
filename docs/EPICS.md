@@ -35,3 +35,9 @@ Source of truth for the request: `docs/gauntlet/request.md` (verbatim). Quality 
 ## E6 — Brand, docs, verification
 - Rename all Accountability branding to Appts; rewrite README (with real screenshots), `.impeccable.md`, implementation notes.
 - Automated gates: `php -l`, PHP storage tests, Node domain tests (every entry type, custom types), Python HTTP tests (login, isolation, persistence across restart, storage blocking, concurrency), Playwright browser tests (demo click-fill, custom type create/use/reload, paste image), headless screenshots reviewed by a fresh critic pass.
+
+## E7 — Tags and timeline filters (added by Weng, t4u-appts)
+- Every entry can carry one or more tags. Tags are stored per account (`doc.tags`: id, label, color) and created on the fly from a type-ahead picker ("+ Create “…”" or Enter).
+- Timeline filter by entry type: the chips are derived from the types that actually appear in the timeline's events (after the condition filter), not from every defined type. Archived types still appear if their entries are on the timeline.
+- Timeline filter by tags: pick one or more tags; an event matches when its entry has **all** selected tags. Tag chips are likewise derived from tags present on timeline entries.
+- Tags are renamed/recolored centrally; deleting a tag only removes it from entries, never the entries.

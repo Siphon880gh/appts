@@ -23,6 +23,9 @@ A critic compares Appts screenshots with the reference blind and picks the clear
 | G10 | 390px: no horizontal overflow on overview, condition, types, timeline | `tests/browser.test.py` PASS |
 | G11 | Paste image (Ctrl/Cmd+V) into rich notes and entry attachments; drag-drop + picker wired | `tests/browser.test.py` PASS |
 | G12 | Demo seed is clearly synthetic, exercises every type and link; wf starts empty | api + browser tests |
+| G14 | Timeline type-filter options equal the set of types present in the timeline events, and filtering by them is correct | node + browser tests PASS |
+| G15 | Tag created on the fly in an entry form persists across reload | browser + api tests PASS |
+| G16 | Timeline tag filter works for one and for multiple tags (AND) | node + browser tests PASS |
 | G13 | Fresh critic reviews headless screenshots + live app and returns WIN | `state.json` verdict log |
 
 ## Hard boundaries
