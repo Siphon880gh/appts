@@ -38,3 +38,6 @@ Add these base entry types too: Clinical event (eg. wounds worse), Insurance eve
 
 ## t6u-appts (10:04 AM PT, APP Appts chat)
 You can add icons for these base entry types. The custom entry types can also accept icons otherwise it's a placeholder icons. Entry types can be assigned colors too
+
+## t7u-appts (10:07 AM PT, APP Appts chat)
+And make sure user can add rich text format notes, much like the accountability app that our current app originally cloned some code from

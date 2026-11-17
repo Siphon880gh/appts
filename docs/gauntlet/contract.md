@@ -29,6 +29,9 @@ A critic compares Appts screenshots with the reference blind and picks the clear
 | G17 | Icon and color change on a type survive reload | browser test PASS |
 | G18 | A type without an icon (or with an unknown key) shows the placeholder icon | node + browser tests PASS |
 | G19 | Text/icon on every type color meets WCAG 4.5:1 (all built-ins + 500 random colors) | node test PASS |
+| G20 | Rich-text formatting (bold, bullet list, link) in entry and condition notes persists across reload | browser test PASS |
+| G21 | Image pasted into notes persists across reload | browser test PASS |
+| G22 | Script/handler injection never survives (client paste, direct API) | storage + api + browser tests PASS |
 | G13 | Fresh critic reviews headless screenshots + live app and returns WIN | `state.json` verdict log |
 
 ## Hard boundaries

@@ -48,3 +48,8 @@ Source of truth for the request: `docs/gauntlet/request.md` (verbatim). Quality 
 - Custom types pick an icon from the set on the Entry types page; when none is chosen (empty key or an unknown key) a generic placeholder icon is shown.
 - Every type, built-in or custom, has a color chosen from swatches or a free color input. Icon tile + color are rendered by one helper everywhere: timeline items, upcoming items, filter chips, entry forms and detail, condition sections, and the Entry types page.
 - Contrast: text and icons drawn on a type color use black or white, whichever has the higher contrast ratio (always ≥ 4.5:1). Type color is never used as text on paper.
+
+## E9 — Rich-text notes (added by Weng, t7u-appts)
+- Every entry and every condition has a rich-text notes field built from accountability's editor (`js/richText.js`): same toolbar (Bold, Italic, Underline, Bullet list, Numbered list, Link, Add image, My images, Expand editor), same paste/drop behavior, same allowlist.
+- Images pasted, dropped, or picked inside notes are uploaded to the account and inserted inline by stored image id; remote image URLs are never kept.
+- HTML is sanitized twice: client-side (`cleanHTML`) before save and on display, and server-side (`sanitize_html`, DOM allowlist) before it is written.

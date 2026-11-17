@@ -4,3 +4,4 @@
 !/storage/.htaccess
 .playwright-mcp/
 /tests/.artifacts/
+__pycache__/

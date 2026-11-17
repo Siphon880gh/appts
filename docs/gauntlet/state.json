@@ -3,7 +3,7 @@
   "started": "2026-11-17T10:05:00-08:00",
   "bar": ["accountability@3c0897e quality floor", "MyChart clarity for next visit / doctor / referral validity / appeal status"],
   "rounds": [],
-  "gates": {"G1":"pending","G2":"pending","G3":"pending","G4":"pending","G5":"pending","G6":"pending","G7":"pending","G8":"pending","G9":"pending","G10":"pending","G11":"pending","G12":"pending","G13":"pending","G14":"pending","G15":"pending","G16":"pending","G17":"pending","G18":"pending","G19":"pending"},
+  "gates": {"G1":"pending","G2":"pending","G3":"pending","G4":"pending","G5":"pending","G6":"pending","G7":"pending","G8":"pending","G9":"pending","G10":"pending","G11":"pending","G12":"pending","G13":"pending","G14":"pending","G15":"pending","G16":"pending","G17":"pending","G18":"pending","G19":"pending","G20":"pending","G21":"pending","G22":"pending"},
   "openGaps": [],
   "frozen": []
 }
