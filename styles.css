@@ -233,7 +233,7 @@ dl.values dd{margin:0;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere
 .demo-row small{font-weight:600;color:var(--muted)}
 #status{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--navy);color:var(--paper);padding:10px 16px;border-radius:4px;font-size:13px;font-weight:700;z-index:30}
 #status:empty{display:none}
-@media (max-width:980px){.workspace{grid-template-columns:1fr}}
+@media (max-width:980px){.workspace{grid-template-columns:1fr}.workspace>aside{order:-1}}
 @media (max-width:640px){
   main{padding:26px 16px 60px}
   header{padding:12px 16px}
