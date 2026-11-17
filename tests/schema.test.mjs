@@ -125,3 +125,21 @@ for (const c of S.TYPE_COLORS) ok(S.contrastRatio(c, S.readableText(c)) >= 4.5, 
 eq(ICON_KEYS.length >= 20, true, 'icon picker offers at least 20 icons');
 
 console.log(`PASS: ${checks} domain checks across ${BUILTINS.length} built-in types, custom types, tags, timeline filters, icons, contrast.`);
+
+// ---- documents (G24, G25)
+const D = await import('../js/documents.js');
+const docs = D.documentList(demo);
+ok(docs.length === 5 && docs.some(d => d.owner.kind === 'condition'), 'documents gathered from entries and conditions');
+eq(D.documentKinds(docs).map(k => [k.kind, k.count]), [['pdf', 3], ['image', 2]], 'file-type chips derived from uploads');
+eq(new Set(D.documentLabels(demo, docs).map(x => x.label.id)), new Set(docs.map(d => d.labelId)), 'label chips derived from uploads');
+ok(D.filterDocuments(docs, { kinds: ['pdf'] }).every(d => d.kind === 'pdf') && D.filterDocuments(docs, { kinds: ['pdf'] }).length === 3, 'filter by file type');
+eq(D.filterDocuments(docs, { labelIds: ['lab'] }).map(d => d.file.name), ['Sample lab report.pdf'], 'filter by label');
+eq(D.filterDocuments(docs, { kinds: ['image'], labelIds: ['imaging'] }).length, 1, 'type + label combine');
+eq(D.filterDocuments(docs, { conditionId: 'cond-diabetes' }).length, 1, 'filter by condition');
+eq(D.groupDocuments(demo, docs, 'kind').map(g => g.title), ['PDF', 'Image'], 'group by file type');
+ok(D.groupDocuments(demo, docs, 'label')[0].key === 'lab', 'group by label in label order');
+const lbl = D.findOrCreateLabel(demo, 'Pathology'); ok(lbl.created, 'custom label created on the fly');
+const withLabel = { ...demo, docLabels: [...demo.docLabels, lbl.label] };
+ok(!D.findOrCreateLabel(withLabel, 'pathology').created, 'custom label reused');
+eq([D.defaultLabelFor({ id: 'visit' }, { visit_kind: 'Lab work' }), D.defaultLabelFor({ id: 'visit' }, {}), D.defaultLabelFor({ id: 'letter' })], ['lab', 'consultation', 'insurance'], 'default labels');
+console.log('PASS: document helpers (types, labels, filters, grouping).');
