@@ -42,3 +42,9 @@ Source of truth for the request: `docs/gauntlet/request.md` (verbatim). Quality 
 - Timeline filter by entry type: the chips are derived from the types that actually appear in the timeline's events (after the condition filter), not from every defined type. Archived types still appear if their entries are on the timeline.
 - Timeline filter by tags: pick one or more tags; an event matches when its entry has **all** selected tags. Tag chips are likewise derived from tags present on timeline entries.
 - Tags are renamed/recolored centrally; deleting a tag only removes it from entries, never the entries.
+
+## E8 — Type icons and colors (added by Weng, t6u-appts)
+- Icons are a built-in inline-SVG set in `js/icons.js` (no fonts, emoji, or dependencies), stored on the type as an icon key. Each of the 10 built-in types seeds a distinct icon: stethoscope (doctors), calendar (visits), document (letters), scale (appeals), box (supplies), bandage (care), radiation (treatment), pulse-alert (clinical events), receipt (insurance events), traffic cone (care disruptions).
+- Custom types pick an icon from the set on the Entry types page; when none is chosen (empty key or an unknown key) a generic placeholder icon is shown.
+- Every type, built-in or custom, has a color chosen from swatches or a free color input. Icon tile + color are rendered by one helper everywhere: timeline items, upcoming items, filter chips, entry forms and detail, condition sections, and the Entry types page.
+- Contrast: text and icons drawn on a type color use black or white, whichever has the higher contrast ratio (always ≥ 4.5:1). Type color is never used as text on paper.

@@ -35,3 +35,6 @@ Add to your plans that user can filter the timeline by entry type (the entry typ
 
 ## t5u-appts (10:03 AM PT, APP Appts chat)
 Add these base entry types too: Clinical event (eg. wounds worse), Insurance event (denied), Logistics event (please come up with a better name - eg. surgery machine broken)
+
+## t6u-appts (10:04 AM PT, APP Appts chat)
+You can add icons for these base entry types. The custom entry types can also accept icons otherwise it's a placeholder icons. Entry types can be assigned colors too

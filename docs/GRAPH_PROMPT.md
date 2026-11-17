@@ -23,7 +23,10 @@ Rebrand head/layout. `js/app.js` renders login, overview (hero, condition cards,
 ## P3b — Tags and timeline filters (parents: P3)
 Add `doc.tags` and `entry.tagIds` (server-validated; unknown tag ids dropped on save). Tag picker in the entry form: type-ahead over existing tags, Enter or "+ Create" makes a new tag in the same save. Pure helpers in `js/schema.js`: `timelineTypes(events)` (types present, in definition order), `timelineTags(events)`, `filterEvents(events,{typeIds,tagIds,conditionId,query})` with AND semantics for tags. Timeline renders type and tag chips only from what is present. Prove with node tests and the browser test (create tag on the fly → reload → still there → filter by one and two tags).
 
-## P4 — Pictures (parents: P3b)
+## P3c — Type icons and colors (parents: P3b)
+Add `js/icons.js` (keyed inline SVG set + `placeholder`), `typeBadge(type)` rendering an icon tile in the type color with `readableText(color)`. Entry types page: icon grid picker (with "No icon" → placeholder) and color swatches + `<input type=color>`. Server stores `icon` as a key (`^[a-z0-9-]{0,32}$`). Prove with node tests (contrast for all built-ins and random colors, placeholder fallback) and the browser test (change icon + color → reload → still applied; custom type without icon shows placeholder).
+
+## P4 — Pictures (parents: P3c)
 Adapt `js/richText.js` and `js/images.js` to the account-scoped API. Paste/drag/pick into rich notes (inline) and into the entry form (attachments gallery). Prove with Playwright synthetic ClipboardEvent carrying a PNG `File`.
 
 ## P5 — Demo seed (parents: P1, P2)

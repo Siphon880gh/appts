@@ -26,6 +26,9 @@ A critic compares Appts screenshots with the reference blind and picks the clear
 | G14 | Timeline type-filter options equal the set of types present in the timeline events, and filtering by them is correct | node + browser tests PASS |
 | G15 | Tag created on the fly in an entry form persists across reload | browser + api tests PASS |
 | G16 | Timeline tag filter works for one and for multiple tags (AND) | node + browser tests PASS |
+| G17 | Icon and color change on a type survive reload | browser test PASS |
+| G18 | A type without an icon (or with an unknown key) shows the placeholder icon | node + browser tests PASS |
+| G19 | Text/icon on every type color meets WCAG 4.5:1 (all built-ins + 500 random colors) | node test PASS |
 | G13 | Fresh critic reviews headless screenshots + live app and returns WIN | `state.json` verdict log |
 
 ## Hard boundaries
