@@ -12,6 +12,8 @@ require_once __DIR__ . '/sanitize.php';
 const FIELD_KINDS = ['text', 'longtext', 'date', 'number', 'select', 'checkbox', 'link'];
 const CONDITION_STATUSES = ['active', 'resolved', 'archived'];
 const ID_PATTERN = '/^[A-Za-z0-9_-]{1,64}$/D';
+const IMAGE_TYPES_BY_EXT = ['image/png' => 'png', 'image/jpeg' => 'jpg', 'image/gif' => 'gif', 'image/webp' => 'webp'];
+const DOC_LABEL_SEEDS = ['lab' => 'Lab', 'consultation' => 'Consultation Note', 'pcp' => 'PCP Note', 'progress' => 'Progress Note', 'imaging' => 'Imaging', 'discharge' => 'Discharge Summary', 'insurance' => 'Insurance Letter', 'other' => 'Other'];
 const DATE_PATTERN = '/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/D';
 
 function seed_types(): array {
@@ -23,8 +25,20 @@ function seed_types(): array {
     return $types;
 }
 
+function seed_doc_labels(): array {
+    $out = [];
+    foreach (DOC_LABEL_SEEDS as $id => $label) $out[] = ['id' => $id, 'label' => $label, 'builtin' => true];
+    return $out;
+}
+
 function new_doc(): array {
-    return ['version' => 1, 'revision' => 0, 'updatedAt' => gmdate('c'), 'conditions' => [], 'types' => seed_types(), 'entries' => [], 'tags' => []];
+    return ['version' => 1, 'revision' => 0, 'updatedAt' => gmdate('c'), 'conditions' => [], 'types' => seed_types(), 'entries' => [], 'tags' => [], 'docLabels' => seed_doc_labels()];
+}
+
+/** Fill in collections added after a document was first written. */
+function normalize_doc(array $doc): array {
+    $doc += ['conditions' => [], 'types' => [], 'entries' => [], 'tags' => [], 'docLabels' => seed_doc_labels()];
+    return $doc;
 }
 
 function fail(string $message): never { throw new InvalidArgumentException($message); }
@@ -61,11 +75,22 @@ function clean_notes(mixed $notes): array {
     return ['html' => $html, 'text' => mb_substr($text, 0, 20000), 'imageIds' => image_ids_in($html)];
 }
 
-function clean_image_list(mixed $ids): array {
+/** Documents attached to an entry or condition: {id, name, mime, kind, bytes, label, addedAt}. */
+function clean_attachments(mixed $list, array $doc): array {
+    $labels = array_column($doc['docLabels'] ?? [], 'id');
     $out = [];
-    foreach (is_array($ids) ? $ids : [] as $id) if (is_string($id) && preg_match(IMAGE_ID_PATTERN, $id)) $out[] = $id;
-    $out = array_values(array_unique($out));
-    if (count($out) > 60) fail('Attach at most 60 images to one entry.');
+    $seen = [];
+    foreach (is_array($list) ? $list : [] as $a) {
+        if (is_string($a)) $a = ['id' => $a];
+        if (!is_array($a) || !is_string($a['id'] ?? null) || !preg_match(FILE_ID_PATTERN, $a['id']) || isset($seen[$a['id']])) continue;
+        $seen[$a['id']] = true;
+        $ext = substr($a['id'], strrpos($a['id'], '.') + 1);
+        $name = is_string($a['name'] ?? null) && trim($a['name']) !== '' ? mb_substr(trim($a['name']), 0, 200) : ($ext === 'pdf' ? 'Document.pdf' : 'Image.' . $ext);
+        $label = is_string($a['label'] ?? null) && in_array($a['label'], $labels, true) ? $a['label'] : 'other';
+        $added = is_string($a['addedAt'] ?? null) && preg_match('/^\d{4}-\d{2}-\d{2}/', $a['addedAt']) ? substr($a['addedAt'], 0, 25) : gmdate('c');
+        $out[] = ['id' => $a['id'], 'name' => $name, 'mime' => $ext === 'pdf' ? 'application/pdf' : (array_search($ext, IMAGE_TYPES_BY_EXT, true) ?: 'image/' . $ext), 'kind' => $ext === 'pdf' ? 'pdf' : 'image', 'bytes' => is_int($a['bytes'] ?? null) ? $a['bytes'] : 0, 'label' => $label, 'addedAt' => $added];
+    }
+    if (count($out) > 100) fail('Attach at most 100 documents to one record.');
     return $out;
 }
 
@@ -122,7 +147,7 @@ function clean_type(array $v, ?array $old): array {
     ];
 }
 
-function clean_condition(array $v, ?array $old): array {
+function clean_condition(array $v, ?array $old, array $doc): array {
     $status = in_array($v['status'] ?? 'active', CONDITION_STATUSES, true) ? $v['status'] ?? 'active' : 'active';
     return [
         'id' => valid_id($v['id'] ?? null),
@@ -132,10 +157,15 @@ function clean_condition(array $v, ?array $old): array {
         'color' => valid_color($v['color'] ?? ''),
         'summary' => str_field($v, 'summary', 400),
         'notes' => clean_notes($v['notes'] ?? null),
+        'attachments' => clean_attachments($v['attachments'] ?? [], $doc),
         'sortOrder' => is_int($v['sortOrder'] ?? null) ? $v['sortOrder'] : (int) ($old['sortOrder'] ?? 0),
         'createdAt' => $old['createdAt'] ?? gmdate('c'),
         'updatedAt' => gmdate('c'),
     ];
+}
+
+function clean_doc_label(array $v, ?array $old): array {
+    return ['id' => valid_id($v['id'] ?? null), 'label' => str_field($v, 'label', 40, true, 'Document label'), 'builtin' => (bool) ($old['builtin'] ?? false)];
 }
 
 function clean_tag(array $v): array {
@@ -187,7 +217,7 @@ function clean_entry(array $v, ?array $old, array $doc): array {
         'values' => $values,
         'tagIds' => $tagIds,
         'notes' => clean_notes($v['notes'] ?? null),
-        'attachments' => clean_image_list($v['attachments'] ?? []),
+        'attachments' => clean_attachments($v['attachments'] ?? [], $doc),
         'createdAt' => $old['createdAt'] ?? gmdate('c'),
         'updatedAt' => gmdate('c'),
     ];
@@ -196,7 +226,8 @@ function clean_entry(array $v, ?array $old, array $doc): array {
 /** Apply a batch of operations. Order matters: tags and types before the entries that use them. */
 function apply_ops(array $doc, mixed $ops): array {
     if (!is_array($ops) || !$ops || count($ops) > 200) fail('Send between 1 and 200 changes.');
-    $collections = ['condition' => 'conditions', 'type' => 'types', 'entry' => 'entries', 'tag' => 'tags'];
+    $doc = normalize_doc($doc);
+    $collections = ['condition' => 'conditions', 'type' => 'types', 'entry' => 'entries', 'tag' => 'tags', 'docLabel' => 'docLabels'];
     foreach ($ops as $op) {
         if (!is_array($op)) fail('Invalid change.');
         $kind = $op['kind'] ?? '';
@@ -208,7 +239,8 @@ function apply_ops(array $doc, mixed $ops): array {
             $index = find_index($doc[$col], valid_id($value['id'] ?? null));
             $old = $index === null ? null : $doc[$col][$index];
             $clean = match ($kind) {
-                'condition' => clean_condition($value, $old),
+                'condition' => clean_condition($value, $old, $doc),
+                'docLabel' => clean_doc_label($value, $old),
                 'type' => clean_type($value, $old),
                 'tag' => clean_tag($value),
                 'entry' => clean_entry($value, $old, $doc),
@@ -219,6 +251,7 @@ function apply_ops(array $doc, mixed $ops): array {
             $index = find_index($doc[$col], $id);
             if ($index === null) fail('That record no longer exists.');
             if ($kind === 'type') fail('Entry types cannot be deleted. Archive the type instead; its entries stay.');
+            if ($kind === 'docLabel') fail('Document labels stay so older uploads keep their label. Rename it instead.');
             if ($kind === 'condition') {
                 foreach ($doc['entries'] as $e) if ($e['conditionId'] === $id) fail('Move or delete this condition’s entries first, or archive the condition.');
             }

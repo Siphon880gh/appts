@@ -21,7 +21,7 @@ class Server:
         self.proc = None
     def start(self):
         env = dict(os.environ, APPTS_STORAGE_DIR=self.storage_dir, PHP_CLI_SERVER_WORKERS='4')
-        self.proc = subprocess.Popen(['php', '-S', f'127.0.0.1:{self.port}', '-t', str(ROOT)], cwd=ROOT, env=env,
+        self.proc = subprocess.Popen(['php', '-d', 'upload_max_filesize=20M', '-d', 'post_max_size=24M', '-S', f'127.0.0.1:{self.port}', '-t', str(ROOT)], cwd=ROOT, env=env,
                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
         for _ in range(100):
             try:
@@ -50,9 +50,9 @@ class Client:
         return status, json.loads(raw or b'{}')
     def login(self, username, password):
         return self.api('login', {'username': username, 'password': password})
-    def upload(self, data, filename='x.png', mime='image/png'):
+    def upload(self, data, filename='x.png', mime='image/png', field='file'):
         b = 'ApptsBoundary'
-        body = (f'--{b}\r\nContent-Disposition: form-data; name="image"; filename="{filename}"\r\nContent-Type: {mime}\r\n\r\n').encode() + data + f'\r\n--{b}--\r\n'.encode()
+        body = (f'--{b}\r\nContent-Disposition: form-data; name="{field}"; filename="{filename}"\r\nContent-Type: {mime}\r\n\r\n').encode() + data + f'\r\n--{b}--\r\n'.encode()
         status, raw, _ = self.raw('api.php?action=upload', 'POST', body, {'Content-Type': f'multipart/form-data; boundary={b}', 'X-Appts': '1'})
         return status, json.loads(raw)
 

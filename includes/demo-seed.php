@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/domain.php';
+require_once __DIR__ . '/uploads.php';
 
 /**
  * Clearly synthetic records for the public demo account. Every person and condition is
@@ -63,6 +64,70 @@ function demo_doc(?string $today = null): array {
         $e('ins-rad-approved', 'cond-skin', 'insurance_event', 'Radiation authorization approved', ['date' => $d(-29), 'event_kind' => 'Approved', 'reference' => 'PA-DEMO-5512', 'letter' => 'letter-rad-auth'], ['tag-paperwork']),
         $e('disrupt-machine', 'cond-skin', 'disruption', 'Radiation machine down for repair', ['date' => $d(-6), 'what_happened' => 'Clinic called: treatment unit offline for maintenance (synthetic).', 'impact' => 'Equipment down', 'rescheduled_to' => $d(2), 'treatment' => 'treat-rad', 'resolved' => false], ['tag-follow-up']),
         $e('disrupt-cancel', 'cond-diabetes', 'disruption', 'Telehealth visit cancelled by clinic', ['date' => $d(-14), 'what_happened' => 'Provider out sick; visit moved.', 'impact' => 'Rescheduled', 'rescheduled_to' => $d(21), 'visit' => 'visit-a1c', 'resolved' => true]),
+        // Lab work is a visit kind too (t9u-appts): no doctor needed.
+        $e('visit-lab', 'cond-diabetes', 'visit', 'Fasting lab draw', ['date' => $d(-72), 'time' => '7:30 AM', 'visit_kind' => 'Lab work', 'location' => 'Sample Lab Services', 'status' => 'Completed', 'outcome' => 'A1C and lipid panel drawn (synthetic).'], ['tag-paperwork']),
     ];
+    // Synthetic documents (PDF + images) attached to entries and a condition.
+    foreach (demo_files() as $file) {
+        $info = inspect_file_bytes($file['bytes']);
+        $attachment = ['id' => $info['id'], 'name' => $file['name'], 'mime' => $info['mime'], 'kind' => $info['kind'], 'bytes' => $info['bytes'], 'label' => $file['label'], 'addedAt' => $d($file['daysAgo']) . 'T17:00:00+00:00'];
+        [$kind, $id] = $file['owner'];
+        $list = $kind === 'condition' ? 'conditions' : 'entries';
+        foreach ($doc[$list] as &$record) if ($record['id'] === $id) $record['attachments'][] = $attachment;
+        unset($record);
+    }
+    foreach ($doc['conditions'] as &$c) $c += ['attachments' => []];
+    unset($c);
     return $doc;
+}
+
+/** Minimal valid one-page PDF with plain text lines (Helvetica). */
+function synthetic_pdf(string $title, array $lines): string {
+    $esc = fn(string $t) => str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $t);
+    $stream = "BT /F1 18 Tf 56 780 Td (" . $esc($title) . ") Tj ET\n";
+    $y = 750;
+    foreach ($lines as $line) { $stream .= "BT /F1 11 Tf 56 $y Td (" . $esc($line) . ") Tj ET\n"; $y -= 18; }
+    $objects = [
+        '<< /Type /Catalog /Pages 2 0 R >>',
+        '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+        '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>',
+        "<< /Length " . strlen($stream) . " >>\nstream\n" . $stream . "endstream",
+        '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+    ];
+    $pdf = "%PDF-1.4\n";
+    $offsets = [];
+    foreach ($objects as $i => $body) { $offsets[] = strlen($pdf); $pdf .= ($i + 1) . " 0 obj\n$body\nendobj\n"; }
+    $xref = strlen($pdf);
+    $pdf .= "xref\n0 " . (count($objects) + 1) . "\n0000000000 65535 f \n";
+    foreach ($offsets as $o) $pdf .= sprintf("%010d 00000 n \n", $o);
+    return $pdf . "trailer\n<< /Size " . (count($objects) + 1) . " /Root 1 0 R >>\nstartxref\n$xref\n%%EOF\n";
+}
+
+/** Synthetic PNG "photo" card drawn with GD (falls back to a 1px PNG without GD). */
+function synthetic_png(string $caption, array $rgb): string {
+    if (!function_exists('imagecreatetruecolor')) return base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZioAAAAASUVORK5CYII=');
+    $im = imagecreatetruecolor(640, 420);
+    imagefilledrectangle($im, 0, 0, 640, 420, imagecolorallocate($im, ...$rgb));
+    imagefilledellipse($im, 320, 190, 300, 200, imagecolorallocate($im, min(255, $rgb[0] + 40), min(255, $rgb[1] + 30), min(255, $rgb[2] + 30)));
+    $ink = imagecolorallocate($im, 255, 255, 255);
+    imagestring($im, 5, 24, 360, $caption, $ink);
+    imagestring($im, 3, 24, 384, 'SYNTHETIC DEMO IMAGE - NOT A REAL PATIENT', $ink);
+    ob_start(); imagepng($im); $png = (string) ob_get_clean();
+    imagedestroy($im);
+    return $png;
+}
+
+function demo_files(): array {
+    return [
+        ['bytes' => synthetic_pdf('SAMPLE LAB REPORT (synthetic demo)', ['Patient: Demo Patient (not a real person)', 'Hemoglobin A1C: 6.9 %  (sample value)', 'LDL cholesterol: 96 mg/dL  (sample value)', 'Ordered by: Dr. Riley Testcase (sample)', 'This document is generated demo data.']), 'name' => 'Sample lab report.pdf', 'label' => 'lab', 'owner' => ['entry', 'visit-lab'], 'daysAgo' => -71],
+        ['bytes' => synthetic_pdf('SAMPLE CONSULTATION NOTE (synthetic demo)', ['Provider: Dr. Avery Example (sample)', 'Assessment: moderate osteoarthritis, left knee (synthetic)', 'Plan: physical therapy x12, MRI if no improvement.', 'This document is generated demo data.']), 'name' => 'Ortho consultation note.pdf', 'label' => 'consultation', 'owner' => ['entry', 'visit-knee-consult'], 'daysAgo' => -47],
+        ['bytes' => synthetic_pdf('SAMPLE PRIOR AUTHORIZATION (synthetic demo)', ['Reference: PA-DEMO-5512', 'Service: superficial radiation therapy, 20 sessions', 'Status: approved (synthetic)']), 'name' => 'Radiation prior auth.pdf', 'label' => 'insurance', 'owner' => ['entry', 'letter-rad-auth'], 'daysAgo' => -29],
+        ['bytes' => synthetic_png('Wound check - day 14 (sample)', [150, 92, 84]), 'name' => 'Wound check day 14.png', 'label' => 'progress', 'owner' => ['entry', 'event-wound-worse'], 'daysAgo' => -2],
+        ['bytes' => synthetic_png('Knee X-ray placeholder (sample)', [52, 64, 82]), 'name' => 'Knee x-ray (sample).png', 'label' => 'imaging', 'owner' => ['condition', 'cond-knee'], 'daysAgo' => -48],
+    ];
+}
+
+/** Write the demo's synthetic files into the demo account's uploads. */
+function write_demo_files(string $account): void {
+    foreach (demo_files() as $file) store_bytes($account, $file['bytes']);
 }

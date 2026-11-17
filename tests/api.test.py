@@ -3,6 +3,8 @@ storage blocking, concurrency, data-preserving type edits. Run: python3 tests/ap
 import concurrent.futures, json, pathlib, shutil, subprocess, sys, uuid
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from serve import ROOT, Server, Client, PNG, demo_password
+import subprocess as sp
+PDF = sp.run(['php', '-r', 'require "includes/demo-seed.php"; echo synthetic_pdf("Test lab", ["value 1"]);'], cwd=ROOT, capture_output=True, check=True).stdout
 
 checks = 0
 def ok(cond, what):
@@ -67,6 +69,29 @@ try:
     ok(demo.upload(b'<?php echo 1;', 'x.png')[0] == 400, 'fake image rejected')
     ok(demo.upload(b'<svg xmlns="http://www.w3.org/2000/svg"/>', 'x.svg', 'image/svg+xml')[0] == 400, 'svg rejected')
 
+    # Documents: PDF + image with a custom label created on the fly (G23, G24, G26)
+    s, r = wf.upload(PDF, 'cbc results.pdf', 'application/pdf'); ok(s == 201 and r['file']['kind'] == 'pdf', 'wf PDF upload'); wpdf = r['file']
+    s, r = wf.upload(PNG, 'photo.png'); ok(s == 201, 'wf image upload'); wimg = r['file']
+    ok(wf.upload(b'%PDF-1.4 not really', 'x.pdf', 'application/pdf')[0] == 400, 'truncated PDF rejected')
+    ok(wf.upload(b'MZ\x90\x00binary', 'x.pdf', 'application/pdf')[0] == 400, 'non-PDF with .pdf name rejected')
+    s, r = wf.api('ops', {'ops': [
+        {'op': 'put', 'kind': 'docLabel', 'value': {'id': 'lbl-cbc', 'label': 'Blood panel'}},
+        {'op': 'put', 'kind': 'entry', 'value': {'id': 'v1', 'conditionId': 'c-real', 'typeId': 'visit', 'title': 'Lab draw', 'values': {'date': '2026-11-20', 'visit_kind': 'Lab work'},
+            'attachments': [dict(wpdf, label='lbl-cbc'), dict(wimg, label='other')]}}]})
+    ok(s == 200, f'attach documents: {r}')
+    s, r = wf.api('ops', {'ops': [{'op': 'put', 'kind': 'condition', 'value': {'id': 'c-real', 'name': 'Condition A', 'attachments': [dict(wpdf, label='lbl-cbc')]}}]})
+    labels = {l['id']: l['label'] for l in r['doc']['docLabels']}
+    c = next(x for x in r['doc']['conditions'] if x['id'] == 'c-real')
+    ok(labels.get('lbl-cbc') == 'Blood panel' and c['attachments'][0]['label'] == 'lbl-cbc', 'custom label saved and reused on a second record (G24)')
+    ok(wf.api('ops', {'ops': [{'op': 'delete', 'kind': 'docLabel', 'id': 'lbl-cbc'}]})[0] == 400, 'labels cannot be deleted')
+    st, body, hdr = wf.raw(f"api.php?action=file&id={wpdf['id']}")
+    ok(st == 200 and body == PDF and hdr.get('Content-Type') == 'application/pdf', 'wf reads own PDF inline')
+    ok(demo.raw(f"api.php?action=file&id={wpdf['id']}")[0] == 404 and anon.raw(f"api.php?action=file&id={wpdf['id']}")[0] == 401, 'other account / anonymous cannot read the PDF (G26)')
+    demo_atts = [a for rec in ddoc['entries'] + ddoc['conditions'] for a in rec.get('attachments', [])]
+    ok(len(demo_atts) == 5 and all(demo.raw(f"api.php?action=file&id={a['id']}")[0] == 200 for a in demo_atts), 'demo synthetic documents are readable')
+    ok(all(wf.raw(f"api.php?action=file&id={a['id']}")[0] == 404 for a in demo_atts), 'wf cannot read demo documents (G26)')
+    ok(any(e['values'].get('visit_kind') == 'Lab work' and not e['values'].get('doctor') for e in ddoc['entries'] if e['typeId'] == 'visit'), 'lab-work visit without a doctor')
+
     # Storage is never served (G8)
     files = [p for p in storage.rglob('*') if p.is_file()]
     ok(any(p.name == 'wf.json.php' for p in files) and any(p.name == img + '.php' for p in files), 'data and image files exist on disk')
@@ -96,6 +121,8 @@ try:
     d = fresh.api('data')[1]['doc']
     ok(any(x['id'] == 'e-lab' for x in d['entries']) and any(x['id'] == 'ct-lab' for x in d['types']) and 'tag-new' in {t['id'] for t in d['tags']}, 'records persist across php -S restart (G7)')
 
+    v1 = next(x for x in d['entries'] if x['id'] == 'v1')
+    ok([a['label'] for a in v1['attachments']] == ['lbl-cbc', 'other'] and fresh.raw(f"api.php?action=file&id={wpdf['id']}")[1] == PDF and fresh.raw(f"api.php?action=file&id={wimg['id']}")[1] == PNG, 'PDF + image uploads persist across restart (G23)')
     # Demo reset only for demo
     ok(fresh.api('reset-demo', {})[0] == 403, 'wf cannot reset')
     # Only hashes on disk / in git

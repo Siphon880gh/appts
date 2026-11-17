@@ -90,11 +90,12 @@
     "kind": "select",
     "options": [
      "In person",
+     "Lab work",
+     "Imaging",
      "Telehealth",
      "Phone",
      "Urgent / ER",
-     "Procedure",
-     "Imaging / lab"
+     "Procedure"
     ]
    },
    {

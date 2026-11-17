@@ -3,9 +3,9 @@ declare(strict_types=1);
 // Storage, sanitizer, and server-side domain rules. Run: php tests/storage.test.php
 $dir = sys_get_temp_dir() . '/appts-storage-' . bin2hex(random_bytes(4));
 putenv("APPTS_STORAGE_DIR=$dir");
-require __DIR__ . '/../includes/domain.php';
-require __DIR__ . '/../includes/demo-seed.php';
-require __DIR__ . '/../includes/uploads.php';
+require_once __DIR__ . '/../includes/domain.php';
+require_once __DIR__ . '/../includes/demo-seed.php';
+require_once __DIR__ . '/../includes/uploads.php';
 $checks = 0;
 function ok(bool $cond, string $what): void { global $checks; $checks++; if (!$cond) { fwrite(STDERR, "FAIL: $what\n"); exit(1); } }
 function throws(callable $fn, string $what): void { try { $fn(); } catch (InvalidArgumentException) { ok(true, $what); return; } ok(false, $what); }
@@ -26,14 +26,20 @@ throws(fn() => storage_dir('../x'), 'storage path traversal rejected');
 // Images are guarded files too
 $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZioAAAAASUVORK5CYII=');
 $tmp = tempnam(sys_get_temp_dir(), 'png'); file_put_contents($tmp, $png);
-$img = store_image('wf', $tmp);
+$img = store_upload('wf', $tmp);
 ok($img['id'] === hash('sha256', $png) . '.png', 'image is content addressed');
-ok(str_starts_with((string) file_get_contents(image_file('wf', $img['id'])), STORAGE_GUARD), 'image file guarded');
-ok(read_image('wf', $img['id']) === $png, 'image round trip');
-ok(read_image('demo', $img['id']) === null, 'image isolated per account');
+ok(str_starts_with((string) file_get_contents(upload_file('wf', $img['id'])), STORAGE_GUARD), 'image file guarded');
+ok(read_upload('wf', $img['id']) === $png, 'image round trip');
+ok(read_upload('demo', $img['id']) === null, 'image isolated per account');
+$pdf = synthetic_pdf('Test', ['line']);
+$pdfInfo = store_bytes('wf', $pdf);
+ok($pdfInfo['kind'] === 'pdf' && str_ends_with($pdfInfo['id'], '.pdf') && read_upload('wf', $pdfInfo['id']) === $pdf, 'PDF stored and read back');
+ok((new finfo(FILEINFO_MIME_TYPE))->buffer($pdf) === 'application/pdf', 'synthetic PDF is a real PDF');
+throws(fn() => store_bytes('wf', '%PDF-' . str_repeat('x', 10)), 'fake PDF rejected');
+ok(count(list_uploads('wf')) === 2 && count(list_uploads('wf', true)) === 1, 'uploads listed; images-only filter');
 file_put_contents($tmp, '<?php echo 1; ?>');
-throws(fn() => store_image('wf', $tmp), 'non-image rejected');
-throws(fn() => image_file('wf', '../api.php'), 'image traversal rejected');
+throws(fn() => store_upload('wf', $tmp), 'non-image rejected');
+throws(fn() => upload_file('wf', '../api.php'), 'file traversal rejected');
 
 // Sanitizer
 $clean = sanitize_html('<p onclick="x()">Hi <script>alert(1)</script><a href="javascript:alert(1)">bad</a><a href="https://example.org">ok</a><img src="https://evil" onerror="x"><img data-image-id="' . $img['id'] . '" src="x"></p><iframe src="x"></iframe>');
@@ -44,6 +50,8 @@ ok(image_ids_in($clean) === [$img['id']], 'image ids extracted');
 // Domain rules
 $doc = new_doc();
 ok(count($doc['types']) === 10, 'ten built-in types seeded');
+ok(array_column($doc['docLabels'], 'label') === ['Lab', 'Consultation Note', 'PCP Note', 'Progress Note', 'Imaging', 'Discharge Summary', 'Insurance Letter', 'Other'], 'document labels seeded');
+ok(in_array('Lab work', $doc['types'][1]['fields'][3]['options'], true), 'visit kind includes Lab work');
 $doc = apply_ops($doc, [['op' => 'put', 'kind' => 'condition', 'value' => ['id' => 'c1', 'name' => 'Test condition']]]);
 $type = ['id' => 'custom-1', 'name' => 'Lab results', 'icon' => '', 'color' => '#123456', 'fields' => [
     ['id' => 'f-date', 'label' => 'Drawn', 'kind' => 'date'], ['id' => 'f-val', 'label' => 'Value', 'kind' => 'number'], ['id' => 'f-note', 'label' => 'Note', 'kind' => 'text']]];
@@ -67,6 +75,10 @@ throws(fn() => apply_ops($doc, [['op' => 'put', 'kind' => 'entry', 'value' => ['
 $doc = apply_ops($doc, [['op' => 'put', 'kind' => 'tag', 'value' => ['id' => 't1', 'label' => 'Paperwork']], ['op' => 'put', 'kind' => 'entry', 'value' => ['id' => 'e1', 'conditionId' => 'c1', 'typeId' => 'custom-1', 'title' => 'A1C', 'tagIds' => ['t1', 'ghost']]]]);
 ok($doc['entries'][0]['tagIds'] === ['t1'], 'tag created in same batch; unknown tag ids dropped');
 $doc = apply_ops($doc, [['op' => 'delete', 'kind' => 'tag', 'id' => 't1']]);
+$doc = apply_ops($doc, [['op' => 'put', 'kind' => 'docLabel', 'value' => ['id' => 'lbl-path', 'label' => 'Pathology report']], ['op' => 'put', 'kind' => 'entry', 'value' => ['id' => 'e1', 'conditionId' => 'c1', 'typeId' => 'custom-1', 'title' => 'A1C', 'attachments' => [['id' => $pdfInfo['id'], 'name' => 'path.pdf', 'label' => 'lbl-path'], ['id' => $img['id'], 'label' => 'ghost'], ['id' => '../x.pdf']]]]]);
+$att = $doc['entries'][0]['attachments'];
+ok(count($att) === 2 && $att[0]['label'] === 'lbl-path' && $att[0]['kind'] === 'pdf' && $att[1]['label'] === 'other' && $att[1]['mime'] === 'image/png', 'attachments cleaned; custom label kept; unknown label -> Other');
+throws(fn() => apply_ops($doc, [['op' => 'delete', 'kind' => 'docLabel', 'id' => 'lbl-path']]), 'doc labels cannot be deleted');
 ok($doc['entries'][0]['tagIds'] === [] && count($doc['entries']) === 1, 'deleting a tag keeps the entry');
 $typeIcon = $doc['types'][find_index($doc['types'], 'doctor')];
 $doc = apply_ops($doc, [['op' => 'put', 'kind' => 'type', 'value' => ['icon' => '<svg>', 'color' => 'red'] + $typeIcon]]);
@@ -83,6 +95,9 @@ foreach ($demo['entries'] as $v) $ops[] = ['op' => 'put', 'kind' => 'entry', 'va
 $rebuilt = apply_ops($rebuilt, $ops);
 ok(count($rebuilt['entries']) === count($demo['entries']), 'every demo entry validates');
 ok(count(array_unique(array_column($demo['entries'], 'typeId'))) === 10, 'demo covers all 10 types');
+$demoAtt = array_merge(...array_map(fn($r) => $r['attachments'] ?? [], array_merge($demo['entries'], $demo['conditions'])));
+ok(count(array_filter($demoAtt, fn($a) => $a['kind'] === 'pdf')) === 3 && count(array_filter($demoAtt, fn($a) => $a['kind'] === 'image')) === 2, 'demo has synthetic PDFs and images');
+ok(count($rebuilt['entries'][find_index($rebuilt['entries'], 'visit-lab')]['attachments']) === 1, 'demo attachments validate');
 $ids = array_column($demo['entries'], 'id');
 $linkCount = 0;
 foreach ($demo['types'] as $t) foreach ($t['fields'] as $f) if ($f['kind'] === 'link') {

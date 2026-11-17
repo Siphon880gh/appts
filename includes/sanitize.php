@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 const IMAGE_ID_PATTERN = '/^[a-f0-9]{64}\.(png|jpg|gif|webp)$/D';
+const FILE_ID_PATTERN = '/^[a-f0-9]{64}\.(png|jpg|gif|webp|pdf)$/D';
 
 /** Allowlist sanitizer for rich notes; mirrors cleanHTML() in js/richText.js. */
 function sanitize_html(string $html): string {

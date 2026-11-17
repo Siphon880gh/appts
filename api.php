@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
-require __DIR__ . '/includes/auth.php';
-require __DIR__ . '/includes/domain.php';
-require __DIR__ . '/includes/demo-seed.php';
-require __DIR__ . '/includes/uploads.php';
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/domain.php';
+require_once __DIR__ . '/includes/demo-seed.php';
+require_once __DIR__ . '/includes/uploads.php';
 
 if (!ini_get('date.timezone')) date_default_timezone_set('America/Los_Angeles');
 header('X-Content-Type-Options: nosniff');
@@ -27,10 +27,11 @@ function json_body(): array {
 /** Load the account document, creating it on first use (demo gets synthetic seed data). */
 function load_doc(array $account): array {
     $doc = read_doc($account['username']);
-    if ($doc !== null) return $doc;
+    if ($doc !== null) return normalize_doc($doc);
     return with_lock($account['username'], function () use ($account) {
         $doc = read_doc($account['username']);
         if ($doc === null) {
+            if ($account['isDemo']) write_demo_files($account['username']);
             $doc = $account['isDemo'] ? demo_doc() : new_doc();
             write_doc($account['username'], $doc);
         }
@@ -78,25 +79,35 @@ try {
 
     if ($action === 'reset-demo' && $method === 'POST') {
         if (!$account['isDemo']) reply(['error' => 'Only the demo account can be reset.'], 403);
-        $doc = with_lock($user, function () use ($user) { $doc = demo_doc(); write_doc($user, $doc); return $doc; });
+        $doc = with_lock($user, function () use ($user) { write_demo_files($user); $doc = demo_doc(); write_doc($user, $doc); return $doc; });
         reply(['doc' => $doc]);
     }
 
     if ($action === 'upload' && $method === 'POST') {
-        $file = $_FILES['image'] ?? null;
-        if (!$file || !is_scalar($file['error'] ?? null) || $file['error'] !== UPLOAD_ERR_OK) reply(['error' => 'Upload failed. Choose an image under 8 MB.'], 400);
+        $file = $_FILES['file'] ?? $_FILES['image'] ?? null;
+        if (!$file && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) reply(['error' => 'That file is larger than this server accepts. Start PHP with tools/serve.sh (20 MB limit).'], 413);
+        $error = is_array($file) ? ($file['error'] ?? UPLOAD_ERR_NO_FILE) : UPLOAD_ERR_NO_FILE;
+        if (in_array($error, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)) reply(['error' => 'That file is larger than this server accepts. Start PHP with tools/serve.sh (20 MB limit).'], 413);
+        if ($error !== UPLOAD_ERR_OK) reply(['error' => 'Upload failed. Choose a PDF (20 MB) or image (8 MB).'], 400);
         if (!is_uploaded_file($file['tmp_name'])) reply(['error' => 'Invalid uploaded file.'], 400);
-        reply(['image' => store_image($user, $file['tmp_name'])], 201);
+        $stored = store_upload($user, $file['tmp_name']);
+        $stored['name'] = mb_substr(basename((string) ($file['name'] ?? '')) ?: ($stored['kind'] === 'pdf' ? 'Document.pdf' : 'Image'), 0, 200);
+        reply(['file' => $stored, 'image' => $stored], 201);
     }
-    if ($action === 'images' && $method === 'GET') reply(['images' => list_images($user)]);
-    if ($action === 'image' && $method === 'GET') {
-        $bytes = read_image($user, (string) ($_GET['id'] ?? ''));
-        if ($bytes === null) reply(['error' => 'Image not found.'], 404);
-        $info = getimagesizefromstring($bytes);
+    if ($action === 'images' && $method === 'GET') reply(['images' => list_uploads($user, true)]);
+    if ($action === 'files' && $method === 'GET') reply(['files' => list_uploads($user)]);
+    if (($action === 'image' || $action === 'file') && $method === 'GET') {
+        $id = (string) ($_GET['id'] ?? '');
+        $bytes = read_upload($user, $id);
+        if ($bytes === null) reply(['error' => 'File not found.'], 404);
+        $info = inspect_file_bytes($bytes);
         header('Content-Type: ' . $info['mime']);
         header('Content-Length: ' . strlen($bytes));
         header('Cache-Control: private, max-age=86400');
-        header("Content-Security-Policy: default-src 'none'; sandbox");
+        $name = preg_replace('/[^A-Za-z0-9._ -]/', '', (string) ($_GET['name'] ?? '')) ?: $id;
+        header('Content-Disposition: ' . (isset($_GET['download']) ? 'attachment' : 'inline') . '; filename="' . $name . '"');
+        // Images are sandboxed; PDFs keep the browser's built-in viewer working (it breaks under a sandbox CSP).
+        if ($info['kind'] === 'image') header("Content-Security-Policy: default-src 'none'; sandbox");
         echo $bytes;
         exit;
     }
