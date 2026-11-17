@@ -143,3 +143,10 @@ const withLabel = { ...demo, docLabels: [...demo.docLabels, lbl.label] };
 ok(!D.findOrCreateLabel(withLabel, 'pathology').created, 'custom label reused');
 eq([D.defaultLabelFor({ id: 'visit' }, { visit_kind: 'Lab work' }), D.defaultLabelFor({ id: 'visit' }, {}), D.defaultLabelFor({ id: 'letter' })], ['lab', 'consultation', 'insurance'], 'default labels');
 console.log('PASS: document helpers (types, labels, filters, grouping).');
+{
+  const all = S.upcoming(demo, { from: TODAY }), one = S.upcoming(demo, { from: TODAY, onePerEntry: true });
+  const ids = one.map(e => e.entryId);
+  ok(ids.length === new Set(ids).size && one.length < all.length, 'Next up shows one event per entry');
+  ok(one.every((e, i) => i === 0 || one[i - 1].date <= e.date), 'Next up stays in date order');
+  console.log('PASS: next-up dedupe.');
+}

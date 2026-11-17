@@ -62,7 +62,7 @@ function conditionCard(c) {
 }
 function renderOverview() {
   const doc = store.doc, conds = liveConditions(), q = ui.overviewQuery;
-  const next = S.upcoming(doc, { limit: 6 });
+  const next = S.upcoming(doc, { limit: 6, onePerEntry: true });
   const others = doc.conditions.filter(c => c.status === 'archived');
   let body;
   if (q.trim()) {
@@ -98,7 +98,7 @@ function renderCondition(id) {
     return `<section class="type-section" id="sec-${esc(t.id)}"><div class="section-heading"><h2>${typeBadge(t)} ${esc(t.name)} <small>${list.length}</small></h2>${t.archived ? '<span class="badge archived">Archived type</span>' : `<button type="button" data-action="add-entry" data-id="${esc(t.id)}">+ Add ${esc(t.singular.toLowerCase())}</button>`}</div><ul class="entry-list">${list.map(entryRow).join('')}</ul></section>`;
   }).join('');
   const unused = S.activeTypes(doc).filter(t => !all.some(e => e.typeId === t.id));
-  const next = S.upcoming(doc, { conditionId: id, limit: 5 });
+  const next = S.upcoming(doc, { conditionId: id, limit: 5, onePerEntry: true });
   app.innerHTML = `<nav class="breadcrumb" aria-label="Breadcrumb"><a href="#/">← All conditions</a></nav>
     <div class="condition-head" style="border-bottom-color:${esc(c.color)}"><div><p class="eyebrow"><span class="badge ${esc(c.status)}">${esc(c.status)}</span>${c.diagnosedOn ? ` · Diagnosed ${esc(S.formatDate(c.diagnosedOn))}` : ''}</p><h1>${esc(c.name)}</h1>${c.summary ? `<p class="muted" style="margin:0">${esc(c.summary)}</p>` : ''}</div>
     <div class="actions"><label class="skip" for="add-type">Add entry of type</label><select id="add-type" style="width:auto;margin:0"><option value="">+ Add entry…</option>${S.activeTypes(doc).map(t => `<option value="${esc(t.id)}">${esc(t.singular)}</option>`).join('')}</select><button type="button" data-action="edit-condition" data-id="${esc(c.id)}">Edit condition</button><a class="button" href="#/timeline" data-action="timeline-for" data-id="${esc(c.id)}">Timeline</a></div></div>
@@ -251,7 +251,7 @@ function handleError(err) {
   if (err instanceof AuthError) { store.account = null; closeDialog(); renderLogin(); return notice(err.message); }
   notice(`Could not save: ${err.message}`);
 }
-window.addEventListener('hashchange', () => { if (store.account) { render(); app.focus({ preventScroll: true }); window.scrollTo(0, 0); } });
+window.addEventListener('hashchange', () => { if (store.account) { closeDialog(); closeDialog(document.querySelector('#viewer')); render(); app.focus({ preventScroll: true }); window.scrollTo(0, 0); } });
 window.addEventListener('focus', () => { if (store.account && !document.querySelector('dialog[open]') && !document.activeElement?.matches('input,textarea,select,[contenteditable=true]')) load().catch(() => {}); });
 
 async function load() {

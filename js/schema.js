@@ -140,8 +140,11 @@ export function allEvents(doc, { conditionId = '' } = {}) {
   return doc.entries.filter(e => conditionId ? e.conditionId === conditionId : live.has(e.conditionId)).flatMap(e => entryEvents(doc, e))
     .sort((a, b) => a.date.localeCompare(b.date) || (b.primary - a.primary) || a.title.localeCompare(b.title));
 }
-export function upcoming(doc, { from = today(), conditionId = '', limit = Infinity } = {}) {
-  return allEvents(doc, { conditionId }).filter(e => e.date >= from).slice(0, limit);
+export function upcoming(doc, { from = today(), conditionId = '', limit = Infinity, onePerEntry = false } = {}) {
+  const seen = new Set();
+  return allEvents(doc, { conditionId }).filter(e => e.date >= from)
+    .filter(e => !onePerEntry || (!seen.has(e.entryId) && seen.add(e.entryId)))
+    .slice(0, limit);
 }
 /** Types that actually appear in these events, in definition order (archived included if present). */
 export function timelineTypes(doc, events) {
