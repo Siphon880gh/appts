@@ -1,9 +1,92 @@
 {
   "run": "appts-build",
   "started": "2026-11-17T10:05:00-08:00",
-  "bar": ["accountability@3c0897e quality floor", "MyChart clarity for next visit / doctor / referral validity / appeal status"],
-  "rounds": [],
-  "gates": {"G1":"pending","G2":"pending","G3":"pending","G4":"pending","G5":"pending","G6":"pending","G7":"pending","G8":"pending","G9":"pending","G10":"pending","G11":"pending","G12":"pending","G13":"pending","G14":"pending","G15":"pending","G16":"pending","G17":"pending","G18":"pending","G19":"pending","G20":"pending","G21":"pending","G22":"pending","G23":"pending","G24":"pending","G25":"pending","G26":"pending"},
-  "openGaps": [],
-  "frozen": []
+  "bar": [
+    "accountability@3c0897e quality floor",
+    "MyChart clarity for next visit / doctor / referral validity / appeal status"
+  ],
+  "rounds": [
+    {
+      "round": 1,
+      "role": "builder",
+      "summary": "P0-P7: storage, accounts, domain, 10 types, views, entry types page, tags, icons/colors, rich notes, documents; tests"
+    },
+    {
+      "round": 1,
+      "role": "critic",
+      "verdict": "LOSE",
+      "gaps": [
+        "Next up repeated the same record (care date + next due) - noise vs MyChart bar",
+        "Navigating with a dialog open left it covering the new view",
+        "PDF viewer blank in headless screenshots"
+      ],
+      "note": "Self-run fresh-context pass judged on contract + screenshots only (no subagent tool available)"
+    },
+    {
+      "round": 2,
+      "role": "builder",
+      "summary": "Next up one event per record (overview + condition sidebar), dialogs close on hashchange, screenshots via installed Chrome so PDFs render, lazy-image wait in test"
+    },
+    {
+      "round": 2,
+      "role": "critic",
+      "verdict": "LOSE",
+      "gaps": [
+        "At 390px a condition's Next up rendered below every record group"
+      ]
+    },
+    {
+      "round": 3,
+      "role": "builder",
+      "summary": "Narrow screens put the condition sidebar (Next up, notes) first"
+    },
+    {
+      "round": 3,
+      "role": "critic",
+      "verdict": "WIN",
+      "note": "All gates G1-G26 pass; overview/condition/timeline/documents/types readable at a glance; remaining items are documented gaps, not contract failures"
+    }
+  ],
+  "gates": {
+    "G1": "pass",
+    "G2": "pass",
+    "G3": "pass",
+    "G4": "pass",
+    "G5": "pass",
+    "G6": "pass",
+    "G7": "pass",
+    "G8": "pass",
+    "G9": "pass",
+    "G10": "pass",
+    "G11": "pass",
+    "G12": "pass",
+    "G13": "pass",
+    "G14": "pass",
+    "G15": "pass",
+    "G16": "pass",
+    "G17": "pass",
+    "G18": "pass",
+    "G19": "pass",
+    "G20": "pass",
+    "G21": "pass",
+    "G22": "pass",
+    "G23": "pass",
+    "G24": "pass",
+    "G25": "pass",
+    "G26": "pass"
+  },
+  "openGaps": [
+    "Critic is a self-run fresh-context pass, not an independent subagent",
+    "wf starts with the publicly shown demo password - run php tools/set-password.php wf",
+    "PDF responses are not CSP-sandboxed (Chrome PDF viewer breaks under sandbox)",
+    "Plain php -S caps uploads at 2 MB; use tools/serve.sh",
+    "PDF thumbnails are a generic tile (no server-side rendering)",
+    "No export/import"
+  ],
+  "frozen": [
+    "accountability quality floor",
+    "no new dependencies"
+  ],
+  "evidence": "sh tests/run-all.sh --screens (2026-11-17 PST): php -l clean; storage 89 PASS; schema 721 + documents + next-up PASS; api 81 PASS; browser 41 PASS (installed Chrome channel)",
+  "finished": "2026-11-17"
 }
