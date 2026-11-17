@@ -1,0 +1,607 @@
+[
+ {
+  "id": "doctor",
+  "name": "Doctors & specialists",
+  "singular": "Doctor",
+  "icon": "stethoscope",
+  "color": "#2f5d8a",
+  "titleLabel": "Name",
+  "primaryDateField": "",
+  "fields": [
+   {
+    "id": "specialty",
+    "label": "Specialty",
+    "kind": "text"
+   },
+   {
+    "id": "role",
+    "label": "Role",
+    "kind": "select",
+    "options": [
+     "Primary care",
+     "Specialist",
+     "Surgeon",
+     "Therapist",
+     "Nurse / NP / PA",
+     "Other"
+    ]
+   },
+   {
+    "id": "practice",
+    "label": "Clinic or practice",
+    "kind": "text"
+   },
+   {
+    "id": "phone",
+    "label": "Phone",
+    "kind": "text"
+   },
+   {
+    "id": "fax",
+    "label": "Fax",
+    "kind": "text"
+   },
+   {
+    "id": "address",
+    "label": "Address",
+    "kind": "longtext"
+   },
+   {
+    "id": "portal",
+    "label": "Portal or website",
+    "kind": "text"
+   },
+   {
+    "id": "in_network",
+    "label": "In network",
+    "kind": "checkbox"
+   }
+  ]
+ },
+ {
+  "id": "visit",
+  "name": "Visits",
+  "singular": "Visit",
+  "icon": "calendar",
+  "color": "#a4541c",
+  "titleLabel": "Visit",
+  "primaryDateField": "date",
+  "fields": [
+   {
+    "id": "date",
+    "label": "Visit date",
+    "kind": "date",
+    "required": true
+   },
+   {
+    "id": "time",
+    "label": "Time",
+    "kind": "text"
+   },
+   {
+    "id": "doctor",
+    "label": "Doctor",
+    "kind": "link",
+    "target": "doctor"
+   },
+   {
+    "id": "visit_kind",
+    "label": "Visit kind",
+    "kind": "select",
+    "options": [
+     "In person",
+     "Telehealth",
+     "Phone",
+     "Urgent / ER",
+     "Procedure",
+     "Imaging / lab"
+    ]
+   },
+   {
+    "id": "location",
+    "label": "Location",
+    "kind": "text"
+   },
+   {
+    "id": "status",
+    "label": "Status",
+    "kind": "select",
+    "options": [
+     "Scheduled",
+     "Completed",
+     "Cancelled",
+     "Rescheduled",
+     "No-show"
+    ]
+   },
+   {
+    "id": "questions",
+    "label": "Questions to ask",
+    "kind": "longtext"
+   },
+   {
+    "id": "outcome",
+    "label": "Outcome / summary",
+    "kind": "longtext"
+   },
+   {
+    "id": "follow_up",
+    "label": "Follow-up by",
+    "kind": "date"
+   }
+  ]
+ },
+ {
+  "id": "letter",
+  "name": "Authorization & referral letters",
+  "singular": "Letter",
+  "icon": "document",
+  "color": "#5b4a99",
+  "titleLabel": "Letter",
+  "primaryDateField": "issued",
+  "fields": [
+   {
+    "id": "letter_kind",
+    "label": "Kind",
+    "kind": "select",
+    "options": [
+     "Referral",
+     "Prior authorization",
+     "Letter of medical necessity",
+     "Records request",
+     "Other"
+    ]
+   },
+   {
+    "id": "status",
+    "label": "Status",
+    "kind": "select",
+    "options": [
+     "Requested",
+     "Pending",
+     "Approved",
+     "Denied",
+     "Expired"
+    ]
+   },
+   {
+    "id": "issued",
+    "label": "Issued",
+    "kind": "date"
+   },
+   {
+    "id": "valid_until",
+    "label": "Valid until",
+    "kind": "date"
+   },
+   {
+    "id": "reference",
+    "label": "Reference / auth #",
+    "kind": "text"
+   },
+   {
+    "id": "visits_approved",
+    "label": "Visits approved",
+    "kind": "number"
+   },
+   {
+    "id": "doctor",
+    "label": "Requested by",
+    "kind": "link",
+    "target": "doctor"
+   },
+   {
+    "id": "visit",
+    "label": "For visit",
+    "kind": "link",
+    "target": "visit"
+   }
+  ]
+ },
+ {
+  "id": "appeal",
+  "name": "Insurance appeals & coordination",
+  "singular": "Appeal",
+  "icon": "scale",
+  "color": "#8f2f45",
+  "titleLabel": "Case",
+  "primaryDateField": "opened",
+  "fields": [
+   {
+    "id": "insurer",
+    "label": "Insurer",
+    "kind": "text"
+   },
+   {
+    "id": "case_number",
+    "label": "Claim / case #",
+    "kind": "text"
+   },
+   {
+    "id": "status",
+    "label": "Status",
+    "kind": "select",
+    "options": [
+     "Open",
+     "Submitted",
+     "Escalated",
+     "Won",
+     "Lost",
+     "Closed"
+    ]
+   },
+   {
+    "id": "opened",
+    "label": "Opened",
+    "kind": "date"
+   },
+   {
+    "id": "deadline",
+    "label": "Deadline",
+    "kind": "date"
+   },
+   {
+    "id": "amount",
+    "label": "Amount in dispute ($)",
+    "kind": "number"
+   },
+   {
+    "id": "contact",
+    "label": "Rep / contact",
+    "kind": "text"
+   },
+   {
+    "id": "visit",
+    "label": "Related visit",
+    "kind": "link",
+    "target": "visit"
+   },
+   {
+    "id": "call_log",
+    "label": "Call log",
+    "kind": "longtext"
+   }
+  ]
+ },
+ {
+  "id": "supply",
+  "name": "Medical supplies",
+  "singular": "Supply",
+  "icon": "box",
+  "color": "#3f6b3a",
+  "titleLabel": "Item",
+  "primaryDateField": "ordered",
+  "fields": [
+   {
+    "id": "supplier",
+    "label": "Supplier / DME",
+    "kind": "text"
+   },
+   {
+    "id": "quantity",
+    "label": "Quantity",
+    "kind": "number"
+   },
+   {
+    "id": "status",
+    "label": "Status",
+    "kind": "select",
+    "options": [
+     "Needed",
+     "Ordered",
+     "Delivered",
+     "Backordered"
+    ]
+   },
+   {
+    "id": "ordered",
+    "label": "Ordered",
+    "kind": "date"
+   },
+   {
+    "id": "reorder",
+    "label": "Reorder by",
+    "kind": "date"
+   },
+   {
+    "id": "doctor",
+    "label": "Prescribed by",
+    "kind": "link",
+    "target": "doctor"
+   },
+   {
+    "id": "covered",
+    "label": "Covered by insurance",
+    "kind": "checkbox"
+   }
+  ]
+ },
+ {
+  "id": "care",
+  "name": "Care",
+  "singular": "Care",
+  "icon": "bandage",
+  "color": "#9a6a00",
+  "titleLabel": "Care task",
+  "primaryDateField": "date",
+  "fields": [
+   {
+    "id": "care_kind",
+    "label": "Kind",
+    "kind": "select",
+    "options": [
+     "Wound care",
+     "Dressing change",
+     "PT / OT exercises",
+     "Home health",
+     "Medication",
+     "Other"
+    ]
+   },
+   {
+    "id": "date",
+    "label": "Date",
+    "kind": "date"
+   },
+   {
+    "id": "next_due",
+    "label": "Next due",
+    "kind": "date"
+   },
+   {
+    "id": "performed_by",
+    "label": "Performed by",
+    "kind": "text"
+   },
+   {
+    "id": "doctor",
+    "label": "Ordered by",
+    "kind": "link",
+    "target": "doctor"
+   },
+   {
+    "id": "instructions",
+    "label": "Instructions",
+    "kind": "longtext"
+   },
+   {
+    "id": "done",
+    "label": "Done",
+    "kind": "checkbox"
+   }
+  ]
+ },
+ {
+  "id": "treatment",
+  "name": "Treatment",
+  "singular": "Treatment",
+  "icon": "radiation",
+  "color": "#245e6b",
+  "titleLabel": "Treatment",
+  "primaryDateField": "start",
+  "fields": [
+   {
+    "id": "modality",
+    "label": "Modality",
+    "kind": "select",
+    "options": [
+     "Radiation",
+     "Chemotherapy",
+     "Infusion",
+     "Surgery",
+     "Physical therapy",
+     "Medication",
+     "Other"
+    ]
+   },
+   {
+    "id": "status",
+    "label": "Status",
+    "kind": "select",
+    "options": [
+     "Planned",
+     "Active",
+     "Paused",
+     "Completed"
+    ]
+   },
+   {
+    "id": "start",
+    "label": "Start",
+    "kind": "date"
+   },
+   {
+    "id": "end",
+    "label": "End",
+    "kind": "date"
+   },
+   {
+    "id": "sessions_planned",
+    "label": "Sessions planned",
+    "kind": "number"
+   },
+   {
+    "id": "sessions_done",
+    "label": "Sessions completed",
+    "kind": "number"
+   },
+   {
+    "id": "doctor",
+    "label": "Treating doctor",
+    "kind": "link",
+    "target": "doctor"
+   },
+   {
+    "id": "facility",
+    "label": "Facility",
+    "kind": "text"
+   }
+  ]
+ },
+ {
+  "id": "clinical_event",
+  "name": "Clinical events",
+  "singular": "Clinical event",
+  "icon": "pulse-alert",
+  "color": "#b42318",
+  "titleLabel": "What happened",
+  "primaryDateField": "date",
+  "fields": [
+   {
+    "id": "date",
+    "label": "Date",
+    "kind": "date",
+    "required": true
+   },
+   {
+    "id": "what_changed",
+    "label": "What changed",
+    "kind": "longtext"
+   },
+   {
+    "id": "severity",
+    "label": "Severity",
+    "kind": "select",
+    "options": [
+     "Mild",
+     "Moderate",
+     "Severe",
+     "Emergency"
+    ]
+   },
+   {
+    "id": "visit",
+    "label": "Related visit",
+    "kind": "link",
+    "target": "visit"
+   },
+   {
+    "id": "doctor",
+    "label": "Doctor notified",
+    "kind": "link",
+    "target": "doctor"
+   },
+   {
+    "id": "resolved",
+    "label": "Resolved",
+    "kind": "checkbox"
+   }
+  ]
+ },
+ {
+  "id": "insurance_event",
+  "name": "Insurance events",
+  "singular": "Insurance event",
+  "icon": "receipt",
+  "color": "#7a2e8a",
+  "titleLabel": "Event",
+  "primaryDateField": "date",
+  "fields": [
+   {
+    "id": "date",
+    "label": "Date",
+    "kind": "date",
+    "required": true
+   },
+   {
+    "id": "event_kind",
+    "label": "Event",
+    "kind": "select",
+    "options": [
+     "Denied",
+     "Approved",
+     "Pending",
+     "Info requested",
+     "Partially approved",
+     "Claim paid",
+     "Bill received"
+    ]
+   },
+   {
+    "id": "reference",
+    "label": "Reference / claim #",
+    "kind": "text"
+   },
+   {
+    "id": "amount",
+    "label": "Amount ($)",
+    "kind": "number"
+   },
+   {
+    "id": "letter",
+    "label": "Related letter",
+    "kind": "link",
+    "target": "letter"
+   },
+   {
+    "id": "appeal",
+    "label": "Related appeal",
+    "kind": "link",
+    "target": "appeal"
+   },
+   {
+    "id": "respond_by",
+    "label": "Respond by",
+    "kind": "date"
+   }
+  ]
+ },
+ {
+  "id": "disruption",
+  "name": "Care disruptions",
+  "singular": "Care disruption",
+  "icon": "cone",
+  "color": "#6b5b2a",
+  "titleLabel": "What happened",
+  "primaryDateField": "date",
+  "fields": [
+   {
+    "id": "date",
+    "label": "Date",
+    "kind": "date",
+    "required": true
+   },
+   {
+    "id": "what_happened",
+    "label": "What happened",
+    "kind": "longtext"
+   },
+   {
+    "id": "impact",
+    "label": "Impact",
+    "kind": "select",
+    "options": [
+     "Appointment cancelled",
+     "Rescheduled",
+     "Treatment delayed",
+     "Equipment down",
+     "Supply delay",
+     "Transport problem",
+     "Other"
+    ]
+   },
+   {
+    "id": "rescheduled_to",
+    "label": "Rescheduled to",
+    "kind": "date"
+   },
+   {
+    "id": "visit",
+    "label": "Affected visit",
+    "kind": "link",
+    "target": "visit"
+   },
+   {
+    "id": "treatment",
+    "label": "Affected treatment",
+    "kind": "link",
+    "target": "treatment"
+   },
+   {
+    "id": "resolved",
+    "label": "Resolved",
+    "kind": "checkbox"
+   }
+  ]
+ }
+]
