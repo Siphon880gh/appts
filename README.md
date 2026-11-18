@@ -6,7 +6,7 @@ By Weng (Weng Fei Fung)
 <a target="_blank" href="https://www.linkedin.com/in/weng-fung/" rel="nofollow"><img src="https://img.shields.io/badge/LinkedIn-blue?style=flat&logo=linkedin&labelColor=blue" alt="Linked-In" style="max-width:10ch;"></a>
 <a target="_blank" href="https://www.youtube.com/@WengTeachesCode/" rel="nofollow"><img src="https://img.shields.io/badge/Youtube-red?style=flat&logo=youtube&labelColor=red" alt="Youtube" style="max-width:10ch;"></a>
 
-A personal medical-visit tracker organized by **condition**. For each condition you keep the doctors and specialists, visits (including lab work), authorization and referral letters, insurance appeals, medical supplies, care routines, treatments, clinical events, insurance events, and care disruptions, all linked together. A timeline and an upcoming view show everything that's dated, and a Documents area collects every uploaded PDF and image.
+A personal medical-visit tracker organized by **condition**. For each condition you keep the doctors and specialists, visits (including lab work), authorization and referral letters, insurance appeals, medical supplies, care routines, treatments, clinical events, insurance events, and other care disruptions, all linked together. A timeline and an upcoming view show everything that's dated, and a Documents area collects every uploaded PDF and image.
 
 The design keeps the accountability app's training-log look (navy ink, warm paper, condensed headings) with a sky-blue accent. It aims for patient-portal clarity: what's next, who you're seeing, and whether referrals and appeals are on track. The design rules are in [.impeccable.md](.impeccable.md).
 
@@ -68,9 +68,13 @@ Open a record to see its details. Each record shows its link fields (for example
 | Treatment | Course, start and end dates, sessions |
 | Clinical events | Severity, related visit (for example, "wound edges worse") |
 | Insurance events | Outcome, reference, related letter (for example, "claim denied") |
-| Care disruptions | What broke, affected treatment, rescheduled date (for example, "radiation machine down") |
+| Other care disruptions | What broke, affected treatment, rescheduled date (for example, "radiation machine down") |
 
-"Care disruptions" is the name chosen for the requested "logistics event". Every date field becomes a timeline event.
+"Other care disruptions" is the name for the requested "logistics event" (renamed from "Care disruptions" in t11u). Every date field becomes a timeline event.
+
+### Free-text statuses
+
+Every built-in **Status** field (Visits, letters, appeals, supplies, Treatment) lets you pick a preset or choose **Free text…** and type your own, such as "Waiting on fax from PCP". Typed values are stored as the status. They show on rows, in details, and on the timeline, search and filter like presets, and come back under **Used before** next time. Any select field, including your own, can turn this on with **Allow free text** on the Entry types page.
 
 ## Timeline and Upcoming
 

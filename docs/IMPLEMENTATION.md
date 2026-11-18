@@ -19,7 +19,9 @@ Appts was cloned from `app/motivation/accountability` (base commit `3c0897e`) an
 | Decision | Why |
 | --- | --- |
 | Data files are guarded `.php` | `php -S` without a router would otherwise serve `storage/` files directly |
-| "Care disruptions" for the logistics event | It describes the patient impact (a broken machine, a cancelled slot) and isn't confused with shipping |
+| "Other care disruptions" for the logistics event | Weng's rename (t11u) of the original "Care disruptions": the patient impact (a broken machine, a cancelled slot), not shipping |
+| Free text on select fields (`allowCustom`) | Weng (t11u): every built-in Status field offers presets plus typed text. The server stores any text, so presets are only a UI aid; typed values are suggested again |
+| Document version 2 + migration on load | Existing accounts (including `wf`) get the rename and the free-text flags without touching records. It's idempotent, runs under the lock, backs up first, and keeps user renames. `tools/migrate-dry-run.php` previews it on a copy |
 | Every date field produces a timeline event | One rule covers built-in and custom types alike |
 | Next up shows one event per record | Showing the same record twice (care date plus next due) was noise; the full Upcoming view keeps every event |
 | `wf` shares the demo password at first | As requested; `tools/set-password.php` changes it |
