@@ -10,6 +10,16 @@ declare(strict_types=1);
 
 const THUMB_WIDTH = 480;
 
+/** id => version (mtime) of every stored page-1 thumbnail for this account (t68u: cache-busting ?v=). */
+function thumb_versions(string $account): array {
+    $out = [];
+    foreach (glob(storage_dir('uploads', $account) . '/*.thumb.jpg.php') ?: [] as $f) {
+        $sha = substr(basename($f), 0, 64);
+        if (preg_match('/^[a-f0-9]{64}$/D', $sha)) $out[$sha . '.pdf'] = (string) filemtime($f);
+    }
+    return $out;
+}
+
 function thumb_file(string $account, string $pdfId): string {
     if (!preg_match('/^[a-f0-9]{64}\.pdf$/D', $pdfId)) throw new InvalidArgumentException('Invalid file identifier.');
     return storage_dir('uploads', $account) . '/' . substr($pdfId, 0, 64) . '.thumb.jpg.php';

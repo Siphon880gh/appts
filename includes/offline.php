@@ -26,6 +26,8 @@ function offline_plan(string $account, array $doc): array {
         if (strpos($f, 'includes/') === 0 || $f === 'index.php' || $f === 'sw.php') continue;
         $shell[] = ['url' => $f === 'manifest.php' ? "manifest.php?v=$v" : $f, 'bytes' => $f === 'manifest.php' ? 600 : (int) filesize("$root/$f")];
     }
+    // pdf.js (t68u): the in-browser PDF preview must work from the saved copy too.
+    foreach (['vendor/pdfjs/pdf.min.js', 'vendor/pdfjs/pdf.worker.min.js'] as $f) if (is_file("$root/$f")) $shell[] = ['url' => $f, 'bytes' => (int) filesize("$root/$f")];
     foreach (['assets/icon.svg', 'assets/icon-192.png', 'assets/icon-512.png'] as $f) if (is_file("$root/$f")) $shell[] = ['url' => $f, 'bytes' => (int) filesize("$root/$f")];
 
     $docBytes = strlen((string) json_encode($doc, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
@@ -34,7 +36,9 @@ function offline_plan(string $account, array $doc): array {
         ['url' => 'api.php?action=data', 'bytes' => $docBytes + 300],
         ['url' => 'api.php?action=images', 'bytes' => 2000],
         ['url' => 'api.php?action=files', 'bytes' => 2000],
+        ['url' => 'api.php?action=thumbs', 'bytes' => 2000],
     ];
+    $thumbs = thumb_versions($account);
     $views = ['index.php#/', 'index.php#/upcoming', 'index.php#/timeline', 'index.php#/documents', 'index.php#/types'];
 
     $conditions = [];
@@ -54,7 +58,10 @@ function offline_plan(string $account, array $doc): array {
             if (!preg_match(FILE_ID_PATTERN, $id)) continue;
             $b = upload_bytes($account, $id);
             if ($b <= 0) continue; // referenced but not stored for this account: nothing to save
-            $uploads[] = ['id' => $id, 'url' => 'api.php?action=file&id=' . rawurlencode($id), 'kind' => substr($id, -4) === '.pdf' ? 'pdf' : 'image', 'bytes' => $b];
+            $u = ['id' => $id, 'url' => 'api.php?action=file&id=' . rawurlencode($id), 'kind' => substr($id, -4) === '.pdf' ? 'pdf' : 'image', 'bytes' => $b];
+            // The PDF's page-1 preview, versioned so a newer one replaces a stale copy (t68u).
+            if (isset($thumbs[$id])) $u['thumb'] = ['url' => 'api.php?action=thumb&id=' . rawurlencode($id) . '&v=' . $thumbs[$id], 'bytes' => (int) @filesize(thumb_file($account, $id))];
+            $uploads[] = $u;
             $bytes += $b;
             $all[$id] = $b;
         }

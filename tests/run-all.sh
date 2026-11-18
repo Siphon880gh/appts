@@ -42,4 +42,5 @@ step offline 1 python3 tests/offline.test.py "${1:---no-screens}"
 step "disruptions + mentions" 1 python3 tests/disruptions-mentions.test.py "${1:---no-screens}"
 step "UI extras (dialogs, previews, filters, memo)" 1 python3 tests/ui-extras.test.py "${1:---no-screens}"
 step "PDF previews (server + browser fallback)" 1 python3 tests/thumbs.test.py "${1:---no-screens}"
+step "Cache refresh (versioned thumbs, Offline mode invalidation)" 1 python3 tests/cache-refresh.test.py
 echo "ALL GATES PASS"

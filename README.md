@@ -152,6 +152,10 @@ Accepted: PDF up to 20 MB (it must really be a PDF), and PNG, JPEG, GIF, or WebP
 
 PDFs show their first page instead of a plain "PDF" tile, in the Documents grid, entry attachments, and the 📎 hover gallery. When a PDF is uploaded (in the app or through `tools/intake.php`) the server saves a page-1 JPEG next to it (`<sha>.thumb.jpg`, guarded like every upload) using the first generator it finds: the Imagick extension, the Ghostscript `gs` CLI, or poppler's `pdftoppm`. Nothing breaks if none exists. `api.php?action=thumb&id=<id>` (or `api.php?thumb=<id>`) serves it and makes it on demand if it's missing. When the server has no generator, as on some shared hosting, the browser draws page 1 with the vendored pdf.js (`vendor/pdfjs`, static files with no build step) and caches it in IndexedDB, which is cleared on sign-out. Backfill existing PDFs with `php tools/thumbs.php <account> [...]`, or check which generator is available with `php tools/thumbs.php --check`.
 
+Previews never go stale: every thumb URL carries `&v=<the stored preview's mtime>` (the list comes from `api.php?action=thumbs`), so a newly made preview is a new URL; a versioned URL is cached as immutable, an unversioned one revalidates by ETag, and a missing one is a 404 that is never cached. A browser-drawn preview is only cached when it is a real image. Turning Offline mode on, every sync, and every new release first drop **all** `appts-offline-*` caches and the IndexedDB preview cache, then save fresh copies, previews and pdf.js included.
+
+Documents lists **one card per stored file** (files are named by their SHA-256), so a file attached to several records appears once and names every record it belongs to.
+
 ## Extensible entry types
 
 **Entry types** lets you rename any type, choose its icon and color, add, remove, or reorder fields, and add new types. Field kinds are text, long text, date, number, select, checkbox, and link to another record. A custom type with no icon gets a placeholder icon. Badge text is always black or white, whichever reads better.
@@ -221,8 +225,9 @@ sh tests/run-all.sh --screens       # also regenerate docs/screenshots
 | `tests/merge.test.mjs` | Offline sync merge rules: local apply, overlay, three-way merge, delete/restore cases, op order, id remap |
 | `tests/disruptions-mentions.test.mjs` | Disruptions rule (denials in, approvals out, custom types, free text), Edit Disruption toggles, filter sync merge; @ libraries, search, and trigger |
 | `tests/thumbs.test.php` | PDF thumbnails: generator detection, each available generator, upload-time and lazy generation, no-generator path, backfill tool. Runs on PHP 8 and 7.4. |
+| `tests/cache-refresh.test.py` | Playwright: versioned thumb URLs (`?v=`, ETag, 304), and Offline mode dropping every cache and the preview cache on turn-on, sync, and a new release, then re-saving previews |
 | `tests/thumbs.test.py` | Playwright: server previews in Documents, entry attachments, and the 📎 gallery; the thumb endpoint; the pdf.js fallback with its IndexedDB cache |
-| `tests/ui-extras.test.py` | Playwright: every modal and drawer closes on an outside click (with the unsaved-changes guard), Clinical significance, ★/📎 icons, Quick preview, gallery, filter panel, description popover, Memo |
+| `tests/ui-extras.test.py` | Playwright: every modal and drawer closes on an outside click (with the unsaved-changes guard), Clinical significance (collapsed bar, bottom panel, key-phrase jumps, iPad), ★/📎 icons, Quick preview, gallery, filter panel, description popover, Memo |
 | `tests/disruptions-mentions.test.py` | Playwright: Disruptions preset, Edit Disruption mode (gray, add, remove, persist, server check), the @ menu (hover, search, keyboard, Escape), saved links opening their records, 375px |
 
 The browser test needs Python Playwright with Chromium. `--screens` uses installed Google Chrome when it's present (`APPTS_BROWSER_CHANNEL=chrome`, temporary profile) because Playwright's headless shell can't render PDFs. Tests use temporary storage and never touch `storage/`.

@@ -60,7 +60,7 @@ try:
     urls = [x['url'] for x in plan['shell']]
     ok(all(u in urls for u in ['./', 'index.php', 'styles.css', 'js/app.js', 'js/offline.js', f"manifest.php?v={plan['version']}"]), 'plan lists the shell: page, styles, every module, manifest (G41)')
     ok(all(x['bytes'] > 0 for x in plan['shell']), 'every shell item has a byte size')
-    ok([d['url'] for d in plan['data']] == ['api.php?action=session', 'api.php?action=data', 'api.php?action=images', 'api.php?action=files'], 'plan lists the account data through the API (G41)')
+    ok([d['url'] for d in plan['data']] == ['api.php?action=session', 'api.php?action=data', 'api.php?action=images', 'api.php?action=files', 'api.php?action=thumbs'], 'plan lists the account data through the API (G41)')
     ok({'index.php#/', 'index.php#/timeline', 'index.php#/upcoming', 'index.php#/documents', 'index.php#/types'} <= set(plan['views']) and sum(v.startswith('index.php#/c/') for v in plan['views']) == len(plan['conditions']) == 3, 'plan lists a URL for every view, one per condition (G41)')
     ups = [u for c in plan['conditions'] for u in c['uploads']]
     ok(ups and all(u['bytes'] > 0 and u['url'] == f"api.php?action=file&id={u['id']}" for u in ups), 'uploads are listed per condition with byte sizes')

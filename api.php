@@ -103,15 +103,21 @@ try {
     }
     if ($action === 'images' && $method === 'GET') reply(['images' => list_uploads($user, true)]);
     if ($action === 'files' && $method === 'GET') reply(['files' => list_uploads($user)]);
+    if ($action === 'thumbs' && $method === 'GET') reply(['thumbs' => (object) thumb_versions($user)]); // t68u
     if ($action === 'thumb' && $method === 'GET') {
         // Page-1 JPEG of a PDF (t64u): cached, or generated now if this server has a generator.
         $id = (string) ($_GET['id'] ?? '');
         if (!preg_match('/^[a-f0-9]{64}\.pdf$/D', $id) || read_upload($user, $id) === null) reply(['error' => 'File not found.'], 404);
         $jpg = read_pdf_thumb($user, $id);
         if ($jpg === null) reply(['error' => 'No thumbnail on this server.'], 404);
+        // t68u: the URL carries ?v=<thumb mtime>, so a regenerated preview is a new URL; the ETag lets a
+        // browser revalidate an unversioned URL instead of keeping a stale picture.
+        $etag = '"' . substr(sha1($jpg), 0, 16) . '"';
+        if (trim((string) ($_SERVER['HTTP_IF_NONE_MATCH'] ?? '')) === $etag) { http_response_code(304); header('ETag: ' . $etag); exit; }
         header('Content-Type: image/jpeg');
         header('Content-Length: ' . strlen($jpg));
-        header('Cache-Control: private, max-age=86400');
+        header('ETag: ' . $etag);
+        header('Cache-Control: ' . (isset($_GET['v']) && $_GET['v'] !== '' && $_GET['v'] !== '0' ? 'private, max-age=31536000, immutable' : 'private, no-cache'));
         header("Content-Security-Policy: default-src 'none'; sandbox");
         echo $jpg;
         exit;

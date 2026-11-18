@@ -5,7 +5,19 @@
 import { fileURL } from './images.js';
 
 const PDF_ID = /^[a-f0-9]{64}\.pdf$/;
-export const thumbURL = id => PDF_ID.test(id || '') ? `api.php?action=thumb&id=${encodeURIComponent(id)}` : '';
+// t68u: every thumb URL carries ?v=<the stored thumb's mtime> (from api.php?action=thumbs), so a newly
+// generated preview is a new URL and never loses to a stale cached one. "0" = none stored yet.
+const versions = new Map();
+export async function loadThumbVersions() {
+  try {
+    const r = await fetch('api.php?action=thumbs', { cache: 'no-store', credentials: 'same-origin' });
+    if (!r.ok) return false;
+    const { thumbs } = await r.json();
+    versions.clear(); for (const [id, v] of Object.entries(thumbs || {})) versions.set(id, String(v));
+    return true;
+  } catch { return false; }
+}
+export const thumbURL = id => PDF_ID.test(id || '') ? `api.php?action=thumb&id=${encodeURIComponent(id)}&v=${encodeURIComponent(versions.get(id) || '0')}` : '';
 
 /** The tile, with the thumbnail laid over it once it loads. */
 export function pdfThumbHTML(id, tileHTML) {
@@ -29,9 +41,12 @@ async function cacheGet(id) {
   return new Promise(res => { const q = d.transaction(STORE).objectStore(STORE).get(id); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); });
 }
 async function cachePut(id, blob) {
+  // Only a real rendered page goes in the cache, never an empty/failed result (the "PDF" tile is HTML, not cached).
+  if (!(blob instanceof Blob) || blob.size < 512 || !/^image\/(jpeg|png)$/.test(blob.type)) return;
   const d = await db(); if (!d) return;
   await new Promise(res => { const t = d.transaction(STORE, 'readwrite'); t.objectStore(STORE).put(blob, id); t.oncomplete = t.onerror = () => res(); });
 }
+/** Forget every browser-made preview (sign-out, and every Offline mode sync or update: t68u). */
 export async function clearPdfThumbs() {
   for (const u of urls.values()) URL.revokeObjectURL(u);
   urls.clear();

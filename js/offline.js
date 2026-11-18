@@ -5,6 +5,7 @@ import { api, AuthError } from './api.js';
 import { store, notice } from './store.js';
 import * as O from './outbox.js';
 import { planSync, remapIds } from './merge.js';
+import { clearPdfThumbs, loadThumbVersions } from './pdfThumbs.js';
 /** Service worker scope: the APP_BASE_URL path from .env when the page is served from it, else this folder. */
 const swScope = () => { const base = document.querySelector('meta[name=appts-base-url]')?.content || ''; return base && location.href.startsWith(base) ? new URL(base).pathname : './'; };
 
@@ -63,7 +64,10 @@ function chosen(p, selection) {
   const jobs = new Map();
   for (const s of p.shell) jobs.set(abs(s.url), { url: s.url, cache: O.SHELL_CACHE, bytes: s.bytes, required: true });
   for (const d of p.data) jobs.set(abs(d.url), { url: d.url, cache: O.accountCache(p.account), bytes: d.bytes, required: true });
-  for (const u of uploads.values()) jobs.set(abs(u.url), { url: u.url, cache: O.accountCache(p.account), bytes: u.bytes, required: false });
+  for (const u of uploads.values()) {
+    jobs.set(abs(u.url), { url: u.url, cache: O.accountCache(p.account), bytes: u.bytes, required: false });
+    if (u.thumb?.url) jobs.set(abs(u.thumb.url), { url: u.thumb.url, cache: O.accountCache(p.account), bytes: u.thumb.bytes || 0, required: false, image: true });
+  }
   const list = [...jobs.values()];
   return { list, bytes: list.reduce((n, j) => n + (j.bytes || 0), 0), uploads: uploads.size };
 }
@@ -76,7 +80,7 @@ async function fill(p, selection, progress) {
     const e = Error(`This needs about ${formatBytes(need)}, but this browser only has ${formatBytes(est.quota - (est.usage || 0))} free for Appts. Choose fewer conditions or free up space.`); e.name = 'QuotaExceededError'; throw e;
   }
   const persisted = await navigator.storage?.persist?.().catch(() => false) || false;
-  for (const name of [O.SHELL_CACHE, O.accountCache(p.account)]) await caches.delete(name);
+  await invalidateCaches();
   const caches_ = { [O.SHELL_CACHE]: await caches.open(O.SHELL_CACHE), [O.accountCache(p.account)]: await caches.open(O.accountCache(p.account)) };
   let next = 0, done = 0, bytes = 0, failed = 0, stop = null;
   progress(0, list.length);
@@ -86,6 +90,8 @@ async function fill(p, selection, progress) {
       try {
         const r = await fetch(job.url, { cache: 'no-store', credentials: 'same-origin', headers: { 'X-Appts': '1', 'X-Appts-Fill': '1' } });
         if (!r.ok) throw Error(`${job.url} answered ${r.status}`);
+        // Never keep a non-picture answer as a preview (t68u).
+        if (job.image && !/^image\//.test(r.headers.get('Content-Type') || '')) throw Error(`${job.url} is not an image`);
         const blob = await r.clone().blob();
         await caches_[job.cache].put(abs(job.url), r);
         bytes += blob.size;
@@ -107,6 +113,16 @@ async function fill(p, selection, progress) {
   for (const f of await O.listFiles(p.account)) { await O.cacheFile(p.account, f, f.blob); bytes += f.blob.size; }
   navigator.serviceWorker?.controller?.postMessage({ type: 'appts-offline-reindex' });
   return { items: list.length - failed, failed, bytes, need, persisted, uploads: chosen(p, selection).uploads };
+}
+
+/**
+ * t68u: drop EVERY saved copy before saving a fresh one: all appts-offline-* caches (shell, every
+ * account, older releases) except the on/off flag, plus the browser-made PDF previews in IndexedDB.
+ */
+export async function invalidateCaches() {
+  for (const name of await caches.keys().catch(() => [])) if (name.startsWith('appts-offline-') && name !== O.STATE_CACHE) await caches.delete(name).catch(() => {});
+  await clearPdfThumbs().catch(() => {});
+  navigator.serviceWorker?.controller?.postMessage({ type: 'appts-offline-reindex' });
 }
 
 async function turnOn(selection, progress) {
@@ -132,8 +148,19 @@ async function turnOff() {
   document.body.classList.remove('offline-on');
 }
 
+/** t68u: a new release forgets browser-made PDF previews, Offline mode or not. Runs before the first render. */
+export async function forgetStaleAssets() {
+  try {
+    const seen = localStorage.getItem('appts-assets-version');
+    if (!VERSION || seen === VERSION) return;
+    localStorage.setItem('appts-assets-version', VERSION);
+    if (seen !== null) await clearPdfThumbs();
+  } catch {}
+}
+
 /** A new release while online: save the new app into the copy, stay in Offline mode, reload. */
 export async function checkVersion() {
+  await forgetStaleAssets();
   const st = O.readState();
   if (!st.on && O.ctx.pending + O.ctx.files) notice(`${O.ctx.pending + O.ctx.files} change${O.ctx.pending + O.ctx.files === 1 ? '' : 's'} made in Offline mode ${O.ctx.pending + O.ctx.files === 1 ? 'is' : 'are'} waiting. Open Offline in the header to sync.`);
   if (!st.on || st.account !== store.account?.username) return false;
@@ -192,7 +219,14 @@ export async function sync() {
   await O.removePending([...done]);
   if (failures.length) await O.updatePending((await O.listPending()).map(p => ({ ...p, lastError: failures.find(f => f.key === p.key)?.note || p.lastError || '' })));
   const fresh = await api('data');
+  // t68u: after a sync, throw away every cached copy and preview, then pull fresh ones.
+  await invalidateCaches();
+  await loadThumbVersions();
   store.doc = await O.withPending(store.account, fresh.doc); store.render();
+  if (O.readState().selection) {
+    try { const st = O.readState(); plan = await netJSON('offline-plan'); const result = await fill(plan, st.selection || 'all', () => {}); O.writeState({ ...O.readState(), at: new Date().toISOString(), version: plan.version, account: plan.account, ...result }); }
+    catch (err) { console.warn('Appts: saved copy not refreshed after sync', err); }
+  }
   lastReport = [...report.map(r => ({ ...r, label: labelFor(r.kind, r.id) })), ...failures.map(f => ({ ...f, label: f.key.split('|').slice(1).join(' '), failed: true }))];
   const synced = done.size;
   notice(failures.length ? `Synced ${synced} change${synced === 1 ? '' : 's'}; ${failures.length} still waiting (see Offline mode).` : `Synced ${synced} change${synced === 1 ? '' : 's'} from this device.`);
