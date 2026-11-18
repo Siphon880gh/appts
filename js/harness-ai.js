@@ -22,7 +22,10 @@
  * Two AI methods for the same data (e.g. a harness and an in-app prompt builder): set data-chat-steps and the panel shows
  * tabs, Harness (the two accordion tiles above) and Chat (explanation only, no folder path). The last tab is remembered (:tab).
  *   data-chat-steps  Chat tab steps separated by " | "; `backticks` render as code
- *   data-harness-label / data-chat-label   tab labels (default Harness / Chat) */
+ *   data-harness-label / data-chat-label   tab labels (default Harness / Chat)
+ *   data-asks        optional JSON array of extra How-to requests ({id, title, summary, ask}, or a bare
+ *                    string). Each becomes another numbered step with a copyable request. Absent, empty,
+ *                    or invalid JSON: no extra steps (same as the canonical file). */
 (function () {
   'use strict';
   var script = document.currentScript;
@@ -62,6 +65,28 @@
   var ICON_COPY = '<svg class="hai-ico hai-ico--copy" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><svg class="hai-ico hai-ico--ok" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg>';
   var ICON_CLEAR = '<svg class="hai-ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9.5"/><path d="m15 9-6 6M9 9l6 6"/></svg>';
   function rich(s) { return esc(s).replace(/`([^`]+)`/g, '<code>$1</code>'); }
+  /* data-asks: opt-in extra How-to steps. Invalid or missing JSON is ignored so unconfigured apps stay the same. */
+  function parseAsks(raw) {
+    if (!raw || !String(raw).trim()) return [];
+    var data;
+    try { data = JSON.parse(raw); } catch (e) { return []; }
+    if (!Array.isArray(data)) data = (data && typeof data === 'object') ? [data] : [];
+    return data.map(function (item) {
+      if (item == null) return null;
+      if (typeof item === 'string') {
+        var s = item.trim();
+        return s ? { id: '', title: '', summary: '', ask: s } : null;
+      }
+      var askText = String((item.ask || item.text || item.request) || '').trim();
+      if (!askText) return null;
+      return {
+        id: String(item.id || '').trim(),
+        title: String((item.title || item.label || item.name) || '').trim(),
+        summary: String((item.summary || item.blurb || item.description) || '').trim(),
+        ask: askText
+      };
+    }).filter(Boolean);
+  }
 
   var css = [
     '.hai{--hai-bg:' + (dark ? '#22262c' : '#ffffff') + ';--hai-ink:' + (dark ? '#e8eaed' : '#111827') + ';--hai-muted:' + (dark ? '#9aa3ad' : '#4b5563') + ';--hai-line:' + (dark ? '#3a414b' : '#d1d5db') + ';--hai-soft:' + (dark ? '#2a2f36' : '#f3f4f6') + ';--hai-accent:' + accent + ';--hai-accent-ink:' + accentInk + ';font-family:inherit;}',
@@ -126,6 +151,8 @@
     '.hai-hint{display:block;margin-top:4px;font-size:12px;color:var(--hai-muted);}',
     '.hai-status{margin:6px 0 0!important;font-size:12px;color:var(--hai-muted)!important;}',
     '.hai-status:empty{display:none;}',
+    '.hai-extra-ask strong{display:block;margin:0 0 4px;}',
+    '.hai-extra-ask .hai-hint{display:block;margin:0 0 6px;}',
     '@media (max-width:640px){.hai-float .hai-btn-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}.hai-float .hai-fab{width:48px;height:48px;padding:0;justify-content:center;font-size:18px;}}',
     '@media print{.hai,.hai-mounted{display:none!important;}}',
     '.hai-float.hai-autohide{transition:transform .28s ease,opacity .28s ease;}',
@@ -145,6 +172,14 @@
     var title = cfg.title || 'Add or edit with AI';
     var label = cfg.label || 'Add / edit with AI';
     var ask = cfg.ask || 'Ask it to add, read, or edit this app\u2019s data.';
+    var extraAsks = parseAsks(cfg.asks);
+    var extraAsksHtml = extraAsks.map(function (item, i) {
+      return '<li class="hai-extra-ask"' + (item.id ? ' data-hai-ask-id="' + esc(item.id) + '"' : '') + '>' +
+        (item.title ? '<strong>' + esc(item.title) + '</strong>' : '') +
+        (item.summary ? '<span class="hai-hint">' + rich(item.summary) + '</span>' : '') +
+        '<span class="hai-row"><code class="hai-out" data-hai-extra-ask="' + i + '">' + rich(item.ask) + '</code>' +
+        '<button type="button" class="hai-copy" data-hai-extra-copy="' + i + '" aria-label="Copy request' + (item.title ? ': ' + esc(item.title) : '') + '">' + ICON_COPY + '<span>Copy</span></button></span></li>';
+    }).join('');
     // data-role="primary|complete|supplementary" + data-input: says plainly what this panel feeds the app.
     // primary and complete wrap a noun phrase. supplementary is the sentence itself.
     var ROLES = { primary: 'Primary', complete: 'Complete \u00b7 add more', supplementary: 'Supplementary' };
@@ -188,7 +223,7 @@
       '<button type="button" class="hai-copy" data-hai-copy aria-label="Copy folder name ' + esc(folder) + '">' + ICON_COPY + '<span>Copy</span></button></span>' +
       (cfg.parent ? '<span class="hai-hint">It sits inside a folder named <code>' + esc(cfg.parent) + '</code>.</span>' : '') + '</li>' +
       '<li>Open that folder in <strong>Cursor</strong>, <strong>Claude Code</strong>, or your favorite AI harness.</li>' +
-      '<li>' + rich(ask) + '</li></ol>' +
+      '<li>' + rich(ask) + '</li>' + extraAsksHtml + '</ol>' +
       '<p class="hai-hint">Tip: save the folder path under <strong>Your folder path</strong> so you can skip the search next time.</p></div>' +
       '<h3 class="hai-acc__h"><button type="button" class="hai-acc__btn" id="' + pid + '-t-path" aria-expanded="false" aria-controls="' + pid + '-p-path" data-hai-tile="path">' +
       '<span>Your folder path</span>' + chev + '</button></h3>' +
@@ -356,6 +391,13 @@
     }
     panel.querySelector('[data-hai-copy]').addEventListener('click', function (e) { copy(folder, '\u201c' + folder + '\u201d. Paste it into system search', e.currentTarget); });
     outCopy.addEventListener('click', function () { var p = cleanPath(input.value); if (!p) return; copy(mode() === 'command' ? cdCommand(p) : p, mode() === 'command' ? 'the cd command' : 'the folder path', outCopy); });
+    Array.prototype.forEach.call(panel.querySelectorAll('[data-hai-extra-copy]'), function (b) {
+      b.addEventListener('click', function () {
+        var item = extraAsks[Number(b.getAttribute('data-hai-extra-copy'))];
+        if (!item) return;
+        copy(item.ask, item.title ? '“' + item.title + '”' : 'the request', b);
+      });
+    });
 
     /* ---- opt-in autohide (data-autohide): off keeps behavior identical to the canonical file ---- */
     if (autohide && !mount) {
