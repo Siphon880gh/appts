@@ -19,3 +19,4 @@ Each milestone ends with its gates green and a small focused commit set. Gate id
 | M8 | AI intake: log-health-update skill + tools/intake.php CLI + tests | E13 | G36–G39 |
 | M9 | Offline mode: version, manifest, sw.php, offline-plan, toggle/panel/explainer, IndexedDB queue, three-way sync, tests | E14 | G40–G49 |
 | M10 | Disruptions preset + Edit Disruption mode; @ link popover and chips; tests | E15, E16 | G52–G57 |
+| M11 | "…" header menu for account and demo options | E17 | G50, G58 |

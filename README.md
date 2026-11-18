@@ -27,7 +27,7 @@ sh tools/serve.sh 8700     # or pick a port
 
 | Account | Starts with | Notes |
 | --- | --- | --- |
-| `demo` | Three synthetic "(sample)" conditions, 29 entries, 5 documents | **Reset demo** restores the seed. Click the **Demo-only credentials** row to fill the form. |
+| `demo` | Three synthetic "(sample)" conditions, 29 entries, 5 documents | **… → Reset demo data** restores the seed. Click the **Demo-only credentials** row to fill the form. |
 | `wf` | Nothing | Your real records. Its data is git-ignored under `storage/`. |
 
 Both accounts start with the demo password shown on the sign-in screen. **Change `wf`'s password before entering real data:**
@@ -149,7 +149,7 @@ Removing a field or archiving a type **never deletes data**. Removed fields' val
 <img src="docs/screenshots/mobile-overview.png" width="260" alt="Overview at 390px"> <img src="docs/screenshots/mobile-condition.png" width="260" alt="Condition at 390px">
 
 ## Offline mode
-For clinics that don't share their internet. **Turn it on first, while you're still online:** the **Offline Off/On** button in the header opens a panel. Choose which conditions' documents to keep (records and the app are always saved), check the size against the free space shown, and press **Turn on Offline mode** (it shows "Saving n of N…"). After that every page, including the front page URL, every view, and the saved documents open from the copy on the device, even with no connection. Changes made there (edits, new entries, pasted photos, entry type edits) stay on the device. Back online, turn the mode off and press **Sync**: Appts merges them with anything changed on the server meanwhile, and a clash keeps the server value and writes yours into the notes. Signing out waits until everything is synced, then removes the copy. The (i) button explains it with a picture.
+For clinics that don't share their internet. **Turn it on first, while you're still online:** the **Offline Off/On** button in the header opens a panel. (Your name, the demo options, and **Sign out** are in the **…** menu next to it.) Choose which conditions' documents to keep (records and the app are always saved), check the size against the free space shown, and press **Turn on Offline mode** (it shows "Saving n of N…"). After that every page, including the front page URL, every view, and the saved documents open from the copy on the device, even with no connection. Changes made there (edits, new entries, pasted photos, entry type edits) stay on the device. Back online, turn the mode off and press **Sync**: Appts merges them with anything changed on the server meanwhile, and a clash keeps the server value and writes yours into the notes. Signing out waits until everything is synced, then removes the copy. The (i) button explains it with a picture.
 
 ![Offline mode panel](docs/screenshots/offline-panel.png) ![What is Offline mode?](docs/screenshots/offline-info.png)
 
@@ -210,7 +210,7 @@ The browser test needs Python Playwright with Chromium. `--screens` uses install
 - `includes/storage.php`, `includes/uploads.php`, `includes/sanitize.php`: guarded storage, upload validation, and the HTML allowlist.
 - `includes/domain.php`, `includes/seed-types.json`, `includes/demo-seed.php`: types, validation, operations, and synthetic demo data.
 - `includes/auth.php`, `includes/accounts.php`, `tools/set-password.php`: accounts.
-- `js/app.js` (views), `js/forms.js` (forms and detail), `js/typesPage.js`, `js/schema.js` (pure domain), `js/documents.js`, `js/icons.js`, `js/richText.js`, `js/mentions.js` (@ links), `js/store.js`, `js/api.js`, `js/images.js`, `js/ui.js`.
+- `js/app.js` (views), `js/forms.js` (forms and detail), `js/typesPage.js`, `js/schema.js` (pure domain), `js/documents.js`, `js/icons.js`, `js/richText.js`, `js/mentions.js` (@ links), `js/moreMenu.js` (header "…" menu), `js/store.js`, `js/api.js`, `js/images.js`, `js/ui.js`.
 - `tools/intake.php`, `.agents/skills/log-health-update/SKILL.md`: the AI intake helper and skill. `tools/migrate-dry-run.php`: preview a document migration on a copy.
 - `sw.php` + `includes/sw.js`, `manifest.php`, `assets/`, `includes/version.php`, `includes/offline.php`, `js/offline.js`, `js/outbox.js`, `js/merge.js`: Offline mode (see `docs/OFFLINE_MODE.md`).
 - `docs/`: epics, milestones, prompts, implementation notes, and the gauntlet contract and state.

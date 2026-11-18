@@ -103,3 +103,8 @@ Source of truth for the request: `docs/gauntlet/request.md` (verbatim). Quality 
 - Hovering a library lists its items; typing after `@` filters all libraries at once into one list; full keyboard support.
 - The chip stores only kind, id, and label. Both sanitizers enforce that, and click handling is added only when a saved note is displayed. A document chip opens the viewer; an event or note chip opens the record. Works offline, because the data comes from the saved copy.
 - Decisions: the label is captured when linked (a later rename keeps the old label; the link still opens the right record); deleted targets show a notice instead of failing.
+
+## E17 — "…" header menu (Weng, t19u-appts)
+- The header keeps the main navigation and the Offline group (with its separator) visible. Who is signed in, **Reset demo data** (demo account only), and **Sign out** move into one "…" menu at the right.
+- Accessible menu button: aria-haspopup/expanded/controls, arrow keys, Home/End, Escape returns focus; Tab, an outside click, choosing an item, or navigating closes it. It shifts to stay on screen on narrow phones.
+- Decision: the account name moved into the menu (with an initial avatar and "Signed in as …") rather than staying in the header, so the narrow header is one short row.

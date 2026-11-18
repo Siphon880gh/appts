@@ -162,6 +162,23 @@
    "role": "verify",
    "verdict": "pass",
    "note": "run-all PASS on PHP 8.4.14 (--screens, Chrome) and 7.4.33; live MAMP 39/39; wf sha256 unchanged (5cc0c2207ef9...)"
+  },
+  {
+   "round": 15,
+   "role": "builder",
+   "summary": "t19u: account name, Reset demo, Sign out collapsed under an accessible \"…\" menu (js/moreMenu.js); Offline group + separator stay; G50 updated, G58 added"
+  },
+  {
+   "round": 15,
+   "role": "critic",
+   "verdict": "fix",
+   "note": "self-run pass on screenshots: 'Signed in as demo · demo account' wrapped and repeated the Demo group, shortened; narrow header now one short row (Offline, rule, …) instead of two"
+  },
+  {
+   "round": 16,
+   "role": "verify",
+   "verdict": "pass",
+   "note": "run-all PASS on PHP 8.4.14 (--screens, Chrome) and 7.4.33; offline 92; live MAMP 40/40; wf sha256 unchanged (5cc0c2207ef9...)"
   }
  ],
  "gates": {
@@ -221,7 +238,8 @@
   "G54": "pass",
   "G55": "pass",
   "G56": "pass",
-  "G57": "pass"
+  "G57": "pass",
+  "G58": "pass"
  },
  "openGaps": [
   "Critic is a self-run fresh-context pass, not an independent subagent",
@@ -244,6 +262,6 @@
   "accountability quality floor",
   "no new dependencies"
  ],
- "evidence": "sh tests/run-all.sh --screens (2026-11-17 PST) on 8.4.14 and APPTS_PHP=7.4.33: php -l clean on both; storage 178; intake 59; schema PASS; merge 20; disruptions+mentions unit 22; api 103; browser 73/72; offline 77; disruptions+mentions 34; live MAMP 39/39",
+ "evidence": "sh tests/run-all.sh --screens (2026-11-17 PST) on 8.4.14 and APPTS_PHP=7.4.33: php -l clean on both; storage 178; intake 59; schema PASS; merge 20; disruptions+mentions unit 22; api 103; browser 73/72; offline 92; disruptions+mentions 34; live MAMP 40/40",
  "finished": "2026-11-17"
 }

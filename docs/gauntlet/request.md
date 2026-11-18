@@ -74,3 +74,6 @@ Reference implementation: app/healthcare/postop (docs/OFFLINE_MODE.md, "Reusing 
 
 ## t18u-appts (Nov 17 evening PT; Weng's t18u, queued after APP All Root's header follow-ups)
 THEN Implement these two features: 1. Add disruption filter that's built in. It shows all insurance denials etc and other disruptions. User can edit the filter adding in events (grayed out until they ungray it) by going into Edit Disruption mode, only available for this filtering 2. Users can associate with PDFs and other events and their notes already created by pressing @ that shows a popover context menu of libraries, moving mouse over a Documents library shows you documents you can tag - but as user types after @ then it filters the choices at the context menu Make commits and push up
+
+## t19u-appts (Nov 17, ~10:50 PM PT, APP Appts chat)
+Perhaps we should collapse those options including demo options under a "..."
