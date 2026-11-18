@@ -49,7 +49,7 @@ ok(image_ids_in($clean) === [$img['id']], 'image ids extracted');
 
 // Domain rules
 $doc = new_doc();
-ok(count($doc['types']) === 10, 'ten built-in types seeded');
+ok(count($doc['types']) === 13, 'thirteen built-in types seeded');
 ok(array_column($doc['docLabels'], 'label') === ['Lab', 'Consultation Note', 'PCP Note', 'Progress Note', 'Imaging', 'Discharge Summary', 'Insurance Letter', 'Other'], 'document labels seeded');
 ok(in_array('Lab work', $doc['types'][1]['fields'][3]['options'], true), 'visit kind includes Lab work');
 $doc = apply_ops($doc, [['op' => 'put', 'kind' => 'condition', 'value' => ['id' => 'c1', 'name' => 'Test condition']]]);
@@ -94,7 +94,7 @@ foreach ($demo['conditions'] as $v) $ops[] = ['op' => 'put', 'kind' => 'conditio
 foreach ($demo['entries'] as $v) $ops[] = ['op' => 'put', 'kind' => 'entry', 'value' => $v];
 $rebuilt = apply_ops($rebuilt, $ops);
 ok(count($rebuilt['entries']) === count($demo['entries']), 'every demo entry validates');
-ok(count(array_unique(array_column($demo['entries'], 'typeId'))) === 10, 'demo covers all 10 types');
+ok(count(array_unique(array_column($demo['entries'], 'typeId'))) === 13, 'demo covers all 13 types');
 $demoAtt = array_merge(...array_map(fn($r) => $r['attachments'] ?? [], array_merge($demo['entries'], $demo['conditions'])));
 ok(count(array_filter($demoAtt, fn($a) => $a['kind'] === 'pdf')) === 3 && count(array_filter($demoAtt, fn($a) => $a['kind'] === 'image')) === 2, 'demo has synthetic PDFs and images');
 ok(count($rebuilt['entries'][find_index($rebuilt['entries'], 'visit-lab')]['attachments']) === 1, 'demo attachments validate');
@@ -115,12 +115,18 @@ foreach ($seedTypes as $t) $byId[$t['id']] = $t;
 ok($byId['disruption']['name'] === 'Other care disruptions' && $byId['disruption']['singular'] === 'Other care disruption', 'seed renames the disruption type');
 $statusTypes = [];
 foreach ($seedTypes as $t) foreach ($t['fields'] as $f) if ($f['label'] === 'Status') { ok($f['kind'] === 'select' && $f['allowCustom'] === true, "{$t['id']} status allows free text"); $statusTypes[] = $t['id']; }
-ok($statusTypes === ['visit', 'letter', 'appeal', 'supply', 'treatment'], 'all 5 built-in status fields found');
+ok($statusTypes === ['visit', 'letter', 'appeal', 'supply', 'treatment', 'hh_auth'], 'all 6 built-in status fields found');
 ok($byId['doctor']['fields'][array_search('role', array_column($byId['doctor']['fields'], 'id'), true)]['allowCustom'] === false, 'non-status selects stay preset-only');
-ok(new_doc()['version'] === DOC_VERSION && DOC_VERSION === 2, 'new documents are version 2');
+ok(new_doc()['version'] === DOC_VERSION && DOC_VERSION === 3, 'new documents are version 3');
 
 /** Build what a version-1 document looked like: old name, no allowCustom flags. */
+function without_home_health(array $doc): array {
+    $doc['types'] = array_values(array_filter($doc['types'], function ($t) { return !in_array($t['id'], HOME_HEALTH_TYPE_IDS, true); }));
+    $doc['entries'] = array_values(array_filter($doc['entries'], function ($e) { return !in_array($e['typeId'], HOME_HEALTH_TYPE_IDS, true); }));
+    return $doc;
+}
 function as_v1(array $doc): array {
+    $doc = without_home_health($doc);
     $doc['version'] = 1;
     foreach ($doc['types'] as &$t) {
         if ($t['id'] === 'disruption') { $t['name'] = 'Care disruptions'; $t['singular'] = 'Care disruption'; }
@@ -136,14 +142,14 @@ $v1['entries'][0]['values']['status'] = 'Some typed status';
 $m = migrate_doc($v1);
 $mt = [];
 foreach ($m['types'] as $t) $mt[$t['id']] = $t;
-ok($m['version'] === 2, 'migration sets version 2');
+ok($m['version'] === DOC_VERSION, 'migration sets the current version');
 ok($mt['disruption']['name'] === 'Other care disruptions' && $mt['disruption']['singular'] === 'Other care disruption', 'migration renames a default-named disruption type');
 foreach ($statusTypes as $id) { $f = $mt[$id]['fields'][array_search('status', array_column($mt[$id]['fields'], 'id'), true)]; ok(($f['allowCustom'] ?? null) === true, "migration enables free text on $id status"); }
 ok(!array_key_exists('allowCustom', $mt['doctor']['fields'][array_search('role', array_column($mt['doctor']['fields'], 'id'), true)]), 'migration leaves non-status selects alone');
 ok(json_encode($mt['custom-sel']) === json_encode(end($v1['types'])), 'migration leaves custom types alone');
 $enc = function ($x): string { return json_encode($x, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT); };
 foreach (array_keys($v1) as $k) if ($k !== 'types' && $k !== 'version') ok($enc($m[$k]) === $enc($v1[$k]), "migration leaves '$k' byte-identical");
-ok(count($m['types']) === count($v1['types']) && array_column($m['types'], 'id') === array_column($v1['types'], 'id'), 'migration keeps every type in order');
+ok(array_column($m['types'], 'id') === array_merge(array_column($v1['types'], 'id'), HOME_HEALTH_TYPE_IDS), 'migration keeps every type in order and appends the home health types');
 ok($enc(migrate_doc($m)) === $enc($m) && $enc(normalize_doc($m)) === $enc(normalize_doc(migrate_doc($m))), 'migration is idempotent');
 // A user's own rename and an explicit allowCustom=false are kept.
 $renamed = $v1;
@@ -163,7 +169,7 @@ write_doc('mig', $v1);
 $before = (string) file_get_contents(doc_path('mig'));
 $backups = count(list_backups('mig'));
 $stored = migrate_stored_doc('mig');
-ok($stored['version'] === 2 && read_doc('mig')['version'] === 2, 'stored v1 document migrated on load');
+ok($stored['version'] === DOC_VERSION && read_doc('mig')['version'] === DOC_VERSION, 'stored v1 document migrated on load');
 ok(count(list_backups('mig')) === $backups + 1, 'migration backs up first');
 $latest = list_backups('mig'); sort($latest);
 ok(file_get_contents(end($latest)) === $before, 'backup holds the exact v1 bytes');
@@ -172,6 +178,35 @@ foreach (['conditions', 'entries', 'tags', 'docLabels'] as $k) ok($enc($after[$k
 migrate_stored_doc('mig');
 ok(count(list_backups('mig')) === $backups + 1, 'already-migrated document is not rewritten');
 ok(migrate_stored_doc('nobody') === null, 'missing account document stays missing');
+// ---- v3: home health built-ins (t14u). A v2 account gets the three types appended; nothing else moves.
+$v2 = without_home_health(demo_doc('2026-11-17'));
+$v2['version'] = 2;
+foreach ($v2['types'] as &$t) {
+    if ($t['id'] === 'disruption') { $t['name'] = 'Care disruptions'; $t['singular'] = 'Care disruption'; } // a user's own (re)naming after v2
+    if ($t['id'] === 'visit') foreach ($t['fields'] as &$f) if ($f['id'] === 'status') $f['allowCustom'] = false;
+    unset($f);
+}
+unset($t);
+$v2['types'][] = ['id' => 'custom-hh', 'name' => 'Nurse notes', 'singular' => 'Nurse note', 'icon' => '', 'color' => '#336699', 'titleLabel' => 'Title', 'primaryDateField' => '', 'fields' => [], 'builtin' => false, 'archived' => false, 'sortOrder' => 40, 'retiredFields' => []];
+$m3 = migrate_doc($v2);
+$m3t = [];
+foreach ($m3['types'] as $t) $m3t[$t['id']] = $t;
+ok($m3['version'] === 3, 'v2 document migrates to v3');
+ok(array_column($m3['types'], 'id') === array_merge(array_column($v2['types'], 'id'), HOME_HEALTH_TYPE_IDS), 'v3 appends hh_auth, hh_visit, hh_event after the existing types');
+ok($enc(array_slice($m3['types'], 0, count($v2['types']))) === $enc($v2['types']), 'v3 leaves every existing type byte-identical (no re-run of the v2 rename)');
+ok($m3t['hh_auth']['sortOrder'] === 41 && $m3t['hh_visit']['sortOrder'] === 42 && $m3t['hh_event']['sortOrder'] === 43, 'new types sort after the account\'s own types');
+ok($m3t['hh_auth']['builtin'] === true && $m3t['hh_visit']['fields'][4]['allowCustom'] === true, 'new types arrive as built-ins with free-text outcome');
+foreach (array_keys($v2) as $k) if ($k !== 'types' && $k !== 'version') ok($enc($m3[$k]) === $enc($v2[$k]), "v3 leaves '$k' byte-identical");
+ok($enc(migrate_doc($m3)) === $enc($m3), 'v3 migration is idempotent');
+$clash = $v2;
+$clash['types'][] = ['id' => 'hh_visit', 'name' => 'My own visits', 'singular' => 'Mine', 'icon' => '', 'color' => '#123456', 'titleLabel' => 'T', 'primaryDateField' => '', 'fields' => [], 'builtin' => false, 'archived' => true, 'sortOrder' => 7, 'retiredFields' => []];
+$mc = migrate_doc($clash);
+ok(count(array_keys(array_column($mc['types'], 'id'), 'hh_visit')) === 1 && $enc(array_values(array_filter($mc['types'], function ($t) { return $t['id'] === 'hh_visit'; }))[0]) === $enc(end($clash['types'])), 'an existing type with a home health id is kept as is, not duplicated');
+write_doc('mig3', $v2);
+$b3 = count(list_backups('mig3'));
+$s3 = migrate_stored_doc('mig3');
+ok($s3['version'] === 3 && count(list_backups('mig3')) === $b3 + 1, 'stored v2 document backed up, then migrated to v3');
+ok($enc(read_doc('mig3')['entries']) === $enc($v2['entries']), 'stored v2 entries unchanged by the v3 migration');
 // Free-text values are stored as-is; the flag survives type edits.
 $fx = apply_ops(new_doc(), [['op' => 'put', 'kind' => 'condition', 'value' => ['id' => 'c1', 'name' => 'Heel']], ['op' => 'put', 'kind' => 'entry', 'value' => ['id' => 'e1', 'conditionId' => 'c1', 'typeId' => 'visit', 'title' => 'Wound check', 'values' => ['date' => '2026-11-20', 'status' => 'Waiting on fax']]]]);
 ok($fx['entries'][0]['values']['status'] === 'Waiting on fax', 'free-text status saved verbatim');
