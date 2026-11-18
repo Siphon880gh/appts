@@ -32,6 +32,22 @@ function sanitize_html(string $html): string {
             $parent->appendChild($img);
             return;
         }
+        if ($tag === 'span' && $node->hasAttribute('data-mention')) {
+            // @mention chip: a reference to a document, entry, or condition of this account, by id only.
+            $kind = $node->getAttribute('data-mention');
+            $ref = $node->getAttribute('data-ref');
+            $valid = ($kind === 'file' && preg_match(FILE_ID_PATTERN, $ref)) || (in_array($kind, ['entry', 'condition'], true) && preg_match('/^[A-Za-z0-9_-]{1,64}$/D', $ref));
+            $label = trim(preg_replace('/\s+/u', ' ', $node->textContent));
+            if (!$valid) { $parent->appendChild($out->createTextNode($node->textContent)); return; }
+            $span = $out->createElement('span');
+            $span->setAttribute('class', 'mention');
+            $span->setAttribute('data-mention', $kind);
+            $span->setAttribute('data-ref', $ref);
+            $span->setAttribute('contenteditable', 'false');
+            $span->appendChild($out->createTextNode(mb_substr($label !== '' ? $label : '@item', 0, 200)));
+            $parent->appendChild($span);
+            return;
+        }
         if (!in_array($tag, $allowed, true)) { foreach (iterator_to_array($node->childNodes) as $child) $copy($child, $parent); return; }
         $element = $out->createElement($tag);
         if ($tag === 'a') {
