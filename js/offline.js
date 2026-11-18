@@ -133,6 +133,7 @@ async function turnOff() {
 /** A new release while online: save the new app into the copy, stay in Offline mode, reload. */
 export async function checkVersion() {
   const st = O.readState();
+  if (!st.on && O.ctx.pending + O.ctx.files) notice(`${O.ctx.pending + O.ctx.files} change${O.ctx.pending + O.ctx.files === 1 ? '' : 's'} made in Offline mode ${O.ctx.pending + O.ctx.files === 1 ? 'is' : 'are'} waiting. Open Offline in the header to sync.`);
   if (!st.on || st.account !== store.account?.username) return false;
   let version;
   try { const r = await fetch('api.php?action=version', { cache: 'no-store' }); if (!r.ok) return false; ({ version } = await r.json()); } catch { return false; }
