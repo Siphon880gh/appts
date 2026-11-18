@@ -68,11 +68,11 @@ export function hhChip(entry) {
   return `<span class="hh-chip state-${u.state}">${u.attention ? WARN : ''}${u.left} of ${u.authorized} left${u.state === 'awaiting' ? ' · awaiting approval' : ''}</span>`;
 }
 /** Countdown panel: big count, a bar of used visits, the warning, and the visits that did not count. */
-export function hhPanel(entry, { compact = false } = {}) {
+export function hhPanel(entry, { compact = false, showCondition = true } = {}) {
   const u = S.authUsage(store.doc, entry), msg = S.authMessage(u);
   const pct = u.authorized ? Math.min(100, Math.round((u.used / u.authorized) * 100)) : 0;
   const missed = Object.entries(u.notCounted);
-  const title = compact ? `<button type="button" class="link hh-title" data-action="open-entry" data-id="${esc(entry.id)}">${esc(entry.title)}</button><small class="muted">${esc(conditionName(entry.conditionId))}</small>` : '';
+  const title = compact ? `<button type="button" class="link hh-title" data-action="open-entry" data-id="${esc(entry.id)}">${esc(entry.title)}</button>${showCondition ? `<small class="muted">${esc(conditionName(entry.conditionId))}</small>` : ''}` : '';
   return `<div class="hh-panel state-${u.state}${compact ? ' compact' : ''}">${title}
     <p class="hh-count"><b>${u.left}</b> of ${u.authorized} authorized visit${u.authorized === 1 ? '' : 's'} left</p>
     <div class="hh-bar" role="img" aria-label="${u.used} of ${u.authorized} authorized visits used"><span style="width:${pct}%"></span></div>

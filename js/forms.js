@@ -187,6 +187,12 @@ export function attachmentsHTML(list) {
   if (!list?.length) return '';
   return `<ul class="attachments">${list.map(a => `<li><button type="button" data-action="view-file" data-id="${esc(a.id)}" data-name="${esc(a.name)}" data-kind="${D.fileKind(a)}">${previewHTML(a)}<small><b>${esc(D.labelById(store.doc, a.label).label)}</b><br>${esc(a.name)}</small></button></li>`).join('')}</ul>`;
 }
+/** Date and status-like value for a backlink, so a list of same-titled visits stays readable. */
+function backlinkDetail(b) {
+  const date = S.primaryDate(b.type, b.entry), status = b.entry.typeId === S.HH.visit ? b.entry.values?.outcome : b.entry.values?.status;
+  const bits = [date ? S.formatDate(date, { month: 'short', day: 'numeric', year: 'numeric' }) : '', typeof status === 'string' ? status : ''].filter(Boolean);
+  return bits.length ? ` · ${esc(bits.join(' · '))}` : '';
+}
 export function openEntryDetail(id) {
   const doc = store.doc, entry = S.entryById(doc, id);
   if (!entry) return notice('That entry no longer exists.');
@@ -205,7 +211,7 @@ export function openEntryDetail(id) {
     ${tagsFor(entry).length ? `<p class="chips">${tagsFor(entry).map(tagChip).join('')}</p>` : ''}
     ${entry.notes?.html || entry.notes?.text ? `<div class="form-section"><h3>Notes</h3><div class="note-content">${noteHTML(entry.notes)}</div></div>` : ''}
     ${entry.attachments?.length ? `<div class="form-section"><h3>Documents</h3>${attachmentsHTML(entry.attachments)}</div>` : ''}
-    ${backs.length ? `<div class="form-section"><h3>Linked from</h3><ul class="event-list">${backs.map(b => `<li><button type="button" class="link" data-action="open-entry" data-id="${esc(b.entry.id)}">${esc(b.type.singular)}: ${esc(b.entry.title)}</button> <small class="muted">(${esc(b.field.label)})</small></li>`).join('')}</ul></div>` : ''}
+    ${backs.length ? `<div class="form-section"><h3>Linked from</h3><ul class="event-list">${backs.map(b => `<li><button type="button" class="link" data-action="open-entry" data-id="${esc(b.entry.id)}">${esc(b.type.singular)}: ${esc(b.entry.title)}</button> <small class="muted">(${esc(b.field.label)})${backlinkDetail(b)}</small></li>`).join('')}</ul></div>` : ''}
     </div><div class="dialog-foot"><div class="left"><button type="button" class="danger" data-action="delete-entry" data-id="${esc(entry.id)}">Delete</button></div><button type="button" data-action="goto-condition" data-id="${esc(entry.conditionId)}">Open condition</button><button type="button" class="primary" data-action="edit-entry" data-id="${esc(entry.id)}">Edit</button></div>`;
   openDialog(html);
 }
