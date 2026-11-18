@@ -40,12 +40,12 @@ function seed_doc_labels(): array {
 }
 
 function new_doc(): array {
-    return ['version' => DOC_VERSION, 'revision' => 0, 'updatedAt' => gmdate('c'), 'conditions' => [], 'types' => seed_types(), 'entries' => [], 'tags' => [], 'docLabels' => seed_doc_labels(), 'filters' => []];
+    return ['version' => DOC_VERSION, 'revision' => 0, 'updatedAt' => gmdate('c'), 'conditions' => [], 'types' => seed_types(), 'entries' => [], 'tags' => [], 'docLabels' => seed_doc_labels(), 'filters' => [], 'highlights' => []];
 }
 
 /** Fill in collections added after a document was first written. */
 function normalize_doc(array $doc): array {
-    $doc += ['conditions' => [], 'types' => [], 'entries' => [], 'tags' => [], 'docLabels' => seed_doc_labels(), 'filters' => []];
+    $doc += ['conditions' => [], 'types' => [], 'entries' => [], 'tags' => [], 'docLabels' => seed_doc_labels(), 'filters' => [], 'highlights' => []];
     return migrate_doc($doc);
 }
 
@@ -241,7 +241,48 @@ function clean_condition(array $v, ?array $old, array $doc): array {
         'color' => valid_color($v['color'] ?? ''),
         'summary' => str_field($v, 'summary', 400),
         'notes' => clean_notes($v['notes'] ?? null),
+        // Memo (t61u): plain-text notes to self (documents to add, to-dos). A client that does not
+        // send it keeps the stored memo.
+        'memo' => array_key_exists('memo', $v) ? plain_field($v, 'memo', 20000, false, 'Memo') : (string) ($old['memo'] ?? ''),
         'attachments' => clean_attachments($v['attachments'] ?? [], $doc),
+        'sortOrder' => is_int($v['sortOrder'] ?? null) ? $v['sortOrder'] : (int) ($old['sortOrder'] ?? 0),
+        'createdAt' => $old['createdAt'] ?? gmdate('c'),
+        'updatedAt' => gmdate('c'),
+    ];
+}
+
+/** Plain text, control characters (except newlines) removed; for highlight text that is shown escaped. */
+function plain_field(array $v, string $key, int $max, bool $required = false, string $label = ''): string {
+    $s = str_field($v, $key, $max, $required, $label);
+    return trim((string) preg_replace('/[\x00-\x09\x0B-\x1F\x7F]+/', ' ', str_replace("\r\n", "\n", $s)));
+}
+
+/** Clinical Significance highlights (one record per highlight, per condition). Written by an AI from
+ *  the condition's reports (tools/intake.php "highlights") or by hand in the app. All text is plain
+ *  and always shown escaped. sourceEntryId / sourceFileId point at the record and document the
+ *  highlight is drawn from; ones that no longer exist are kept harmlessly and shown as missing. */
+const HIGHLIGHT_CERTAINTY = ['documented', 'uncertain', 'reported'];
+const HIGHLIGHT_ORIGINS = ['ai', 'manual'];
+function clean_highlight(array $v, ?array $old, array $doc): array {
+    $conditionId = valid_id($v['conditionId'] ?? null);
+    if (find_index($doc['conditions'], $conditionId) === null) fail('Choose an existing condition for this highlight.');
+    $entryId = $v['sourceEntryId'] ?? '';
+    if ($entryId !== '' && (!is_string($entryId) || !preg_match(ID_PATTERN, $entryId))) fail('Invalid source entry.');
+    $fileId = $v['sourceFileId'] ?? '';
+    if ($fileId !== '' && (!is_string($fileId) || !preg_match(FILE_ID_PATTERN, $fileId))) fail('Invalid source document.');
+    return [
+        'id' => valid_id($v['id'] ?? null),
+        'conditionId' => $conditionId,
+        'title' => plain_field($v, 'title', 160, true, 'Highlight title'),
+        'summary' => plain_field($v, 'summary', 600, true, 'Highlight summary'),
+        'detail' => plain_field($v, 'detail', 8000),
+        'quote' => plain_field($v, 'quote', 3000),
+        'date' => valid_date_or_empty($v['date'] ?? '', 'Highlight date'),
+        'sourceEntryId' => (string) $entryId,
+        'sourceFileId' => (string) $fileId,
+        'certainty' => in_array($v['certainty'] ?? '', HIGHLIGHT_CERTAINTY, true) ? $v['certainty'] : 'documented',
+        'caveat' => plain_field($v, 'caveat', 2000),
+        'origin' => in_array($v['origin'] ?? '', HIGHLIGHT_ORIGINS, true) ? $v['origin'] : 'manual',
         'sortOrder' => is_int($v['sortOrder'] ?? null) ? $v['sortOrder'] : (int) ($old['sortOrder'] ?? 0),
         'createdAt' => $old['createdAt'] ?? gmdate('c'),
         'updatedAt' => gmdate('c'),
@@ -338,6 +379,9 @@ function clean_entry(array $v, ?array $old, array $doc): array {
         'values' => $values,
         'tagIds' => $tagIds,
         'notes' => clean_notes($v['notes'] ?? null),
+        // Key highlight: one plain-text line that stands out in every list (hover/focus the ★ icon).
+        // An edit that does not send it keeps the old one, so older clients never erase it.
+        'highlight' => array_key_exists('highlight', $v) ? plain_field($v, 'highlight', 2000, false, 'Key highlight') : (string) ($old['highlight'] ?? ''),
         'attachments' => clean_attachments($v['attachments'] ?? [], $doc),
         'createdAt' => $old['createdAt'] ?? gmdate('c'),
         'updatedAt' => gmdate('c'),
@@ -348,7 +392,7 @@ function clean_entry(array $v, ?array $old, array $doc): array {
 function apply_ops(array $doc, $ops): array {
     if (!is_array($ops) || !$ops || count($ops) > 200) fail('Send between 1 and 200 changes.');
     $doc = normalize_doc($doc);
-    $collections = ['condition' => 'conditions', 'type' => 'types', 'entry' => 'entries', 'tag' => 'tags', 'docLabel' => 'docLabels', 'filter' => 'filters'];
+    $collections = ['condition' => 'conditions', 'type' => 'types', 'entry' => 'entries', 'tag' => 'tags', 'docLabel' => 'docLabels', 'filter' => 'filters', 'highlight' => 'highlights'];
     foreach ($ops as $op) {
         if (!is_array($op)) fail('Invalid change.');
         $kind = $op['kind'] ?? '';
@@ -365,6 +409,7 @@ function apply_ops(array $doc, $ops): array {
                 case 'type': $clean = clean_type($value, $old); break;
                 case 'tag': $clean = clean_tag($value); break;
                 case 'filter': $clean = clean_filter($value); break;
+                case 'highlight': $clean = clean_highlight($value, $old, $doc); break;
                 default: $clean = clean_entry($value, $old, $doc);
             }
             if ($index === null) $doc[$col][] = $clean; else $doc[$col][$index] = $clean;
@@ -377,6 +422,8 @@ function apply_ops(array $doc, $ops): array {
             if ($kind === 'filter' && !is_view_id($id)) fail('The built-in Disruptions filter cannot be deleted.');
             if ($kind === 'condition') {
                 foreach ($doc['entries'] as $e) if ($e['conditionId'] === $id) fail('Move or delete this condition’s entries first, or archive the condition.');
+                // Its Clinical Significance highlights go with it.
+                $doc['highlights'] = array_values(array_filter($doc['highlights'], function ($h) use ($id) { return ($h['conditionId'] ?? '') !== $id; }));
             }
             if ($kind === 'tag') {
                 foreach ($doc['entries'] as &$e) $e['tagIds'] = array_values(array_filter($e['tagIds'] ?? [], fn($t) => $t !== $id));

@@ -11,6 +11,7 @@ declare(strict_types=1);
  *   php tools/intake.php conditions <account>
  *   php tools/intake.php types <account>
  *   php tools/intake.php entries <account> [--condition=<id>] [--type=<id>] [--query=<text>]
+ *   php tools/intake.php highlights <account> [--condition=<id>]
  *   php tools/intake.php apply <account> <plan.json|-> [--dry-run]
  */
 require __DIR__ . '/../includes/demo-seed.php';
@@ -62,6 +63,13 @@ function intake_load(array $account): array {
 function type_of(array $doc, string $id): ?array { foreach ($doc['types'] as $t) if ($t['id'] === $id) return $t; return null; }
 function entry_of(array $doc, string $id): ?array { foreach ($doc['entries'] as $e) if ($e['id'] === $id) return $e; return null; }
 function primary_date(array $type, array $entry): string { return ($type['primaryDateField'] ?? '') !== '' ? (string) ($entry['values'][$type['primaryDateField']] ?? '') : ''; }
+
+function cmd_highlights(array $doc, array $opts): array {
+    $out = [];
+    foreach ($doc['highlights'] ?? [] as $h) if (empty($opts['condition']) || $h['conditionId'] === $opts['condition']) $out[] = $h;
+    usort($out, function ($a, $b) { return [$a['conditionId'], $a['sortOrder'] ?? 0] <=> [$b['conditionId'], $b['sortOrder'] ?? 0]; });
+    return $out;
+}
 
 function cmd_conditions(array $doc): array {
     $out = [];
@@ -376,7 +384,42 @@ final class Planner {
             $this->ops[] = ['op' => 'put', 'kind' => 'filter', 'value' => $view];
             $this->preview[] = ($old ? '~ saved view' : '+ new saved view') . " \"$name\"" . ($view['tagIds'] ? "\n      tags: " . implode(', ', array_map(function ($id) { foreach ($this->allTags() as $t) if ($t['id'] === $id) return $t['label']; return $id; }, $view['tagIds'])) : '') . ($types ? "\n      types: " . implode(', ', $types) : '') . ($view['disruptions'] ? "\n      Disruptions only" : '') . ($condId !== '' ? "\n      condition: $condId" : '');
         }
-        if (count($this->ops) === 0) $this->fail('plan', 'nothing to create or update');
+        // Clinical Significance highlights (.agents/skills/clinical-significance). Matched by title
+        // (any case) within the condition: a new title is added; an existing one is changed only
+        // with "update": true (otherwise it is left as is, with a warning).
+        foreach (is_array($plan['highlights'] ?? null) ? $plan['highlights'] : [] as $i => $h) {
+            $where = "highlights[$i]";
+            if (!is_array($h)) $this->fail($where, 'give an object with "title" and "summary"');
+            $title = trim((string) ($h['title'] ?? '')); $summary = trim((string) ($h['summary'] ?? ''));
+            if ($title === '' || $summary === '') $this->fail($where, 'give "title" and "summary"');
+            $old = null; $count = 0;
+            foreach ($this->doc['highlights'] ?? [] as $x) if (($x['conditionId'] ?? '') === $cid) { $count++; if (lower((string) $x['title']) === lower($title)) $old = $x; }
+            if ($old && empty($h['update'])) { $this->warnings[] = "$where: \"$title\" already exists; left as is (add \"update\": true to change it)"; continue; }
+            $entryId = '';
+            if (($h['entry'] ?? '') !== '') {
+                $want = (string) $h['entry'];
+                if (isset($this->refs[$want])) $entryId = $this->refs[$want][0];
+                else foreach ($this->doc['entries'] as $e) if ($e['conditionId'] === $cid && ($e['id'] === $want || lower($e['title']) === lower($want))) { $entryId = $e['id']; break; }
+                if ($entryId === '') $this->fail("$where.entry", "no entry \"$want\" in this condition (give an entry id, a ref, or the exact title)");
+            }
+            $fileId = '';
+            if (($h['file'] ?? '') !== '') {
+                $want = (string) $h['file'];
+                $records = array_merge(array_values(array_filter($this->doc['conditions'], function ($c) use ($cid) { return $c['id'] === $cid; })), array_values(array_filter($this->doc['entries'], function ($e) use ($cid) { return $e['conditionId'] === $cid; })));
+                foreach ($records as $r) foreach ($r['attachments'] ?? [] as $a) if ($a['id'] === $want || lower((string) $a['name']) === lower($want)) { $fileId = $a['id']; break 2; }
+                if ($fileId === '') $this->fail("$where.file", "no document \"$want\" attached in this condition (give its file id or exact name)");
+            }
+            $value = ['id' => $old['id'] ?? new_id('hl'), 'conditionId' => $cid, 'title' => $title, 'summary' => $summary,
+                'detail' => (string) ($h['detail'] ?? ($old['detail'] ?? '')), 'quote' => (string) ($h['quote'] ?? ($old['quote'] ?? '')),
+                'date' => (string) ($h['date'] ?? ($old['date'] ?? '')), 'sourceEntryId' => $entryId !== '' ? $entryId : (string) ($old['sourceEntryId'] ?? ''),
+                'sourceFileId' => $fileId !== '' ? $fileId : (string) ($old['sourceFileId'] ?? ''),
+                'certainty' => (string) ($h['certainty'] ?? ($old['certainty'] ?? 'documented')), 'caveat' => (string) ($h['caveat'] ?? ($old['caveat'] ?? '')),
+                'origin' => (string) ($h['origin'] ?? 'ai'), 'sortOrder' => isset($h['order']) ? (int) $h['order'] : (int) ($old['sortOrder'] ?? ($count + $i))];
+            try { clean_highlight($value, $old, $this->doc); } catch (InvalidArgumentException $e) { $this->fail($where, $e->getMessage()); }
+            $this->ops[] = ['op' => 'put', 'kind' => 'highlight', 'value' => $value];
+            $this->preview[] = ($old ? '~ highlight' : '+ new highlight') . " \"$title\"\n      $summary" . ($value['certainty'] !== 'documented' ? "\n      certainty: {$value['certainty']}" : '') . ($value['sourceEntryId'] !== '' ? "\n      source entry: {$value['sourceEntryId']}" : '') . ($value['sourceFileId'] !== '' ? "\n      source document: {$value['sourceFileId']}" : '') . ($value['caveat'] !== '' ? "\n      check: {$value['caveat']}" : '');
+        }
+        if (count($this->ops) === 0) $this->fail('plan', 'nothing to create or update' . ($this->warnings ? ' (' . implode('; ', $this->warnings) . ')' : ''));
     }
 
     private function describe(string $verb, array $type, array $entry, ?array $old, array $changed): string {
@@ -434,12 +477,13 @@ function cmd_apply(array $account, array $plan, bool $dry): int {
             return ['doc' => $next, 'planner' => $planner];
         });
     } catch (InvalidArgumentException $e) { die_with($e->getMessage()); return 1; }
-    $made = 0; $changed = 0;
+    $made = 0; $changed = 0; $hl = 0;
     foreach ($saved['planner']->ops as $op) {
+        if ($op['kind'] === 'highlight') $hl++;
         if ($op['kind'] !== 'entry') continue;
         if (entry_of($doc, $op['value']['id'])) $changed++; else $made++;
     }
-    echo "Saved: $made new, $changed updated (revision {$saved['doc']['revision']}; backup taken first). Reload Appts and open " . app_base_url() . "#/c/{$saved['planner']->conditionId}\n";
+    echo "Saved: $made new, $changed updated" . ($hl ? ", $hl highlight" . ($hl === 1 ? '' : 's') : '') . " (revision {$saved['doc']['revision']}; backup taken first). Reload Appts and open " . app_base_url() . "#/c/{$saved['planner']->conditionId}\n";
     return 0;
 }
 
@@ -450,13 +494,14 @@ foreach (array_slice($argv, 1) as $a) {
     if (preg_match('/^--([a-z-]+)(?:=(.*))?$/s', $a, $m)) $opts[$m[1]] = $m[2] ?? true; else $pos[] = $a;
 }
 $cmd = $pos[0] ?? '';
-$usage = "Usage:\n  php tools/intake.php accounts\n  php tools/intake.php conditions <account>\n  php tools/intake.php types <account>\n  php tools/intake.php entries <account> [--condition=<id>] [--type=<id>] [--query=<text>]\n  php tools/intake.php apply <account> <plan.json|-> [--dry-run]\n";
+$usage = "Usage:\n  php tools/intake.php accounts\n  php tools/intake.php conditions <account>\n  php tools/intake.php types <account>\n  php tools/intake.php entries <account> [--condition=<id>] [--type=<id>] [--query=<text>]\n  php tools/intake.php highlights <account> [--condition=<id>]\n  php tools/intake.php apply <account> <plan.json|-> [--dry-run]\n";
 try {
     switch ($cmd) {
         case 'accounts': out_json(intake_accounts()); break;
         case 'conditions': out_json(cmd_conditions(intake_load(intake_account($pos[1] ?? '')))); break;
         case 'types': out_json(cmd_types(intake_load(intake_account($pos[1] ?? '')))); break;
         case 'entries': out_json(cmd_entries(intake_load(intake_account($pos[1] ?? '')), $opts)); break;
+        case 'highlights': out_json(cmd_highlights(intake_load(intake_account($pos[1] ?? '')), $opts)); break;
         case 'apply':
             if (!isset($pos[2])) die_with('Usage: php tools/intake.php apply <account> <plan.json|-> [--dry-run]');
             $account = intake_account($pos[1]);

@@ -347,6 +347,10 @@ export function viewIsActive(doc, view, state) {
   return eq(v.typeIds, state.typeIds) && eq(v.tagIds, state.tagIds) && v.disruptions === !!state.disruptions && v.conditionId === (state.conditionId || '') && v.range === (state.range || 'all');
 }
 
+/** No saved view, preset, or filter on the Timeline (t45u): what the "All entries" chip restores. */
+export const defaultTimelineState = () => ({ conditionId: '', range: 'all', typeIds: new Set(), tagIds: new Set(), query: '', disruptions: false, disEdit: false });
+export const timelineIsDefault = t => !t.typeIds.size && !t.tagIds.size && !t.disruptions && !t.conditionId && (t.range || 'all') === 'all' && !String(t.query || '').trim();
+
 // ---- Condition short name + description (t30u) ------------------------------------------
 export const conditionDescription = c => String(c?.description || '').trim();
 /** "Short name [longer description]" typed in the name box splits into the two parts. */
@@ -354,4 +358,29 @@ export function splitConditionName(text) {
   const m = /^\s*([^[\]]*?)\s*\[([^\]]*)\]\s*$/.exec(String(text || ''));
   if (!m || !m[1].trim()) return { name: String(text || '').trim(), description: '' };
   return { name: m[1].replace(/\*\s*\)/g, ')').replace(/\*$/, '').trim(), description: m[2].trim() };
+}
+
+// ---- Clinical Significance highlights ---------------------------------------------------------
+// One record per highlight in doc.highlights ({id, conditionId, title, summary, detail, quote, date,
+// sourceEntryId, sourceFileId, certainty, caveat, origin, sortOrder}). Usually written by an AI from
+// the condition's reports (.agents/skills/clinical-significance), editable in the app.
+export const HIGHLIGHT_CERTAINTY = { documented: 'From the record', uncertain: 'Uncertain — check', reported: 'Reported by family' };
+export function highlightsFor(doc, conditionId) {
+  return (doc.highlights || []).filter(h => h.conditionId === conditionId)
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || String(a.date || '').localeCompare(String(b.date || '')) || String(a.title).localeCompare(String(b.title)));
+}
+/** A highlight opens the side panel only when there is more to show than its one line. */
+export const highlightHasMore = h => !!(h && (String(h.detail || '').trim() || String(h.quote || '').trim() || String(h.caveat || '').trim() || h.sourceEntryId || h.sourceFileId));
+
+// ---- Tag display labels (t50u) ----------------------------------------------------------
+/** A human label for a tag: the name of a saved view that is exactly this one tag, else the
+ *  stored label, with a slug ("blocked-hiccups") shown as words ("Blocked hiccups"). */
+export function tagDisplayLabel(doc, tag) {
+  if (!tag) return '';
+  const label = String(tag.label || '');
+  if (!/^[a-z0-9]+(-[a-z0-9]+)+$/.test(label)) return label;
+  const view = (doc?.filters || []).find(f => f.kind === 'view' && Array.isArray(f.tagIds) && f.tagIds.length === 1 && f.tagIds[0] === tag.id && !(f.typeIds || []).length && f.name);
+  if (view) return String(view.name);
+  const words = label.replace(/-/g, ' ');
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }

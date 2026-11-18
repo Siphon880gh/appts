@@ -61,6 +61,18 @@ ok(!plan.ops.some(o => o.key === 'k6'), 'sync: created then deleted offline send
 const plan2 = planSync([{ key: 'd', kind: 'entry', id: 'e3', base: entry({ id: 'e3', title: 'Changed on server' }), ours: null }], server);
 ok(plan2.ops.length === 1 && plan2.ops[0].op.op === 'delete', 'sync: an offline delete of an unchanged record is sent');
 ok(same(remapIds({ a: 'x'.repeat(3) + '.png', b: ['xxx.png'] }, { 'xxx.png': 'yyy.png' }), { a: 'yyy.png', b: ['yyy.png'] }), 'sync: a file id assigned differently by the server is remapped everywhere');
+// Clinical Significance highlights ride the same offline queue and merge.
+{
+  const h = { id: 'hl-1', conditionId: 'c1', title: 'CT', summary: 'Five mm', detail: '', certainty: 'documented' };
+  let v = applyLocal({ ...doc(), conditions: [{ id: 'c9', name: 'Empty' }] }, [{ op: 'put', kind: 'highlight', value: { ...h, conditionId: 'c9' } }]);
+  ok(v.highlights.length === 1, 'highlights: a highlight put offline lands in highlights');
+  v = applyLocal(v, [{ op: 'delete', kind: 'condition', id: 'c9' }]);
+  ok(v.highlights.length === 0, 'highlights: deleting a condition offline drops its highlights too');
+  const m = mergeRecord('highlight', h, { ...h, detail: 'Added offline' }, { ...h, summary: 'Five mm (edited on server)' });
+  ok(m.value.detail === 'Added offline' && m.value.summary === 'Five mm (edited on server)' && !m.conflicts.length, 'highlights: different fields edited on each side both survive');
+  const p = planSync([{ key: 'h1', kind: 'highlight', id: 'hl-1', base: null, ours: h }, { key: 'c', kind: 'condition', id: 'c1', base: null, ours: { id: 'c1', name: 'Heel' } }], { ...doc(), highlights: [] });
+  ok(p.ops.length === 2 && p.ops[0].op.kind === 'condition' && p.ops[1].op.kind === 'highlight', 'highlights: synced after the condition they belong to');
+}
 // Saved views (t27u) and condition descriptions (t30u) ride the same offline sync.
 {
   const view = { id: 'view-blocked-abc123', kind: 'view', name: 'Blocked', typeIds: [], tagIds: ['t1'], disruptions: false, conditionId: '', range: 'all' };

@@ -1,7 +1,7 @@
 // Offline-mode helpers with no browser dependencies (tested in Node): applying queued ops to the
 // local copy, and the three-way merge used when queued changes are synced. Rule: never lose data.
 // When both sides changed the same field, the server value stays and our value is kept in the notes.
-export const COLLECTIONS = { condition: 'conditions', type: 'types', entry: 'entries', tag: 'tags', docLabel: 'docLabels', filter: 'filters' };
+export const COLLECTIONS = { condition: 'conditions', type: 'types', entry: 'entries', tag: 'tags', docLabel: 'docLabels', filter: 'filters', highlight: 'highlights' };
 const SKIP = new Set(['updatedAt', 'createdAt']);
 const clone = v => v === undefined ? undefined : JSON.parse(JSON.stringify(v));
 function canon(v) {
@@ -38,6 +38,7 @@ export function applyLocal(doc, ops) {
       const i = next[col].findIndex(r => r.id === op.id);
       if (i < 0) throw Error('That record no longer exists.');
       next[col].splice(i, 1);
+      if (op.kind === 'condition') next.highlights = (next.highlights || []).filter(h => h.conditionId !== op.id);
       if (op.kind === 'tag') { next.entries.forEach(e => { e.tagIds = (e.tagIds || []).filter(t => t !== op.id); }); (next.filters || []).forEach(f => { if (f.tagIds) f.tagIds = f.tagIds.filter(t => t !== op.id); }); }
     } else throw Error('Unknown change.');
   }
@@ -100,7 +101,7 @@ export function mergeRecord(kind, base, ours, theirs, path = '') {
  * {ops: [{op, key}], report: [{key, kind, id, note}]} with ops in an order the server accepts.
  */
 export function planSync(pending, server) {
-  const puts = { tag: [], docLabel: [], type: [], condition: [], entry: [], filter: [] }, deletes = { entry: [], condition: [], tag: [], filter: [] }, report = [];
+  const puts = { tag: [], docLabel: [], type: [], condition: [], entry: [], filter: [], highlight: [] }, deletes = { highlight: [], entry: [], condition: [], tag: [], filter: [] }, report = [];
   for (const p of pending) {
     const theirs = find(server[COLLECTIONS[p.kind]], p.id), key = p.key;
     if (p.ours === null) {
@@ -119,7 +120,7 @@ export function planSync(pending, server) {
     puts[p.kind].push({ op: { op: 'put', kind: p.kind, value: { ...value, notes: value.notes ? { html: value.notes.html || '' } : value.notes } }, key });
     if (value.notes === undefined) delete puts[p.kind][puts[p.kind].length - 1].op.value.notes;
   }
-  const ops = [...puts.tag, ...puts.docLabel, ...puts.type, ...puts.condition, ...puts.entry, ...puts.filter, ...deletes.entry, ...deletes.condition, ...deletes.tag, ...deletes.filter];
+  const ops = [...puts.tag, ...puts.docLabel, ...puts.type, ...puts.condition, ...puts.entry, ...puts.filter, ...puts.highlight, ...deletes.highlight, ...deletes.entry, ...deletes.condition, ...deletes.tag, ...deletes.filter];
   return { ops, report };
 }
 

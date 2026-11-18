@@ -240,8 +240,30 @@ $cd = apply_ops($fx, [['op' => 'put', 'kind' => 'condition', 'value' => ['id' =>
 $cc = $cd['conditions'][find_index($cd['conditions'], 'c-desc')];
 ok($cc['name'] === 'Left Lateral Heel (ALM)' && strpos($cc['description'], 'Acral lentiginous melanoma') === 0 && strpos($cc['description'], "\0") === false, 'condition description saved and cleaned');
 throws(function () use ($fx) { apply_ops($fx, [['op' => 'put', 'kind' => 'condition', 'value' => ['id' => 'c-long', 'name' => 'X', 'description' => str_repeat('a', 1001)]]]); }, 'condition description is capped at 1000 characters');
+// Clinical Significance highlights: plain text, validated sources, cascade with the condition.
+ok(new_doc()['highlights'] === [] && normalize_doc(['version' => 3])['highlights'] === [], 'documents start with no highlights');
+$hx = apply_ops($fx, [['op' => 'put', 'kind' => 'highlight', 'value' => ['id' => 'hl-1', 'conditionId' => 'c1', 'title' => ' CT Left Foot ', 'summary' => "A <script>x</script> 5mm\u{0007} margin", 'detail' => "Line 1\nLine 2", 'quote' => 'up to 5 mm', 'date' => '2026-10-11', 'sourceEntryId' => 'e1', 'sourceFileId' => str_repeat('a', 64) . '.pdf', 'certainty' => 'maybe', 'origin' => 'robot', 'caveat' => 'Exam 10/09']]]);
+$hh = $hx['highlights'][0];
+ok($hh['title'] === 'CT Left Foot' && $hh['summary'] === 'A <script>x</script> 5mm  margin' && $hh['detail'] === "Line 1\nLine 2" && $hh['certainty'] === 'documented' && $hh['origin'] === 'manual' && $hh['date'] === '2026-10-11', 'highlight: text kept plain (shown escaped), control characters removed, enums defaulted');
+throws(function () use ($fx) { apply_ops($fx, [['op' => 'put', 'kind' => 'highlight', 'value' => ['id' => 'hl-2', 'conditionId' => 'nope', 'title' => 'T', 'summary' => 'S']]]); }, 'highlight needs an existing condition');
+throws(function () use ($fx) { apply_ops($fx, [['op' => 'put', 'kind' => 'highlight', 'value' => ['id' => 'hl-2', 'conditionId' => 'c1', 'title' => 'T', 'summary' => '']]]); }, 'highlight needs a summary');
+throws(function () use ($fx) { apply_ops($fx, [['op' => 'put', 'kind' => 'highlight', 'value' => ['id' => 'hl-2', 'conditionId' => 'c1', 'title' => 'T', 'summary' => 'S', 'sourceFileId' => '../../etc/passwd']]]); }, 'highlight source document must be a file id');
+throws(function () use ($fx) { apply_ops($fx, [['op' => 'put', 'kind' => 'highlight', 'value' => ['id' => 'hl-2', 'conditionId' => 'c1', 'title' => 'T', 'summary' => 'S', 'date' => '2026-13-40']]]); }, 'highlight date must be valid');
+$hd = apply_ops($hx, [['op' => 'delete', 'kind' => 'highlight', 'id' => 'hl-1']]);
+ok($hd['highlights'] === [], 'a highlight can be deleted');
+$hc = apply_ops(apply_ops(new_doc(), [['op' => 'put', 'kind' => 'condition', 'value' => ['id' => 'c9', 'name' => 'Empty']], ['op' => 'put', 'kind' => 'highlight', 'value' => ['id' => 'hl-9', 'conditionId' => 'c9', 'title' => 'T', 'summary' => 'S']]]), [['op' => 'delete', 'kind' => 'condition', 'id' => 'c9']]);
+ok($hc['highlights'] === [], "deleting a condition deletes its highlights");
 $co = apply_ops($fx, [['op' => 'put', 'kind' => 'condition', 'value' => ['id' => 'c-old', 'name' => 'Old']]]);
 ok($co['conditions'][find_index($co['conditions'], 'c-old')]['description'] === '', 'a condition saved without a description gets an empty one');
+
+// Memo (t61u): plain text notes to self per condition; kept when a client does not send it.
+$mm = apply_ops($fx, [['op' => 'put', 'kind' => 'condition', 'value' => ['id' => 'c-memo', 'name' => 'M', 'memo' => "To add: MRI\n\n    - indented\u{0007}"]]]);
+$mc = $mm['conditions'][find_index($mm['conditions'], 'c-memo')];
+ok($mc['memo'] === "To add: MRI\n\n    - indented " || $mc['memo'] === "To add: MRI\n\n    - indented", 'memo keeps line breaks and indentation, strips control characters');
+$mk = apply_ops($mm, [['op' => 'put', 'kind' => 'condition', 'value' => ['id' => 'c-memo', 'name' => 'M2']]]);
+ok($mk['conditions'][find_index($mk['conditions'], 'c-memo')]['memo'] === $mc['memo'], 'an update without a memo field keeps the stored memo');
+ok($co['conditions'][find_index($co['conditions'], 'c-old')]['memo'] === '', 'older conditions get an empty memo');
+throws(function () use ($fx) { apply_ops($fx, [['op' => 'put', 'kind' => 'condition', 'value' => ['id' => 'c-m', 'name' => 'X', 'memo' => str_repeat('a', 20001)]]]); }, 'memo is capped at 20000 characters');
 
 exec('rm -rf ' . escapeshellarg($dir));
 echo "PASS: $checks storage, sanitizer, and domain checks ($linkCount link fields exercised by demo seed).\n";

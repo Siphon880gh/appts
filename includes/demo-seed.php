@@ -99,6 +99,21 @@ function demo_doc(?string $today = null): array {
     }
     foreach ($doc['conditions'] as &$c) $c += ['attachments' => []];
     unset($c);
+    // Key highlights on two events (shown with the ★ icon in every list).
+    foreach ($doc['entries'] as &$en) {
+        $en += ['highlight' => ''];
+        if ($en['id'] === 'letter-rad-auth') $en['highlight'] = 'Authorization ends before the radiation course does; the office must request an extension.';
+        if ($en['id'] === 'event-wound-worse') $en['highlight'] = 'Redness and clear drainage increased overnight; ask at the planning check whether this needs a culture.';
+    }
+    unset($en);
+    // Clinical Significance highlights (synthetic), as an AI would draft them from the reports.
+    $rad = null; foreach ($doc['entries'] as $en) if ($en['id'] === 'letter-rad-auth') $rad = $en['attachments'][0]['id'] ?? '';
+    $wound = null; foreach ($doc['entries'] as $en) if ($en['id'] === 'event-wound-worse') $wound = $en['attachments'][0]['id'] ?? '';
+    $doc['highlights'] = [
+        ['id' => 'hl-demo-biopsy', 'conditionId' => 'cond-skin', 'title' => 'Shave biopsy (sample)', 'summary' => 'Pathology: nodular basal cell carcinoma (synthetic).', 'detail' => "The shave biopsy result recorded on the visit reads \"nodular basal cell carcinoma\" (synthetic demo data).", 'quote' => 'Pathology: nodular basal cell carcinoma (synthetic).', 'date' => $d(-75), 'sourceEntryId' => 'visit-biopsy', 'sourceFileId' => '', 'certainty' => 'documented', 'caveat' => '', 'origin' => 'ai', 'sortOrder' => 0, 'createdAt' => $d(-1) . 'T17:00:00+00:00', 'updatedAt' => $d(-1) . 'T17:00:00+00:00'],
+        ['id' => 'hl-demo-auth', 'conditionId' => 'cond-skin', 'title' => 'Radiation authorization (sample)', 'summary' => 'PA-DEMO-5512 covers 20 sessions but ends before the course does.', 'detail' => "The authorization is valid until " . $d(9) . "; the treatment course is planned to end " . $d(14) . ".", 'quote' => 'Service: superficial radiation therapy, 20 sessions', 'date' => $d(-30), 'sourceEntryId' => 'letter-rad-auth', 'sourceFileId' => (string) $rad, 'certainty' => 'documented', 'caveat' => '', 'origin' => 'ai', 'sortOrder' => 1, 'createdAt' => $d(-1) . 'T17:00:00+00:00', 'updatedAt' => $d(-1) . 'T17:00:00+00:00'],
+        ['id' => 'hl-demo-wound', 'conditionId' => 'cond-skin', 'title' => 'Wound change (sample)', 'summary' => 'Redder wound edge with clear drainage overnight.', 'detail' => '', 'quote' => '', 'date' => $d(-2), 'sourceEntryId' => 'event-wound-worse', 'sourceFileId' => (string) $wound, 'certainty' => 'uncertain', 'caveat' => 'Reported at home; not yet examined by the clinic.', 'origin' => 'ai', 'sortOrder' => 2, 'createdAt' => $d(-1) . 'T17:00:00+00:00', 'updatedAt' => $d(-1) . 'T17:00:00+00:00'],
+    ];
     return $doc;
 }
 

@@ -199,10 +199,10 @@ export async function sync() {
   return { synced, failures, report };
 }
 function labelFor(kind, id) {
-  const col = { condition: 'conditions', type: 'types', entry: 'entries', tag: 'tags', docLabel: 'docLabels', filter: 'filters' }[kind];
+  const col = { condition: 'conditions', type: 'types', entry: 'entries', tag: 'tags', docLabel: 'docLabels', filter: 'filters', highlight: 'highlights' }[kind];
   const r = (store.doc?.[col] || []).find(x => x.id === id);
   if (kind === 'filter') return /^view-/.test(id) ? `Saved view “${r?.name || id}”` : 'Disruptions filter';
-  return `${kind === 'entry' ? 'Entry' : kind === 'type' ? 'Type' : kind === 'condition' ? 'Condition' : kind} “${r?.title || r?.name || id}”`;
+  return `${kind === 'entry' ? 'Entry' : kind === 'type' ? 'Type' : kind === 'condition' ? 'Condition' : kind === 'highlight' ? 'Highlight' : kind} “${r?.title || r?.name || id}”`;
 }
 
 // ---- sign out ------------------------------------------------------------------------------

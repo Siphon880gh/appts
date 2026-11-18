@@ -245,5 +245,7 @@ console.log('PASS: document helpers (types, labels, filters, grouping).');
   eq(S.splitConditionName('Left Lateral Heel (ALM*)[Acral lentiginous melanoma, rare]'), { name: 'Left Lateral Heel (ALM)', description: 'Acral lentiginous melanoma, rare' }, 'Name[description] splits, and the * hint is dropped from the name');
   eq(S.splitConditionName('Knee pain'), { name: 'Knee pain', description: '' }, 'a plain name stays whole');
   eq(S.conditionDescription({ name: 'x' }), '', 'older conditions without a description read as empty');
+  ok(S.timelineIsDefault(S.defaultTimelineState()), 't45u: the default Timeline state has no view or filter on');
+  ok(!S.timelineIsDefault({ ...S.defaultTimelineState(), disruptions: true }) && !S.timelineIsDefault({ ...S.defaultTimelineState(), tagIds: new Set(['x']) }) && !S.timelineIsDefault({ ...S.defaultTimelineState(), conditionId: 'c1' }), 't45u: any view, preset, or filter counts as on');
   console.log('PASS: saved views and condition descriptions.');
 }

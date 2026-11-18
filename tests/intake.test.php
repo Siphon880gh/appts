@@ -197,6 +197,28 @@ $v10 = array_values(array_filter($d10['filters'], function ($f) { return strpos(
 ok($code === 0 && count($v10) === 2 && $v10[0]['id'] === $id0 && $v10[0]['tagIds'] === ['tag-paperwork'], 'a view with the same name (any case) is updated, not duplicated');
 ok($d10['conditions'][find_index($d10['conditions'], 'cond-skin')]['description'] === 'Pressure wound, <b>stage</b> 2' && strpos($out, 'already has a description') !== false, 'an existing description is never overwritten by intake');
 
+// ---- Clinical Significance highlights (.agents/skills/clinical-significance)
+$e11 = null; foreach (doc('demo')['entries'] as $e) if ($e['conditionId'] === 'cond-skin' && !empty($e['attachments'])) { $e11 = $e; break; }
+$hplan = ['condition' => 'cond-skin', 'highlights' => [
+    ['title' => 'Biopsy result', 'summary' => 'Exact words "1.6 mm" kept', 'detail' => "Para 1\n\nPara 2", 'quote' => 'BRESLOW DEPTH OF INVASION 1.6 MM, AT LEAST', 'date' => '2026-08-06', 'entry' => $e11['title'], 'file' => $e11['attachments'][0]['name'], 'certainty' => 'documented'],
+    ['title' => 'Family note', 'summary' => 'About 41% chance', 'certainty' => 'reported', 'caveat' => 'Not found in a record'],
+]];
+[$code, $out, $err] = cli(['apply', 'demo', plan($hplan), '--dry-run']);
+$mine = function () { return array_values(array_filter(doc('demo')['highlights'] ?? [], function ($h) { return strpos($h['id'], 'hl-demo-') !== 0; })); };
+ok($code === 0 && strpos($out, '+ new highlight "Biopsy result"') !== false && count($mine()) === 0, "highlights dry run previews and writes nothing ($err)");
+[$code, $out, $err] = cli(['apply', 'demo', plan($hplan)]);
+$hl = $mine();
+ok($code === 0 && count($hl) === 2 && $hl[0]['summary'] === 'Exact words "1.6 mm" kept' && $hl[0]['sourceEntryId'] === $e11['id'] && $hl[0]['sourceFileId'] === $e11['attachments'][0]['id'] && $hl[0]['origin'] === 'ai' && $hl[1]['certainty'] === 'reported', "highlights are saved with their sources, AI origin, and certainty ($err)");
+[$code, $out, $err] = cli(['apply', 'demo', plan(['condition' => 'cond-skin', 'highlights' => [['title' => 'BIOPSY RESULT', 'summary' => 'Changed']]])]);
+ok(strpos($out . $err, 'already exists; left as is') !== false && $mine()[0]['summary'] === 'Exact words "1.6 mm" kept', 'an existing highlight is not changed without "update": true');
+[$code, $out] = cli(['apply', 'demo', plan(['condition' => 'cond-skin', 'highlights' => [['title' => 'biopsy result', 'summary' => 'Changed', 'update' => true]]])]);
+$hl2 = $mine();
+ok($code === 0 && count($hl2) === 2 && $hl2[0]['summary'] === 'Changed' && $hl2[0]['sourceEntryId'] === $e11['id'] && $hl2[0]['quote'] !== '', 'with "update": true the highlight is changed in place and keeps fields not given');
+[$code, , $err] = cli(['apply', 'demo', plan(['condition' => 'cond-skin', 'highlights' => [['title' => 'X', 'summary' => 'Y', 'file' => 'no-such.pdf']]])]);
+ok($code !== 0 && strpos($err, 'no document') !== false, 'a highlight citing a missing document is refused');
+[$code, $out] = cli(['highlights', 'demo', '--condition=cond-skin']);
+ok($code === 0 && count(json_decode($out, true)) === 5, 'the highlights command lists a condition\'s highlights');
+
 // ---- real storage untouched; wf never used
 ok(!is_file("$dir/data/wf.json.php"), 'wf was never loaded or created by the tests');
 ok((is_file($realWf) ? hash_file('sha256', $realWf) : null) === $realWfHash && (is_file($realDemo) ? hash_file('sha256', $realDemo) : null) === $realDemoHash, "real storage/ files untouched");
