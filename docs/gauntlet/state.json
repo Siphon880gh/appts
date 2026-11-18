@@ -1,182 +1,215 @@
 {
-  "run": "appts-build",
-  "started": "2026-11-17T10:05:00-08:00",
-  "bar": [
-    "accountability@3c0897e quality floor",
-    "MyChart clarity for next visit / doctor / referral validity / appeal status"
-  ],
-  "rounds": [
-    {
-      "round": 1,
-      "role": "builder",
-      "summary": "P0-P7: storage, accounts, domain, 10 types, views, entry types page, tags, icons/colors, rich notes, documents; tests"
-    },
-    {
-      "round": 1,
-      "role": "critic",
-      "verdict": "LOSE",
-      "gaps": [
-        "Next up repeated the same record (care date + next due) - noise vs MyChart bar",
-        "Navigating with a dialog open left it covering the new view",
-        "PDF viewer blank in headless screenshots"
-      ],
-      "note": "Self-run fresh-context pass judged on contract + screenshots only (no subagent tool available)"
-    },
-    {
-      "round": 2,
-      "role": "builder",
-      "summary": "Next up one event per record (overview + condition sidebar), dialogs close on hashchange, screenshots via installed Chrome so PDFs render, lazy-image wait in test"
-    },
-    {
-      "round": 2,
-      "role": "critic",
-      "verdict": "LOSE",
-      "gaps": [
-        "At 390px a condition's Next up rendered below every record group"
-      ]
-    },
-    {
-      "round": 3,
-      "role": "builder",
-      "summary": "Narrow screens put the condition sidebar (Next up, notes) first"
-    },
-    {
-      "round": 3,
-      "role": "critic",
-      "verdict": "WIN",
-      "note": "All gates G1-G26 pass; overview/condition/timeline/documents/types readable at a glance; remaining items are documented gaps, not contract failures"
-    },
-    {
-      "round": 4,
-      "role": "builder",
-      "summary": "Bug t10u: under MAMP (Apache mod_php 7.4.33) api.php returned a PHP parse error page instead of JSON. Replaced match/mixed/never/variable-less catch with PHP 7.4 syntax, added str_* polyfills (includes/compat.php), mod_php upload limits in .htaccess, and Require all denied for includes/tools/tests. Added gate G27 and tests/live.check.py"
-    },
-    {
-      "round": 4,
-      "role": "verify",
-      "verdict": "pass",
-      "note": "run-all PASS on PHP 8.4.14 and with APPTS_PHP=7.4.33; live.check.py 26/26 against http://localhost:8888/weng/app/healthcare/appts/ (X-Powered-By PHP/7.4.33)"
-    },
-    {
-      "round": 5,
-      "role": "builder",
-      "summary": "t11u: allowCustom select fields (Free text… + Used before) on all 5 built-in Status fields and togglable on Entry types; Care disruptions -> Other care disruptions; document v2 migration on load (idempotent, locked, backed up, keeps user renames); tools/migrate-dry-run.php"
-    },
-    {
-      "round": 5,
-      "role": "verify",
-      "verdict": "pass",
-      "note": "run-all PASS on PHP 8.4.14 and 7.4.33 (storage 129, api 91, browser 55/56); dry run on a copy of wf: only version + 5 allowCustom flags + disruption name/singular change, conditions/entries/tags/docLabels byte-identical, real file sha256 unchanged; live MAMP 27/27 with wf read skipped and its file hash unchanged"
-    },
-    {
-      "round": 6,
-      "role": "builder",
-      "summary": "t12u/t13u tagline on sign-in, overview, README, page meta (G32)"
-    },
-    {
-      "round": 7,
-      "role": "builder",
-      "summary": "t14u home health: 3 built-in types, countdown (only Completed counts) with low/used-up/awaiting/ended/superseded states on rows, detail, condition sidebar, overview; v3 migration; demo story"
-    },
-    {
-      "round": 7,
-      "role": "critic",
-      "verdict": "LOSE",
-      "gaps": [
-        "Authorization detail 'Linked from' listed identical visit titles with no date or outcome",
-        "Condition sidebar repeated the condition name inside its own page"
-      ]
-    },
-    {
-      "round": 7,
-      "role": "builder",
-      "summary": "Backlinks show date + outcome/status; condition sidebar drops the condition name"
-    },
-    {
-      "round": 7,
-      "role": "verify",
-      "verdict": "pass",
-      "note": "run-all PASS on PHP 8.4.14 (--screens, Chrome) and 7.4.33: storage 170, schema incl. home health countdown, api 98, browser 70; dry run on a copy of wf: v1->3, 5 allowCustom flags + disruption rename + 3 appended types, records byte-identical, real file sha256 unchanged; live MAMP 29/29 (demo reset, countdown renders through Apache, wf file byte-identical)"
-    },
-    {
-      "round": 8,
-      "role": "builder",
-      "summary": "t15u: tools/intake.php (accounts/conditions/types/entries/apply --dry-run; append-only, app validation, lock+backup, guarded uploads, tags/labels on the fly, @ref links) and .agents/skills/log-health-update/SKILL.md"
-    },
-    {
-      "round": 8,
-      "role": "critic",
-      "verdict": "LOSE",
-      "gaps": [
-        "Skill example updated an entry in a different condition than the one chosen, silently",
-        "Nothing kept the SKILL.md plan example in sync with the CLI"
-      ]
-    },
-    {
-      "round": 8,
-      "role": "builder",
-      "summary": "Warn on other-condition updates; example now uses the chosen condition; intake test dry-runs the SKILL.md example and checks frontmatter; .agents/ blocked from the web"
-    },
-    {
-      "round": 8,
-      "role": "verify",
-      "verdict": "pass",
-      "note": "run-all PASS on PHP 8.4.14 (--screens) and 7.4.33: storage 170, intake 59 (both PHPs), schema, api 98, browser 73/72; live MAMP 31/31 (tools/intake.php and SKILL.md 403); wf file sha256 unchanged (58a1fd74...)"
-    }
-  ],
-  "gates": {
-    "G1": "pass",
-    "G2": "pass",
-    "G3": "pass",
-    "G4": "pass",
-    "G5": "pass",
-    "G6": "pass",
-    "G7": "pass",
-    "G8": "pass",
-    "G9": "pass",
-    "G10": "pass",
-    "G11": "pass",
-    "G12": "pass",
-    "G13": "pass",
-    "G14": "pass",
-    "G15": "pass",
-    "G16": "pass",
-    "G17": "pass",
-    "G18": "pass",
-    "G19": "pass",
-    "G20": "pass",
-    "G21": "pass",
-    "G22": "pass",
-    "G23": "pass",
-    "G24": "pass",
-    "G25": "pass",
-    "G26": "pass",
-    "G27": "pass",
-    "G28": "pass",
-    "G29": "pass",
-    "G30": "pass",
-    "G31": "pass",
-    "G32": "pass",
-    "G33": "pass",
-    "G34": "pass",
-    "G35": "pass",
-    "G36": "pass",
-    "G37": "pass",
-    "G38": "pass",
-    "G39": "pass"
+ "run": "appts-build",
+ "started": "2026-11-17T10:05:00-08:00",
+ "bar": [
+  "accountability@3c0897e quality floor",
+  "MyChart clarity for next visit / doctor / referral validity / appeal status"
+ ],
+ "rounds": [
+  {
+   "round": 1,
+   "role": "builder",
+   "summary": "P0-P7: storage, accounts, domain, 10 types, views, entry types page, tags, icons/colors, rich notes, documents; tests"
   },
-  "openGaps": [
-    "Critic is a self-run fresh-context pass, not an independent subagent",
-    "wf starts with the publicly shown demo password - run php tools/set-password.php wf",
-    "PDF responses are not CSP-sandboxed (Chrome PDF viewer breaks under sandbox)",
-    "Plain php -S caps uploads at 2 MB; use tools/serve.sh",
-    "PDF thumbnails are a generic tile (no server-side rendering)",
-    "No export/import"
-  ],
-  "frozen": [
-    "accountability quality floor",
-    "no new dependencies"
-  ],
-  "evidence": "sh tests/run-all.sh --screens (2026-11-17 PST): php -l clean on 8.4.14 + 7.4.33; storage 170; intake CLI 59 (8.4 + 7.4); schema PASS; api 98; browser 73 (installed Chrome); live MAMP 31/31",
-  "finished": "2026-11-17"
+  {
+   "round": 1,
+   "role": "critic",
+   "verdict": "LOSE",
+   "gaps": [
+    "Next up repeated the same record (care date + next due) - noise vs MyChart bar",
+    "Navigating with a dialog open left it covering the new view",
+    "PDF viewer blank in headless screenshots"
+   ],
+   "note": "Self-run fresh-context pass judged on contract + screenshots only (no subagent tool available)"
+  },
+  {
+   "round": 2,
+   "role": "builder",
+   "summary": "Next up one event per record (overview + condition sidebar), dialogs close on hashchange, screenshots via installed Chrome so PDFs render, lazy-image wait in test"
+  },
+  {
+   "round": 2,
+   "role": "critic",
+   "verdict": "LOSE",
+   "gaps": [
+    "At 390px a condition's Next up rendered below every record group"
+   ]
+  },
+  {
+   "round": 3,
+   "role": "builder",
+   "summary": "Narrow screens put the condition sidebar (Next up, notes) first"
+  },
+  {
+   "round": 3,
+   "role": "critic",
+   "verdict": "WIN",
+   "note": "All gates G1-G26 pass; overview/condition/timeline/documents/types readable at a glance; remaining items are documented gaps, not contract failures"
+  },
+  {
+   "round": 4,
+   "role": "builder",
+   "summary": "Bug t10u: under MAMP (Apache mod_php 7.4.33) api.php returned a PHP parse error page instead of JSON. Replaced match/mixed/never/variable-less catch with PHP 7.4 syntax, added str_* polyfills (includes/compat.php), mod_php upload limits in .htaccess, and Require all denied for includes/tools/tests. Added gate G27 and tests/live.check.py"
+  },
+  {
+   "round": 4,
+   "role": "verify",
+   "verdict": "pass",
+   "note": "run-all PASS on PHP 8.4.14 and with APPTS_PHP=7.4.33; live.check.py 26/26 against http://localhost:8888/weng/app/healthcare/appts/ (X-Powered-By PHP/7.4.33)"
+  },
+  {
+   "round": 5,
+   "role": "builder",
+   "summary": "t11u: allowCustom select fields (Free text… + Used before) on all 5 built-in Status fields and togglable on Entry types; Care disruptions -> Other care disruptions; document v2 migration on load (idempotent, locked, backed up, keeps user renames); tools/migrate-dry-run.php"
+  },
+  {
+   "round": 5,
+   "role": "verify",
+   "verdict": "pass",
+   "note": "run-all PASS on PHP 8.4.14 and 7.4.33 (storage 129, api 91, browser 55/56); dry run on a copy of wf: only version + 5 allowCustom flags + disruption name/singular change, conditions/entries/tags/docLabels byte-identical, real file sha256 unchanged; live MAMP 27/27 with wf read skipped and its file hash unchanged"
+  },
+  {
+   "round": 6,
+   "role": "builder",
+   "summary": "t12u/t13u tagline on sign-in, overview, README, page meta (G32)"
+  },
+  {
+   "round": 7,
+   "role": "builder",
+   "summary": "t14u home health: 3 built-in types, countdown (only Completed counts) with low/used-up/awaiting/ended/superseded states on rows, detail, condition sidebar, overview; v3 migration; demo story"
+  },
+  {
+   "round": 7,
+   "role": "critic",
+   "verdict": "LOSE",
+   "gaps": [
+    "Authorization detail 'Linked from' listed identical visit titles with no date or outcome",
+    "Condition sidebar repeated the condition name inside its own page"
+   ]
+  },
+  {
+   "round": 7,
+   "role": "builder",
+   "summary": "Backlinks show date + outcome/status; condition sidebar drops the condition name"
+  },
+  {
+   "round": 7,
+   "role": "verify",
+   "verdict": "pass",
+   "note": "run-all PASS on PHP 8.4.14 (--screens, Chrome) and 7.4.33: storage 170, schema incl. home health countdown, api 98, browser 70; dry run on a copy of wf: v1->3, 5 allowCustom flags + disruption rename + 3 appended types, records byte-identical, real file sha256 unchanged; live MAMP 29/29 (demo reset, countdown renders through Apache, wf file byte-identical)"
+  },
+  {
+   "round": 8,
+   "role": "builder",
+   "summary": "t15u: tools/intake.php (accounts/conditions/types/entries/apply --dry-run; append-only, app validation, lock+backup, guarded uploads, tags/labels on the fly, @ref links) and .agents/skills/log-health-update/SKILL.md"
+  },
+  {
+   "round": 8,
+   "role": "critic",
+   "verdict": "LOSE",
+   "gaps": [
+    "Skill example updated an entry in a different condition than the one chosen, silently",
+    "Nothing kept the SKILL.md plan example in sync with the CLI"
+   ]
+  },
+  {
+   "round": 8,
+   "role": "builder",
+   "summary": "Warn on other-condition updates; example now uses the chosen condition; intake test dry-runs the SKILL.md example and checks frontmatter; .agents/ blocked from the web"
+  },
+  {
+   "round": 8,
+   "role": "verify",
+   "verdict": "pass",
+   "note": "run-all PASS on PHP 8.4.14 (--screens) and 7.4.33: storage 170, intake 59 (both PHPs), schema, api 98, browser 73/72; live MAMP 31/31 (tools/intake.php and SKILL.md 403); wf file sha256 unchanged (58a1fd74...)"
+  },
+  {
+   "round": 9,
+   "role": "build",
+   "verdict": "done",
+   "note": "t17 Offline mode ported from postop: version.php, manifest.php + icons, sw.php/includes/sw.js, action=version and action=offline-plan, js/offline.js (toggle, panel, clinic explainer), js/outbox.js (IndexedDB queue), js/merge.js (three-way sync), tests/offline.test.py, tests/merge.test.mjs, live SW check"
+  },
+  {
+   "round": 10,
+   "role": "critic",
+   "verdict": "fix",
+   "note": "self-run fresh pass on screenshots and code: dialog titles invisible (<header> picked up the site header style), MB shown for GB, awkward picker copy, misleading queued-save notice when the mode is off, run-all.sh hid failures behind `| tail`; new worker stayed waiting after a version reload (fixed by installing it before reload). All fixed"
+  },
+  {
+   "round": 11,
+   "role": "verify",
+   "verdict": "pass",
+   "note": "run-all PASS on PHP 8.4.14 (--screens, installed Chrome) and 7.4.33: storage 170, intake 59, schema, merge 20, api 98, browser 73/72, offline 69 then 71 after the 390px gate; offline test stable 5/5 runs; live MAMP 37/37 (SW scope = /weng/app/healthcare/appts/); wf sha256 unchanged (58a1fd74...)"
+  }
+ ],
+ "gates": {
+  "G1": "pass",
+  "G2": "pass",
+  "G3": "pass",
+  "G4": "pass",
+  "G5": "pass",
+  "G6": "pass",
+  "G7": "pass",
+  "G8": "pass",
+  "G9": "pass",
+  "G10": "pass",
+  "G11": "pass",
+  "G12": "pass",
+  "G13": "pass",
+  "G14": "pass",
+  "G15": "pass",
+  "G16": "pass",
+  "G17": "pass",
+  "G18": "pass",
+  "G19": "pass",
+  "G20": "pass",
+  "G21": "pass",
+  "G22": "pass",
+  "G23": "pass",
+  "G24": "pass",
+  "G25": "pass",
+  "G26": "pass",
+  "G27": "pass",
+  "G28": "pass",
+  "G29": "pass",
+  "G30": "pass",
+  "G31": "pass",
+  "G32": "pass",
+  "G33": "pass",
+  "G34": "pass",
+  "G35": "pass",
+  "G36": "pass",
+  "G37": "pass",
+  "G38": "pass",
+  "G39": "pass",
+  "G40": "pass",
+  "G41": "pass",
+  "G42": "pass",
+  "G43": "pass",
+  "G44": "pass",
+  "G45": "pass",
+  "G46": "pass",
+  "G47": "pass",
+  "G48": "pass",
+  "G49": "pass"
+ },
+ "openGaps": [
+  "Critic is a self-run fresh-context pass, not an independent subagent",
+  "wf starts with the publicly shown demo password - run php tools/set-password.php wf",
+  "PDF responses are not CSP-sandboxed (Chrome PDF viewer breaks under sandbox)",
+  "Plain php -S caps uploads at 2 MB; use tools/serve.sh",
+  "PDF thumbnails are a generic tile (no server-side rendering)",
+  "No export/import",
+  "Offline mode needs a secure context: works on http://localhost (MAMP, php -S) and https, not over a plain-http LAN address such as an iPad on http://<mac-ip>:8888",
+  "Offline: Download opens the saved file inline (the cached response is the inline one); documents of conditions not chosen show as not saved",
+  "Offline: an image pasted offline is not listed under My images until sync",
+  "Offline: a clash on an entry type, tag, or document label keeps the server value and lists the field in the sync report; only entries and conditions also keep our value (in the notes)",
+  "Offline mode tested in Chromium/Chrome only, not Safari"
+ ],
+ "frozen": [
+  "accountability quality floor",
+  "no new dependencies"
+ ],
+ "evidence": "sh tests/run-all.sh --screens (2026-11-17 PST) on 8.4.14 and APPTS_PHP=7.4.33: php -l clean on both; storage 170; intake 59; schema PASS; merge 20; api 98; browser 73/72; offline 71; live MAMP 37/37; run-all now stops on the first failing step",
+ "finished": "2026-11-17"
 }
