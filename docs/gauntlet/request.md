@@ -49,3 +49,6 @@ user can add rich text format note per entry
 a clinic visit to dr/specialist/etc can also be to lab work.
 
 User should be able to easily upload PDF/images of their consultation notes or lab work. App should have an area where you can see all uploads by filetype (PDF etc) and the type user selected for their upload (Lab, Consultation Note, PCP Note, Progress Note, etc - any custom labels they add are saved to be useable too)
+
+## t11u-appts (6:50 PM PT, APP Appts chat)
+For all Status, lets add a Free Text option. Lets rename Care disruption to Other care disruption.

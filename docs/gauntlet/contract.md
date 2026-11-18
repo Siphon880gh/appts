@@ -13,7 +13,7 @@ A critic compares Appts screenshots with the reference blind and picks the clear
 |----|------|----------|
 | G1 | `php -l` passes on every PHP file | `tests/run-all.sh` output |
 | G2 | Storage unit tests: guarded round-trip, atomic temp+rename, backups capped, lock, HTML sanitizer | `php tests/storage.test.php` PASS |
-| G3 | Domain tests for **every** built-in entry type (all 10, including Clinical events, Insurance events, Care disruptions) (valid entry, required field, events, links, search, filter) | `node tests/schema.test.mjs` PASS |
+| G3 | Domain tests for **every** built-in entry type (all 10, including Clinical events, Insurance events, Other care disruptions) (valid entry, required field, events, links, search, filter) | `node tests/schema.test.mjs` PASS |
 | G4 | Custom type: create, add every field kind, use it for an entry, survive reload; removing a field / archiving a type keeps data | node + browser tests PASS |
 | G5 | Login works for `demo` and `wf`; wrong password rejected; only `password_hash` values on disk | `tests/api.test.py` PASS + grep shows no plaintext |
 | G6 | Account isolation: data and images of one account unreadable by the other | `tests/api.test.py` PASS |
@@ -37,6 +37,10 @@ A critic compares Appts screenshots with the reference blind and picks the clear
 | G25 | Documents page filters by file type and by label (chips derived from existing uploads) | node + browser tests PASS |
 | G26 | Cross-account access to an upload (PDF or image) is denied | api test PASS |
 | G27 | PHP 7.4 compatibility (MAMP mod_php 7.4.33) and 8.4: every PHP file lints on both; storage tests pass on 7.4; full suite passes with `APPTS_PHP=<7.4 binary>`; live MAMP check returns JSON | `tests/run-all.sh` + `APPTS_PHP=… sh tests/run-all.sh` |
+| G28 | A free-text status typed in an entry saves, survives reload, shows in the row and detail, is found by search and the timeline filter, and is offered again under "Used before" | browser + api + node tests PASS |
+| G29 | All 5 built-in Status fields offer **Free text…**; "Allow free text" can be toggled on any select field on the Entry types page (custom selects included) | node + browser tests PASS |
+| G30 | The built-in type is called "Other care disruptions" / "Other care disruption" everywhere (seed, condition page, timeline chips, Entry types page, demo, docs) | node + browser tests + `git grep` |
+| G31 | Migration v1→v2 is idempotent, backs up first, renames only a default-named disruption type, enables free text on built-in status fields, and leaves every condition, entry, tag, label, and attachment byte-identical; dry run on a copy of `wf` shows only type changes | storage + api tests PASS + `tools/migrate-dry-run.php wf` |
 | G13 | Fresh critic reviews headless screenshots + live app and returns WIN | `state.json` verdict log |
 
 ## Hard boundaries
