@@ -256,3 +256,27 @@ dl.values dd{margin:0;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere
   .condition-grid{grid-template-columns:1fr}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+/* Home health countdown (t14u): calm when fine, amber when low, red when used up or awaiting approval. */
+.hh-overview{background:var(--paper);border:1px solid var(--line);border-top:4px solid #1f6f5c;padding:22px 24px;margin-bottom:24px}
+.hh-overview h2{font-size:15px;font-family:var(--body);font-weight:800;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:12px}
+.hh-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.hh-panel{border:1px solid var(--line);border-left:4px solid #1f6f5c;background:#fff;padding:12px 14px;margin:0 0 14px}
+.hh-grid .hh-panel,aside .hh-panel{margin:0 0 10px}
+.hh-panel.state-low{border-left-color:#b7791f}.hh-panel.state-used-up,.hh-panel.state-awaiting{border-left-color:var(--warn)}
+.hh-panel .hh-title{display:block;font-weight:800;text-align:left;padding:0}
+.hh-panel .hh-title + small{display:block;margin-bottom:6px}
+.hh-count{margin:0 0 6px;font-size:15px}.hh-count b{font:800 28px/1 var(--display);margin-right:4px}
+.hh-panel.compact .hh-count b{font-size:22px}
+.hh-bar{height:8px;background:#e8ebee;border-radius:4px;overflow:hidden}
+.hh-bar span{display:block;height:100%;background:#1f6f5c}
+.state-low .hh-bar span{background:#b7791f}.state-used-up .hh-bar span,.state-awaiting .hh-bar span{background:var(--warn)}
+.hh-used{margin:6px 0 0}
+.hh-alert{display:flex;gap:6px;align-items:flex-start;margin:8px 0 0;padding:6px 8px;font-size:13px;font-weight:700;line-height:1.4;border-radius:3px;background:var(--soft);color:#1d4466}
+.state-low .hh-alert{background:#fff4d6;color:#6b4100}
+.state-used-up .hh-alert,.state-awaiting .hh-alert{background:#fbe9e7;color:#8a2f2e}
+.hh-alert svg{flex:none;margin-top:2px}
+.hh-missed{margin:8px 0 0}
+.hh-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:3px;font-size:11px;font-weight:800;background:#e3f0ec;color:#174f42}
+.hh-chip.state-low{background:#fff4d6;color:#6b4100}
+.hh-chip.state-used-up,.hh-chip.state-awaiting{background:#fbe9e7;color:#8a2f2e}
+.hh-chip.state-superseded,.hh-chip.state-ended{background:#ecebe6;color:#4f5865}

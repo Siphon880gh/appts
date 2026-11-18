@@ -8,7 +8,7 @@ import { noteHTML } from './richText.js';
 import { imageURL } from './images.js';
 import { DEMO_USERNAME, DEMO_PASSWORD } from './demoAccount.js';
 import { store, save, notice, remove } from './store.js';
-import { esc, plural, searchBox, eventRow, entryRow, typeChip, tagFilterChip, tagChip, closeDialog } from './ui.js';
+import { esc, plural, searchBox, eventRow, entryRow, typeChip, tagFilterChip, tagChip, closeDialog, hhPanel } from './ui.js';
 import { openEntryForm, openEntryDetail, deleteEntry, openConditionForm, openViewer, openQuickUpload, attachmentsHTML } from './forms.js';
 import { renderTypes, openTypeEditor } from './typesPage.js';
 
@@ -71,7 +71,9 @@ function renderOverview() {
   } else if (!conds.length) {
     body = `<div class="empty"><h2>Start with a condition</h2><p class="muted">Add a diagnosis you're being seen for, like “Left knee osteoarthritis”. Then add its doctors, visits, referrals, appeals, supplies, care, treatments, and documents under it.</p><button class="primary" type="button" data-action="add-condition">+ Add your first condition</button></div>`;
   } else {
-    body = `${next.length ? `<section class="next-up" aria-labelledby="next-up-h"><h2 id="next-up-h">Next up across your conditions</h2><ul class="event-list">${next.map(ev => eventRow(ev)).join('')}</ul><p class="fine" style="margin:10px 0 0"><a href="#/upcoming">See everything upcoming →</a></p></section>` : ''}
+    const hh = S.homeHealthAuths(doc);
+    const hhHTML = hh.length ? `<section class="hh-overview" aria-labelledby="hh-h"><h2 id="hh-h">Home health visits</h2><div class="hh-grid">${hh.map(a => hhPanel(a.entry, { compact: true })).join('')}</div></section>` : '';
+    body = `${hhHTML}${next.length ? `<section class="next-up" aria-labelledby="next-up-h"><h2 id="next-up-h">Next up across your conditions</h2><ul class="event-list">${next.map(ev => eventRow(ev)).join('')}</ul><p class="fine" style="margin:10px 0 0"><a href="#/upcoming">See everything upcoming →</a></p></section>` : ''}
       <div class="section-heading"><h2>Your conditions</h2><span class="muted">${plural(conds.length, 'active condition')}</span></div><div class="condition-grid">${conds.map(conditionCard).join('')}</div>
       ${others.length ? `<p class="fine" style="margin-top:20px">Archived: ${others.map(c => `<a href="#/c/${esc(c.id)}">${esc(c.name)}</a>`).join(', ')}</p>` : ''}`;
   }
@@ -99,6 +101,7 @@ function renderCondition(id) {
   }).join('');
   const unused = S.activeTypes(doc).filter(t => !all.some(e => e.typeId === t.id));
   const next = S.upcoming(doc, { conditionId: id, limit: 5, onePerEntry: true });
+  const hhCond = S.homeHealthAuths(doc, { conditionId: id });
   app.innerHTML = `<nav class="breadcrumb" aria-label="Breadcrumb"><a href="#/">← All conditions</a></nav>
     <div class="condition-head" style="border-bottom-color:${esc(c.color)}"><div><p class="eyebrow"><span class="badge ${esc(c.status)}">${esc(c.status)}</span>${c.diagnosedOn ? ` · Diagnosed ${esc(S.formatDate(c.diagnosedOn))}` : ''}</p><h1>${esc(c.name)}</h1>${c.summary ? `<p class="muted" style="margin:0">${esc(c.summary)}</p>` : ''}</div>
     <div class="actions"><label class="skip" for="add-type">Add entry of type</label><select id="add-type" style="width:auto;margin:0"><option value="">+ Add entry…</option>${S.activeTypes(doc).map(t => `<option value="${esc(t.id)}">${esc(t.singular)}</option>`).join('')}</select><button type="button" data-action="edit-condition" data-id="${esc(c.id)}">Edit condition</button><a class="button" href="#/timeline" data-action="timeline-for" data-id="${esc(c.id)}">Timeline</a></div></div>
@@ -109,6 +112,7 @@ function renderCondition(id) {
       ${sections || (all.length ? '<div class="empty"><p>No entries match these filters.</p></div>' : `<div class="empty"><h2>Nothing recorded yet</h2><p class="muted">Start with the doctor you see for this condition, or your next visit.</p></div>`)}
       ${unused.length ? `<div class="rule"><h3>Add another kind of record</h3><div class="add-more">${unused.map(t => `<button type="button" data-action="add-entry" data-id="${esc(t.id)}">${typeBadge(t, 'sm')} ${esc(t.singular)}</button>`).join('')}</div></div>` : ''}
     </div><aside>
+      ${hhCond.length ? `<section aria-labelledby="cond-hh"><h2 id="cond-hh">Home health</h2>${hhCond.map(a => hhPanel(a.entry, { compact: true })).join('')}</section>` : ''}
       <section aria-labelledby="cond-next"><h2 id="cond-next">Next up</h2>${next.length ? `<ul class="event-list">${next.map(ev => eventRow(ev, { compact: true })).join('')}</ul>` : '<p class="muted">Nothing upcoming.</p>'}</section>
       <section aria-labelledby="cond-notes"><div class="section-heading"><h2 id="cond-notes">Condition notes</h2><button type="button" data-action="edit-condition" data-id="${esc(c.id)}">Edit</button></div>${c.notes?.html || c.notes?.text ? `<div class="note-content">${noteHTML(c.notes)}</div>` : '<p class="muted">No notes yet.</p>'}${c.attachments?.length ? `<h2 style="margin-top:14px">Documents</h2>${attachmentsHTML(c.attachments)}` : ''}</section>
       ${all.length === 0 ? `<section><button type="button" class="danger" data-action="delete-condition" data-id="${esc(c.id)}">Delete this empty condition</button></section>` : ''}

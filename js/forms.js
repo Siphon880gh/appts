@@ -6,7 +6,7 @@ import { typeBadge } from './icons.js';
 import { richEditor, bindEditor, editorValue, noteHTML } from './richText.js';
 import { uploadFile, documentFiles, fileURL, imageURL, DOCUMENT_ACCEPT } from './images.js';
 import { store, save, put, remove, notice } from './store.js';
-import { esc, openDialog, closeDialog, dialogHead, tagChip, tagsFor, conditionName, plural, relLabel } from './ui.js';
+import { esc, openDialog, closeDialog, dialogHead, tagChip, tagsFor, conditionName, plural, relLabel, hhPanel } from './ui.js';
 
 // ---- tag picker: chips + type-ahead; Enter or "+ Create" makes a tag on the fly ----------
 export function tagPickerHTML(id) {
@@ -199,6 +199,7 @@ export function openEntryDetail(id) {
   }).join('');
   const retired = S.retiredValues(type, entry), backs = S.backlinks(doc, entry.id);
   const html = `${dialogHead(entry.title, `${type.singular} · ${conditionName(entry.conditionId)}`, typeBadge(type, 'lg'))}<div class="dialog-body">
+    ${entry.typeId === S.HH.auth ? hhPanel(entry) : ''}
     ${rows ? `<dl class="values">${rows}</dl>` : '<p class="muted">No details filled in yet.</p>'}
     ${retired.length ? `<div class="retired"><h3>Kept from removed fields</h3><dl class="values">${retired.map(r => `<dt>${esc(r.field.label)}</dt><dd>${esc(S.displayValue(doc, r.field, r.value))}</dd>`).join('')}</dl></div>` : ''}
     ${tagsFor(entry).length ? `<p class="chips">${tagsFor(entry).map(tagChip).join('')}</p>` : ''}
