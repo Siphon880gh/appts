@@ -256,8 +256,9 @@ function show(html, label) {
 export function openInfo() {
   const on = O.readState().on;
   show(`<form method="dialog" class="offline-sheet"><div class="dialog-head"><h2 id="offline-info-title">What is Offline mode?</h2><button class="close" value="close" aria-label="Close">✕ Close</button></div>
+    <p class="offline-lead">Want to show clinical information to your doctor?</p>
     ${CLINIC_SVG}
-    <p class="offline-lead"><strong>Turn this on first, while you're still online.</strong> Some clinics don't share their internet, and phone signal inside can be weak.</p>
+    <p class="offline-intro"><strong>Turn this on first, while you're still online.</strong> Some clinics don't share their internet, and phone signal inside can be weak.</p>
     <ol class="offline-steps"><li>Before you leave, open Appts and turn on <b>Offline mode</b>. Appts saves your records, the documents of the conditions you choose, and the app itself on this device.</li>
     <li>At the appointment, every page opens from that saved copy, even with no connection. Nothing is sent over the network.</li>
     <li>Changes you make there (a note, a new visit, a photo of a letter) stay on this device. When you're back online, turn Offline mode off and sync them.</li></ol>
@@ -274,10 +275,10 @@ export async function openPanel({ warn = '' } = {}) {
   const stuck = failed.length ? `<section class="offline-report" aria-label="Not synced yet"><h3>Not synced yet</h3><ul>${failed.map(p => `<li class="failed">${esc(labelFor(p.kind, p.id))}: ${esc(p.lastError)} <button type="button" class="link" data-offline="discard" data-key="${esc(p.key)}">Discard this change</button></li>`).join('')}</ul></section>` : '';
   let body;
   if (st.on) {
-    body = `<p class="offline-lead">Every page and document opens from the copy on this device. ${waiting ? 'Your changes are kept here; ' : ''}Sync waits until you turn Offline mode off.</p>${status}${report}
+    body = `<p class="offline-intro">Every page and document opens from the copy on this device. ${waiting ? 'Your changes are kept here; ' : ''}Sync waits until you turn Offline mode off.</p>${status}${report}
       <div class="dialog-foot"><button type="button" data-offline="refresh">Update saved copy</button><button type="button" class="primary" data-offline="off">Turn off Offline mode</button></div>`;
   } else {
-    body = `<p class="offline-lead">Save your records on this device before you go somewhere without internet, like a clinic that doesn't share its Wi-Fi.</p>${status}${report}${stuck}
+    body = `<p class="offline-intro">Save your records on this device before you go somewhere without internet, like a clinic that doesn't share its Wi-Fi.</p>${status}${report}${stuck}
       ${waiting ? `<div class="offline-sync"><p><strong>${waiting} change${waiting === 1 ? '' : 's'} made offline ${waiting === 1 ? 'is' : 'are'} ready to sync.</strong> Appts merges them with anything changed on the server meanwhile; nothing is overwritten.</p><button type="button" class="primary" data-offline="sync">Sync ${waiting} change${waiting === 1 ? '' : 's'} now</button></div>` : ''}
       <fieldset class="offline-pick"><legend>Documents to save</legend><p class="fine">Your records and the app are always saved. Choose which conditions' documents (PDFs and images) to include.</p><div class="offline-conditions"><p class="muted">Checking what to save…</p></div><p class="offline-estimate" aria-live="polite"></p></fieldset>
       <div class="offline-progress" hidden><progress max="1" value="0"></progress><p role="status" class="offline-progress-text"></p></div>

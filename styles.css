@@ -293,7 +293,10 @@ dl.values dd{margin:0;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere
 .offline-sheet>:not(.dialog-head):not(.dialog-foot){margin-left:26px;margin-right:26px}
 .offline-sheet .dialog-foot{margin-top:18px}
 .offline-art{display:block;width:calc(100% - 52px);height:auto;margin-top:20px;border:1px solid var(--line)}
-.offline-lead{font-size:16px;line-height:1.55;margin-top:18px}
+.offline-intro{font-size:16px;line-height:1.55;margin-top:18px}
+/* Explainer headline (same rule as postop; Appts' brand color is its ink navy) */
+.offline-lead{margin:4px 0 10px;font-size:1.12rem;font-weight:800;color:var(--navy)}
+.offline-sheet>.offline-lead{margin-top:20px}
 .offline-steps{padding-left:20px;line-height:1.55}.offline-steps li{margin:6px 0}
 .offline-status{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0;margin-top:12px;border:1px solid var(--line)}
 .offline-status div{padding:10px 14px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);margin:-1px -1px 0 0}
