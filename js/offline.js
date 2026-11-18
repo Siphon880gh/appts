@@ -197,8 +197,9 @@ export async function sync() {
   return { synced, failures, report };
 }
 function labelFor(kind, id) {
-  const col = { condition: 'conditions', type: 'types', entry: 'entries', tag: 'tags', docLabel: 'docLabels' }[kind];
+  const col = { condition: 'conditions', type: 'types', entry: 'entries', tag: 'tags', docLabel: 'docLabels', filter: 'filters' }[kind];
   const r = (store.doc?.[col] || []).find(x => x.id === id);
+  if (kind === 'filter') return 'Disruptions filter';
   return `${kind === 'entry' ? 'Entry' : kind === 'type' ? 'Type' : kind === 'condition' ? 'Condition' : kind} “${r?.title || r?.name || id}”`;
 }
 

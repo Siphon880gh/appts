@@ -284,3 +284,34 @@ export function homeHealthAuths(doc, { conditionId = '', from = today(), include
     .filter(a => a.usage.state !== 'superseded' && (includeEnded || a.usage.state !== 'ended'))
     .sort((a, b) => rank[a.usage.state] - rank[b.usage.state] || (b.entry.values?.start || '').localeCompare(a.entry.values?.start || ''));
 }
+
+// ---- Disruptions filter (t18u) ----------------------------------------------
+/** Built-in rule: other care disruptions, appeals, and clinical events always count; so does any entry
+ *  whose choice fields read like a denial, a cancelled, missed, or rescheduled visit, a delay, a hold,
+ *  or a lapse. Case-insensitive and on the text, so free-text and custom values count too. */
+export const DISRUPTION_TYPES = ['disruption', 'appeal', 'clinical_event'];
+export const DISRUPTION_RE = /\b(denied|denial|rejected|cancel+ed|no-show|missed|reschedul\w*|delay\w*|backorder\w*|paused|waiting for further|pending|info requested|partially approved|expired|used up|lapsed)\b/i;
+export function disruptionByRule(doc, entry) {
+  if (DISRUPTION_TYPES.includes(entry.typeId)) return true;
+  const type = typeById(doc, entry.typeId); if (!type) return false;
+  return allFields(type).some(f => f.kind === 'select' && DISRUPTION_RE.test(String(entry.values?.[f.id] ?? '')));
+}
+export function disruptionFilter(doc) {
+  const f = (doc.filters || []).find(x => x.id === 'disruptions');
+  return { id: 'disruptions', include: [...(f?.include || [])], exclude: [...(f?.exclude || [])] };
+}
+/** In the filter: by the rule unless removed, or added by hand in Edit Disruption mode. */
+export function isDisruption(doc, entry, filter = disruptionFilter(doc)) {
+  if (filter.include.includes(entry.id)) return true;
+  if (filter.exclude.includes(entry.id)) return false;
+  return disruptionByRule(doc, entry);
+}
+/** The filter record after clicking an entry in Edit Disruption mode (gray ↔ in). */
+export function toggleDisruption(doc, entryId) {
+  const f = disruptionFilter(doc), entry = entryById(doc, entryId); if (!entry) return f;
+  const inNow = isDisruption(doc, entry, f), rule = disruptionByRule(doc, entry);
+  f.include = f.include.filter(id => id !== entryId); f.exclude = f.exclude.filter(id => id !== entryId);
+  if (inNow && rule) f.exclude.push(entryId);
+  if (!inNow && !rule) f.include.push(entryId);
+  return f;
+}
