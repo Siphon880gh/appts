@@ -52,3 +52,12 @@ User should be able to easily upload PDF/images of their consultation notes or l
 
 ## t11u-appts (6:50 PM PT, APP Appts chat)
 For all Status, lets add a Free Text option. Lets rename Care disruption to Other care disruption.
+
+## t12u-appts (6:58 PM PT, APP Appts chat)
+THEN: Brand somewhere (rewrite to sound easier to read) I guess README and in the app: You or a loved one's appointments and insurance shenanigans are getting out of hand? Some diseases require multiple visits and coordination, also imaging and insurance issues to navigate. Here is an appointment/insurance/progress tracker for each condition
+
+## t13u-appts (6:59 PM PT, APP Appts chat)
+And I guess also at the healthcare index
+
+## t14u-appts (7:03 PM PT, APP Appts chat)
+We can also add Home Health nurses visiting you into something that we track. Often they stop visiting because of insurance needing to approve the next 5-7 visits. And sometimes they can't come because they dont have time availability, and sometimes they cant come because you have to go to a clinic. Have a way to track this, including the authorized visits counting down. And an event can be waiting for further approval. another can be spoken to case manager at home health. Update sample data
