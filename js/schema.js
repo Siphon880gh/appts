@@ -230,3 +230,57 @@ export function readableText(color) {
   const hex = /^#[0-9a-f]{6}$/i.test(color || '') ? color : '#5c6674';
   return contrastRatio(hex, '#ffffff') >= contrastRatio(hex, '#000000') ? '#ffffff' : '#000000';
 }
+
+// ---- home health countdown (t14u) ------------------------------------------------------------
+// Only visits whose Outcome is exactly "Completed" (any case) use up an authorization. Missed,
+// scheduled, rescheduled, or typed outcomes are listed but never counted.
+export const HH = { auth: 'hh_auth', visit: 'hh_visit', event: 'hh_event', waiting: 'Waiting for further approval' };
+const AWAITING = ['pending approval', 'waiting for further approval'];
+const norm = v => String(v ?? '').trim().toLowerCase();
+export const isCompletedVisit = v => norm(v.values?.outcome) === 'completed';
+
+export function authUsage(doc, auth, from = today()) {
+  const authorized = Math.max(0, Math.floor(Number(auth.values?.visits_authorized) || 0));
+  const visits = doc.entries.filter(e => e.typeId === HH.visit && e.values?.authorization === auth.id);
+  const used = visits.filter(isCompletedVisit).length;
+  const notCounted = {};
+  for (const v of visits) {
+    const o = String(v.values?.outcome ?? '').trim();
+    if (!o || isCompletedVisit(v) || ['scheduled', 'rescheduled'].includes(norm(o))) continue;
+    notCounted[o] = (notCounted[o] || 0) + 1;
+  }
+  const next = doc.entries.find(e => e.typeId === HH.auth && e.values?.previous === auth.id) || null;
+  const waitingEvent = doc.entries.some(e => e.typeId === HH.event && e.values?.authorization === auth.id && norm(e.values?.event_kind) === norm(HH.waiting));
+  const left = Math.max(0, authorized - used), over = Math.max(0, used - authorized);
+  const ended = !!auth.values?.end && auth.values.end < from;
+  let state;
+  if (next) state = 'superseded';
+  else if (AWAITING.includes(norm(auth.values?.status)) || waitingEvent) state = 'awaiting';
+  else if (authorized && left === 0) state = 'used-up';
+  else if (ended) state = 'ended';
+  else if (left <= 2) state = 'low';
+  else state = 'ok';
+  return { authorized, used, left, over, visits, notCounted, next, state, attention: ['awaiting', 'used-up', 'low'].includes(state) };
+}
+
+export function authCountdown(u) { return `${u.left} of ${u.authorized} authorized visit${u.authorized === 1 ? '' : 's'} left`; }
+
+export function authMessage(u) {
+  switch (u.state) {
+    case 'low': return `Only ${u.left} visit${u.left === 1 ? '' : 's'} left. Ask the agency to request more before they run out.`;
+    case 'used-up': return `All authorized visits are used${u.over ? ` (${u.over} over)` : ''}. Visits usually stop until insurance approves more.`;
+    case 'awaiting': return u.left ? `Waiting for insurance to approve more visits. ${u.left} still usable.` : 'Waiting for insurance to approve more visits.';
+    case 'ended': return 'This authorization has ended.';
+    case 'superseded': return 'Continued by a newer authorization.';
+    default: return '';
+  }
+}
+
+/** Current (not superseded) home health authorizations, most urgent first. */
+export function homeHealthAuths(doc, { conditionId = '', from = today(), includeEnded = false } = {}) {
+  const rank = { 'used-up': 0, awaiting: 1, low: 2, ok: 3, ended: 4 };
+  return doc.entries.filter(e => e.typeId === HH.auth && (!conditionId || e.conditionId === conditionId))
+    .map(entry => ({ entry, usage: authUsage(doc, entry, from) }))
+    .filter(a => a.usage.state !== 'superseded' && (includeEnded || a.usage.state !== 'ended'))
+    .sort((a, b) => rank[a.usage.state] - rank[b.usage.state] || (b.entry.values?.start || '').localeCompare(a.entry.values?.start || ''));
+}

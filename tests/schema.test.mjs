@@ -15,11 +15,11 @@ let checks = 0;
 const ok = (cond, msg) => { assert.ok(cond, msg); checks++; };
 const eq = (a, b, msg) => { assert.deepEqual(a, b, msg); checks++; };
 
-const BUILTINS = ['doctor', 'visit', 'letter', 'appeal', 'supply', 'care', 'treatment', 'clinical_event', 'insurance_event', 'disruption'];
-eq(S.sortTypes(blank.types).map(t => t.id), BUILTINS, 'ten built-in seeds, in order');
-eq(new Set(blank.types.map(t => t.icon)).size, 10, 'every built-in has a distinct icon');
+const BUILTINS = ['doctor', 'visit', 'letter', 'appeal', 'supply', 'care', 'treatment', 'clinical_event', 'insurance_event', 'disruption', 'hh_auth', 'hh_visit', 'hh_event'];
+eq(S.sortTypes(blank.types).map(t => t.id), BUILTINS, 'thirteen built-in seeds, in order');
+eq(new Set(blank.types.map(t => t.icon)).size, 13, 'every built-in has a distinct icon');
 ok(blank.types.every(t => hasIcon(t.icon)), 'every built-in icon exists in the SVG set');
-eq(new Set(blank.types.map(t => t.color)).size, 10, 'every built-in has a distinct color');
+eq(new Set(blank.types.map(t => t.color)).size, 13, 'every built-in has a distinct color');
 
 // ---- every built-in type: valid entry, required title/fields, events, links, search, filter
 const sampleValue = (doc, f, condId) => ({ text: 'Sample text', longtext: 'Line one\nLine two', date: '2026-12-01', number: 3, select: f.options[0], checkbox: true, link: S.linkTargets(doc, f, condId)[0]?.id ?? '' })[f.kind];
@@ -155,7 +155,7 @@ console.log('PASS: document helpers (types, labels, filters, grouping).');
   const dis = S.typeById(demo, 'disruption');
   ok(dis.name === 'Other care disruptions' && dis.singular === 'Other care disruption', 'disruption type renamed');
   const statusFields = demo.types.flatMap(t => t.fields.filter(f => f.label === 'Status').map(f => [t.id, f]));
-  ok(statusFields.length === 5 && statusFields.every(([, f]) => f.kind === 'select' && f.allowCustom === true), 'all 5 built-in Status fields allow free text');
+  ok(statusFields.length === 6 && statusFields.every(([, f]) => f.kind === 'select' && f.allowCustom === true), 'all 6 built-in Status fields allow free text');
   ok(S.typeById(demo, 'doctor').fields.find(f => f.id === 'role').allowCustom === false, 'other built-in selects stay preset-only');
   // G28: typed values are offered again; presets-only fields keep an odd stored value visible.
   const supply = S.typeById(demo, 'supply'), st = supply.fields.find(f => f.id === 'status');
@@ -176,4 +176,56 @@ console.log('PASS: document helpers (types, labels, filters, grouping).');
   const evs = S.filterEvents(demo, S.allEvents(demo), { query: 'backordered at pharmacy' });
   ok(evs.length > 0 && evs.every(ev => ev.entryId === entry.id), 'timeline filter finds a typed status');
   console.log('PASS: free-text statuses and Other care disruptions.');
+}
+
+// ---- home health countdown (G33, G34) --------------------------------------------------------
+{
+  const doc = structuredClone(demo);
+  const auth1 = S.entryById(doc, 'hh-auth-1'), auth2 = S.entryById(doc, 'hh-auth-2');
+  const u1 = S.authUsage(doc, auth1, TODAY), u2 = S.authUsage(doc, auth2, TODAY);
+  eq([u1.used, u1.left, u1.state], [6, 0, 'superseded'], 'demo: first authorization used 6 of 6 and is continued by the second');
+  eq(u1.notCounted, { 'Missed: nurse unavailable': 1, 'Missed: patient at clinic': 1, 'Missed: waiting for insurance approval': 1 }, 'demo: each missed reason listed, none counted');
+  eq([u2.authorized, u2.used, u2.left, u2.state, u2.attention], [5, 3, 2, 'low', true], 'demo: second authorization has 2 of 5 left and warns');
+  eq(S.authCountdown(u2), '2 of 5 authorized visits left', 'countdown text');
+  ok(/Only 2 visits left/.test(S.authMessage(u2)), 'low warning text');
+  eq(S.homeHealthAuths(doc).map(a => a.entry.id), ['hh-auth-2'], 'overview lists only the current authorization');
+  eq(S.homeHealthAuths(doc, { conditionId: 'cond-knee' }), [], 'condition filter applies');
+  // Countdown math on a fresh authorization.
+  const auth = { id: 'a', conditionId: 'cond-skin', typeId: 'hh_auth', title: 'Auth', values: { visits_authorized: 4, status: 'Approved', end: '2026-12-31' } };
+  const visit = (id, outcome, authorization = 'a') => ({ id, conditionId: 'cond-skin', typeId: 'hh_visit', title: 'Visit', values: { date: '2026-11-10', authorization, outcome } });
+  const d = { ...structuredClone(demo), entries: [auth] };
+  const usage = () => S.authUsage(d, auth, TODAY);
+  eq([usage().left, usage().state], [4, 'ok'], 'no visits: 4 of 4 left');
+  d.entries.push(visit('v1', 'Completed'), visit('v2', 'completed '));
+  eq([usage().used, usage().left, usage().state], [2, 2, 'low'], 'completed visits count (any case), low at 2 left');
+  for (const [id, o] of [['m1', 'Missed: waiting for insurance approval'], ['m2', 'Missed: nurse unavailable'], ['m3', 'Missed: patient at clinic'], ['m4', 'Nurse stuck in traffic'], ['s1', 'Scheduled'], ['s2', 'Rescheduled'], ['s3', '']]) d.entries.push(visit(id, o));
+  eq(usage().used, 2, 'missed, typed, scheduled, rescheduled, and blank outcomes never count');
+  eq(Object.keys(usage().notCounted).sort(), ['Missed: nurse unavailable', 'Missed: patient at clinic', 'Missed: waiting for insurance approval', 'Nurse stuck in traffic'], 'missed and typed reasons are listed');
+  d.entries.push(visit('o1', 'Completed', 'other-auth'));
+  eq(usage().used, 2, 'visits linked to another authorization do not count');
+  d.entries.push(visit('v3', 'Completed'));
+  eq([usage().left, usage().state], [1, 'low'], '1 left still warns');
+  d.entries.push(visit('v4', 'Completed'));
+  eq([usage().left, usage().state, usage().attention], [0, 'used-up', true], 'all used: used up');
+  d.entries.push(visit('v5', 'Completed'));
+  eq([usage().left, usage().over], [0, 1], 'an extra completed visit shows as over, never negative');
+  ok(/1 over/.test(S.authMessage(usage())), 'over count in the message');
+  d.entries.push({ id: 'ev', conditionId: 'cond-skin', typeId: 'hh_event', title: 'Waiting', values: { date: '2026-11-12', event_kind: 'Waiting for further approval', authorization: 'a' } });
+  eq(usage().state, 'awaiting', 'a "Waiting for further approval" event marks the authorization as awaiting');
+  d.entries.pop();
+  auth.values.status = 'Pending approval';
+  eq(usage().state, 'awaiting', 'Pending approval status is awaiting');
+  auth.values.status = 'Approved';
+  d.entries = [auth, visit('v1', 'Completed')];
+  auth.values.end = '2026-11-01';
+  eq(usage().state, 'ended', 'past end date with visits left: ended, no warning');
+  eq(S.homeHealthAuths(d, { from: TODAY }).length, 0, 'ended authorizations drop off the overview');
+  d.entries.push({ id: 'b', conditionId: 'cond-skin', typeId: 'hh_auth', title: 'Next', values: { visits_authorized: 6, previous: 'a' } });
+  eq(usage().state, 'superseded', 'a newer authorization that continues this one supersedes it');
+  // Home health events and outcomes filter on the timeline like any type.
+  const evs = S.filterEvents(demo, S.allEvents(demo), { typeIds: ['hh_event'] });
+  eq([...new Set(evs.map(e => e.entryId))].sort(), ['hh-ev-case-mgr', 'hh-ev-waiting'], 'timeline type filter shows exactly the home health events');
+  ok(S.filterEvents(demo, S.allEvents(demo), { query: 'case manager' }).some(e => e.entryId === 'hh-ev-case-mgr'), 'search finds "Spoke to home health case manager"');
+  ok(S.filterEvents(demo, S.allEvents(demo), { query: 'patient at clinic' }).some(e => e.entryId === 'hh-v6'), 'search finds a missed-visit reason');
+  console.log('PASS: home health countdown.');
 }
