@@ -55,6 +55,10 @@ try:
         demo.click('#login-form [type=submit]'); demo.wait_for_selector('.condition-card')
         ok(demo.locator('.condition-card').count() == 3, 'demo overview shows 3 synthetic conditions (G9, G12)')
         ok(demo.locator('.next-up .event').count() > 0, 'overview answers "what is next" (G9)')
+        ok('Appointments and insurance getting out of hand?' in demo.locator('.page-heading .tagline').inner_text(), 'overview carries the tagline, quietly (G32)')
+        tag = page_for(); tag.goto(base)
+        ok(tag.locator('.login h1').inner_text() == 'Appointments and insurance getting out of hand?' and 'for each condition in one place' in tag.locator('.login p.muted').first.inner_text(), 'sign-in screen leads with the tagline (G32)')
+        tag.close()
 
         # ---- wf: real account starts empty (G5, G12)
         wf = page_for(); wf.goto(base)

@@ -41,6 +41,7 @@ A critic compares Appts screenshots with the reference blind and picks the clear
 | G29 | All 5 built-in Status fields offer **Free text…**; "Allow free text" can be toggled on any select field on the Entry types page (custom selects included) | node + browser tests PASS |
 | G30 | The built-in type is called "Other care disruptions" / "Other care disruption" everywhere (seed, condition page, timeline chips, Entry types page, demo, docs) | node + browser tests + `git grep` |
 | G31 | Migration v1→v2 is idempotent, backs up first, renames only a default-named disruption type, enables free text on built-in status fields, and leaves every condition, entry, tag, label, and attachment byte-identical; dry run on a copy of `wf` shows only type changes | storage + api tests PASS + `tools/migrate-dry-run.php wf` |
+| G32 | Tagline (t12u): sign-in headline + description, quiet overview line, README intro, page title/meta | browser test PASS + README |
 | G13 | Fresh critic reviews headless screenshots + live app and returns WIN | `state.json` verdict log |
 
 ## Hard boundaries
