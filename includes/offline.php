@@ -58,7 +58,7 @@ function offline_plan(string $account, array $doc): array {
             $bytes += $b;
             $all[$id] = $b;
         }
-        $conditions[] = ['id' => $c['id'], 'name' => $c['name'], 'status' => $c['status'] ?? 'active', 'uploads' => $uploads, 'bytes' => $bytes];
+        $conditions[] = ['id' => $c['id'], 'name' => $c['name'], 'description' => (string) ($c['description'] ?? ''), 'status' => $c['status'] ?? 'active', 'uploads' => $uploads, 'bytes' => $bytes];
     }
     $shellBytes = array_sum(array_column($shell, 'bytes'));
     $dataBytes = array_sum(array_column($data, 'bytes'));

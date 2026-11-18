@@ -233,6 +233,9 @@ function clean_condition(array $v, ?array $old, array $doc): array {
     return [
         'id' => valid_id($v['id'] ?? null),
         'name' => str_field($v, 'name', 120, true, 'Condition name'),
+        // Optional longer description (t30u): shown on hover wherever the short name is listed,
+        // and at the top of the edit form. Older records simply have none.
+        'description' => trim((string) preg_replace('/[\x00-\x1F\x7F]+/', ' ', str_field($v, 'description', 1000))),
         'status' => $status,
         'diagnosedOn' => valid_date_or_empty($v['diagnosedOn'] ?? '', 'Diagnosed date'),
         'color' => valid_color($v['color'] ?? ''),
@@ -253,17 +256,32 @@ function clean_tag(array $v): array {
     return ['id' => valid_id($v['id'] ?? null), 'label' => str_field($v, 'label', 40, true, 'Tag'), 'color' => valid_color($v['color'] ?? '')];
 }
 
-/** Built-in saved filters. Only "disruptions" exists: the entries added to or removed from its built-in rule. */
+/** Saved filters. "disruptions" is the built-in one: the entries added to or removed from its rule.
+ *  "view-…" records are Saved views (named Timeline filter sets; t27u): a name plus the type ids,
+ *  tag ids, Disruptions toggle, condition, and range to restore. Ids that no longer exist are kept
+ *  harmlessly; the Timeline ignores them. */
 const FILTER_IDS = ['disruptions'];
+const VIEW_ID_PATTERN = '/^view-[A-Za-z0-9_-]{1,59}$/D';
+const VIEW_RANGES = ['all', 'upcoming', 'past'];
+function is_view_id(string $id): bool { return (bool) preg_match(VIEW_ID_PATTERN, $id); }
 function clean_filter(array $v): array {
     $id = valid_id($v['id'] ?? null);
-    if (!in_array($id, FILTER_IDS, true)) fail('Unknown filter.');
-    $ids = function ($list): array {
+    $ids = function ($list, int $max = 5000): array {
         $out = [];
         foreach (is_array($list) ? $list : [] as $x) if (is_string($x) && preg_match(ID_PATTERN, $x)) $out[$x] = true;
-        if (count($out) > 5000) fail('Too many entries in one filter.');
+        if (count($out) > $max) fail('Too many entries in one filter.');
         return array_keys($out);
     };
+    if (is_view_id($id)) {
+        $range = in_array($v['range'] ?? 'all', VIEW_RANGES, true) ? $v['range'] ?? 'all' : 'all';
+        $cond = $v['conditionId'] ?? '';
+        if (!is_string($cond) || ($cond !== '' && !preg_match(ID_PATTERN, $cond))) $cond = '';
+        return ['id' => $id, 'kind' => 'view', 'name' => str_field($v, 'name', 60, true, 'View name'),
+            'typeIds' => $ids($v['typeIds'] ?? [], 100), 'tagIds' => $ids($v['tagIds'] ?? [], 100),
+            'disruptions' => !empty($v['disruptions']), 'conditionId' => $cond, 'range' => $range,
+            'sortOrder' => is_int($v['sortOrder'] ?? null) ? $v['sortOrder'] : 0, 'updatedAt' => gmdate('c')];
+    }
+    if (!in_array($id, FILTER_IDS, true)) fail('Unknown filter.');
     $include = $ids($v['include'] ?? []);
     $exclude = array_values(array_diff($ids($v['exclude'] ?? []), $include));
     return ['id' => $id, 'include' => $include, 'exclude' => $exclude, 'updatedAt' => gmdate('c')];
@@ -356,12 +374,15 @@ function apply_ops(array $doc, $ops): array {
             if ($index === null) fail('That record no longer exists.');
             if ($kind === 'type') fail('Entry types cannot be deleted. Archive the type instead; its entries stay.');
             if ($kind === 'docLabel') fail('Document labels stay so older uploads keep their label. Rename it instead.');
+            if ($kind === 'filter' && !is_view_id($id)) fail('The built-in Disruptions filter cannot be deleted.');
             if ($kind === 'condition') {
                 foreach ($doc['entries'] as $e) if ($e['conditionId'] === $id) fail('Move or delete this condition’s entries first, or archive the condition.');
             }
             if ($kind === 'tag') {
                 foreach ($doc['entries'] as &$e) $e['tagIds'] = array_values(array_filter($e['tagIds'] ?? [], fn($t) => $t !== $id));
                 unset($e);
+                foreach ($doc['filters'] as &$f) if (isset($f['tagIds'])) $f['tagIds'] = array_values(array_filter($f['tagIds'], fn($t) => $t !== $id));
+                unset($f);
             }
             array_splice($doc[$col], $index, 1);
         } else fail('Unknown change.');

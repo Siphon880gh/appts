@@ -181,6 +181,22 @@ $example = str_replace(['/Users/me/Downloads/approval.pdf', '/tmp/note.png', '/t
 [$code, $out, $err] = cli(['apply', 'demo', '-', '--dry-run'], $example);
 ok($code === 0 && strpos($out, '+ new Home health visit: "Dressing change"') !== false && strpos($out, 'another condition') === false, "the SKILL.md plan example dry-runs cleanly ($err)");
 
+// ---- saved views and condition rename/description (t27u, t30u)
+$p9 = plan(['condition' => 'cond-skin', 'views' => [['name' => 'Blocked / hiccups', 'tags' => ['Intake test']], ['name' => 'Home health only', 'types' => ['hh_event'], 'condition' => 'this']],
+    'conditionUpdate' => ['rename' => 'Skin (wound)', 'description' => 'Pressure wound, <b>stage</b> 2']]);
+[$code, $out, $err] = cli(['apply', 'demo', $p9]);
+$d9 = doc('demo');
+$views = array_values(array_filter($d9['filters'], function ($f) { return strpos($f['id'], 'view-') === 0; }));
+ok($code === 0 && count($views) === 2 && $views[0]['name'] === 'Blocked / hiccups' && $views[0]['tagIds'] === [$tagIds['Intake test']] && $views[1]['typeIds'] === ['hh_event'] && $views[1]['conditionId'] === 'cond-skin', "views are created with tag, type, and condition filters ($err)");
+$c9 = $d9['conditions'][find_index($d9['conditions'], 'cond-skin')];
+ok($c9['name'] === 'Skin (wound)' && $c9['description'] === 'Pressure wound, <b>stage</b> 2', 'conditionUpdate renames and fills an empty description (stored as plain text)');
+$id0 = $views[0]['id'];
+[$code, $out] = cli(['apply', 'demo', plan(['condition' => 'cond-skin', 'views' => [['name' => 'blocked / HICCUPS', 'tags' => ['paperwork']]], 'conditionUpdate' => ['description' => 'Something else']])]);
+$d10 = doc('demo');
+$v10 = array_values(array_filter($d10['filters'], function ($f) { return strpos($f['id'], 'view-') === 0; }));
+ok($code === 0 && count($v10) === 2 && $v10[0]['id'] === $id0 && $v10[0]['tagIds'] === ['tag-paperwork'], 'a view with the same name (any case) is updated, not duplicated');
+ok($d10['conditions'][find_index($d10['conditions'], 'cond-skin')]['description'] === 'Pressure wound, <b>stage</b> 2' && strpos($out, 'already has a description') !== false, 'an existing description is never overwritten by intake');
+
 // ---- real storage untouched; wf never used
 ok(!is_file("$dir/data/wf.json.php"), 'wf was never loaded or created by the tests');
 ok((is_file($realWf) ? hash_file('sha256', $realWf) : null) === $realWfHash && (is_file($realDemo) ? hash_file('sha256', $realDemo) : null) === $realDemoHash, "real storage/ files untouched");

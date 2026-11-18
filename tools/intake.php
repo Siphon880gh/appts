@@ -336,12 +336,44 @@ final class Planner {
         if ($cu && !$isNew) {
             $value = $cond;
             if (trim((string) ($cu['notes'] ?? '')) !== '') $value['notes'] = ['html' => ($cond['notes']['html'] ?? '') . text_to_html((string) $cu['notes'])];
+            // An explicit "rename" changes the name; "description" only fills an empty description (t30u).
+            $rename = trim((string) ($cu['rename'] ?? ''));
+            if ($rename !== '') {
+                foreach ($this->doc['conditions'] as $other) if ($other['id'] !== $cond['id'] && lower($other['name']) === lower($rename)) $this->fail('conditionUpdate.rename', "\"{$other['name']}\" already exists");
+                $value['name'] = $rename;
+            }
+            $desc = trim((string) ($cu['description'] ?? ''));
+            if ($desc !== '') {
+                if (trim((string) ($cond['description'] ?? '')) === '') $value['description'] = $desc;
+                elseif ($cond['description'] !== $desc) $this->warnings[] = 'conditionUpdate.description: this condition already has a description, so it was left as is (edit it in the app)';
+            }
             $added = $this->attachments('conditionUpdate', $cu['attachments'] ?? [], $cond['attachments'] ?? []);
             $value['attachments'] = array_merge($cond['attachments'] ?? [], $added);
             if ($value != $cond) {
                 $this->ops[] = ['op' => 'put', 'kind' => 'condition', 'value' => $value];
-                $this->preview[] = "~ condition \"{$cond['name']}\"" . ($value['notes'] != $cond['notes'] ? "\n      notes: appended" : '') . ($added ? "\n      documents: " . $this->docList($added) : '');
+                $this->preview[] = "~ condition \"{$cond['name']}\"" . ($value['name'] !== $cond['name'] ? "\n      renamed to: {$value['name']}" : '') . (($value['description'] ?? '') !== ($cond['description'] ?? '') ? "\n      description: {$value['description']}" : '') . ($value['notes'] != $cond['notes'] ? "\n      notes: appended" : '') . ($added ? "\n      documents: " . $this->docList($added) : '');
             }
+        }
+        // Saved views (t27u): named Timeline filter sets. Matched by name (any case): an existing
+        // view with that name is updated, otherwise a new one is created.
+        foreach (is_array($plan['views'] ?? null) ? $plan['views'] : [] as $i => $v) {
+            $where = "views[$i]";
+            if (!is_array($v)) $this->fail($where, 'give an object with "name"');
+            $name = trim((string) ($v['name'] ?? ''));
+            if ($name === '' || mb_strlen($name) > 60) $this->fail($where, 'give "name" (up to 60 characters)');
+            $types = [];
+            foreach (is_array($v['types'] ?? null) ? $v['types'] : [] as $t) $types[] = $this->resolveType("$where.types", $t)['id'];
+            $old = null; $count = 0;
+            foreach ($this->doc['filters'] ?? [] as $f) if (strpos((string) $f['id'], 'view-') === 0) { $count++; if (lower((string) ($f['name'] ?? '')) === lower($name)) $old = $f; }
+            $slug = trim((string) preg_replace('/[^a-z0-9]+/', '-', lower($name)), '-');
+            $cond = $v['condition'] ?? '';
+            $condId = $cond === 'this' ? $cid : (string) $cond;
+            $view = ['id' => $old['id'] ?? ('view-' . substr($slug === '' ? 'view' : $slug, 0, 40) . '-' . bin2hex(random_bytes(3))), 'kind' => 'view', 'name' => $name,
+                'typeIds' => array_values(array_unique($types)), 'tagIds' => $this->tagIds($v['tags'] ?? []), 'disruptions' => !empty($v['disruptions']),
+                'conditionId' => $condId, 'range' => in_array($v['range'] ?? 'all', ['all', 'upcoming', 'past'], true) ? ($v['range'] ?? 'all') : 'all',
+                'sortOrder' => $old['sortOrder'] ?? $count + $i];
+            $this->ops[] = ['op' => 'put', 'kind' => 'filter', 'value' => $view];
+            $this->preview[] = ($old ? '~ saved view' : '+ new saved view') . " \"$name\"" . ($view['tagIds'] ? "\n      tags: " . implode(', ', array_map(function ($id) { foreach ($this->allTags() as $t) if ($t['id'] === $id) return $t['label']; return $id; }, $view['tagIds'])) : '') . ($types ? "\n      types: " . implode(', ', $types) : '') . ($view['disruptions'] ? "\n      Disruptions only" : '') . ($condId !== '' ? "\n      condition: $condId" : '');
         }
         if (count($this->ops) === 0) $this->fail('plan', 'nothing to create or update');
     }

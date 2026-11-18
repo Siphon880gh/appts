@@ -225,5 +225,23 @@ ok($fd['filters'][0]['include'] === ['e1'] && $fd['filters'][0]['exclude'] === [
 throws(function () use ($fx) { apply_ops($fx, [['op' => 'put', 'kind' => 'filter', 'value' => ['id' => 'favorites', 'include' => []]]]); }, 'only the built-in Disruptions filter can be saved');
 ok(new_doc()['filters'] === [] && normalize_doc(['version' => 3])['filters'] === [], 'documents start with no filter edits');
 
+// t27u: Saved views are filter records with view-… ids; deletable; tag deletes strip them.
+$fv = apply_ops($fx, [['op' => 'put', 'kind' => 'tag', 'value' => ['id' => 'tv', 'label' => 'Blocked']], ['op' => 'put', 'kind' => 'filter', 'value' => ['id' => 'view-blocked', 'name' => ' <b>Blocked</b> ', 'tagIds' => ['tv', 'bad id!'], 'typeIds' => ['visit'], 'disruptions' => 1, 'range' => 'later', 'conditionId' => '../x', 'include' => ['e1']]]]);
+$vw = $fv['filters'][find_index($fv['filters'], 'view-blocked')];
+ok($vw['kind'] === 'view' && $vw['name'] === '<b>Blocked</b>' && $vw['tagIds'] === ['tv'] && $vw['typeIds'] === ['visit'] && $vw['disruptions'] === true && $vw['range'] === 'all' && $vw['conditionId'] === '' && !isset($vw['include']), 'saved view: name, ids, and options cleaned');
+throws(function () use ($fv) { apply_ops($fv, [['op' => 'put', 'kind' => 'filter', 'value' => ['id' => 'view-x', 'name' => '']]]); }, 'saved view needs a name');
+$fv2 = apply_ops($fv, [['op' => 'delete', 'kind' => 'tag', 'id' => 'tv']]);
+ok($fv2['filters'][find_index($fv2['filters'], 'view-blocked')]['tagIds'] === [], 'deleting a tag strips it from saved views');
+$fv3 = apply_ops($fv2, [['op' => 'delete', 'kind' => 'filter', 'id' => 'view-blocked']]);
+ok(find_index($fv3['filters'], 'view-blocked') === null, 'a saved view can be deleted');
+throws(function () use ($fd) { apply_ops($fd, [['op' => 'delete', 'kind' => 'filter', 'id' => 'disruptions']]); }, 'the built-in Disruptions filter cannot be deleted');
+// t30u: optional condition description; older records without one stay valid.
+$cd = apply_ops($fx, [['op' => 'put', 'kind' => 'condition', 'value' => ['id' => 'c-desc', 'name' => 'Left Lateral Heel (ALM)', 'description' => "  Acral lentiginous melanoma\u{0000}, rare  "]]]);
+$cc = $cd['conditions'][find_index($cd['conditions'], 'c-desc')];
+ok($cc['name'] === 'Left Lateral Heel (ALM)' && strpos($cc['description'], 'Acral lentiginous melanoma') === 0 && strpos($cc['description'], "\0") === false, 'condition description saved and cleaned');
+throws(function () use ($fx) { apply_ops($fx, [['op' => 'put', 'kind' => 'condition', 'value' => ['id' => 'c-long', 'name' => 'X', 'description' => str_repeat('a', 1001)]]]); }, 'condition description is capped at 1000 characters');
+$co = apply_ops($fx, [['op' => 'put', 'kind' => 'condition', 'value' => ['id' => 'c-old', 'name' => 'Old']]]);
+ok($co['conditions'][find_index($co['conditions'], 'c-old')]['description'] === '', 'a condition saved without a description gets an empty one');
+
 exec('rm -rf ' . escapeshellarg($dir));
 echo "PASS: $checks storage, sanitizer, and domain checks ($linkCount link fields exercised by demo seed).\n";

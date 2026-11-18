@@ -179,6 +179,15 @@ try:
     f = mc.api('data')[1]['doc']['filters']
     ok(len(f) == 1 and f[0]['include'] == ['hh-e'] and f[0]['exclude'] == ['hh-v'], 'Disruptions filter edits reload (G53)')
     ok(mc.api('ops', {'ops': [{'op': 'put', 'kind': 'filter', 'value': {'id': 'favorites', 'include': []}}]})[0] == 400, 'only the built-in Disruptions filter exists (G53)')
+    # t27u over HTTP: Saved views are per account, deletable; the built-in Disruptions filter is not.
+    ok(mc.api('ops', {'ops': [{'op': 'put', 'kind': 'filter', 'value': {'id': 'view-blocked-1', 'name': 'Blocked / hiccups', 'tagIds': [], 'typeIds': ['visit'], 'disruptions': True}}]})[0] == 200, 'a saved view is saved (t27u)')
+    v = next(x for x in mc.api('data')[1]['doc']['filters'] if x['id'] == 'view-blocked-1')
+    ok(v['name'] == 'Blocked / hiccups' and v['typeIds'] == ['visit'] and v['disruptions'] is True, 'the saved view reloads with its filters')
+    ok(mc.api('ops', {'ops': [{'op': 'delete', 'kind': 'filter', 'id': 'disruptions'}]})[0] == 400, 'the Disruptions filter cannot be deleted')
+    ok(mc.api('ops', {'ops': [{'op': 'delete', 'kind': 'filter', 'id': 'view-blocked-1'}]})[0] == 200 and len(mc.api('data')[1]['doc']['filters']) == 1, 'a saved view can be deleted')
+    # t30u over HTTP: condition description.
+    cond = mc.api('data')[1]['doc']['conditions'][0]
+    ok(mc.api('ops', {'ops': [{'op': 'put', 'kind': 'condition', 'value': {**cond, 'description': 'Longer <i>description</i>'}}]})[0] == 200 and mc.api('data')[1]['doc']['conditions'][0]['description'] == 'Longer <i>description</i>', 'condition description saved as text (escaped when shown)')
     chip = '<p>See <span data-mention="entry" data-ref="hh-v" onclick="steal()">@Visit</span></p>'
     ok(mc.api('ops', {'ops': [{'op': 'put', 'kind': 'entry', 'value': {**got['hh-e'], 'notes': {'html': chip}}}]})[0] == 200, 'note with an @mention saved (G56)')
     html = next(e for e in mc.api('data')[1]['doc']['entries'] if e['id'] == 'hh-e')['notes']['html']
