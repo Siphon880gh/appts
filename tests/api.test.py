@@ -28,9 +28,9 @@ try:
     s, r = demo.login('demo', pw); ok(s == 200 and r['account']['isDemo'], 'demo login (G5)')
     s, r = wf.login('wf', pw); ok(s == 200 and r['account']['username'] == 'wf' and not r['account']['isDemo'], 'wf login with same password (G5)')
     s, r = demo.api('data'); ddoc = r['doc']
-    ok(len(ddoc['types']) == 10 and len(ddoc['entries']) >= 28 and len({e['typeId'] for e in ddoc['entries']}) == 10, 'demo seeded across all 10 types (G12)')
+    ok(len(ddoc['types']) == 13 and len(ddoc['entries']) >= 28 and len({e['typeId'] for e in ddoc['entries']}) == 13, 'demo seeded across all 13 types (G12)')
     s, r = wf.api('data'); wdoc = r['doc']
-    ok(wdoc['conditions'] == [] and wdoc['entries'] == [] and wdoc['tags'] == [] and len(wdoc['types']) == 10, 'wf starts empty with type seeds (G12)')
+    ok(wdoc['conditions'] == [] and wdoc['entries'] == [] and wdoc['tags'] == [] and len(wdoc['types']) == 13, 'wf starts empty with type seeds (G12)')
 
     # wf builds real records: condition, tag on the fly, custom type with every kind, entry
     kinds = ['text', 'longtext', 'date', 'number', 'select', 'checkbox', 'link']
@@ -133,9 +133,11 @@ try:
     ok(mc.api('ops', {'ops': ops})[0] == 200, 'free-text status accepted')
     doc = mc.api('data')[1]['doc']
     ok(next(e for e in doc['entries'] if e['id'] == 'entry-ft')['values']['status'] == 'Waiting on fax', 'free-text status reloads verbatim (G28)')
-    ok(doc['version'] == 2 and next(t for t in doc['types'] if t['id'] == 'disruption')['name'] == 'Other care disruptions', 'current documents are v2 with the new name')
+    ok(doc['version'] == 3 and next(t for t in doc['types'] if t['id'] == 'disruption')['name'] == 'Other care disruptions', 'current documents are v3 with the new name')
     # Turn the stored file back into a v1 document with a user-renamed disruption type, then load it.
+    hh_ids = ['hh_auth', 'hh_visit', 'hh_event']
     v1 = json.loads(json.dumps(doc)); v1['version'] = 1
+    v1['types'] = [t for t in v1['types'] if t['id'] not in hh_ids]
     for t in v1['types']:
         if t['id'] == 'disruption': t['name'], t['singular'] = 'Broken equipment', 'Broken equipment'
         if t['id'] == 'letter': t['name'] = 'Care disruptions'  # a non-disruption type that happens to use the old name stays as is
@@ -145,15 +147,33 @@ try:
     v1_bytes = guard + json.dumps(v1, indent=4, ensure_ascii=False).encode(); path.write_bytes(v1_bytes)
     bdir = storage / 'backups' / 'wf'; before_backups = {b.name for b in bdir.glob('*.json.php')}
     m = mc.api('data')[1]['doc']; mt = {t['id']: t for t in m['types']}
-    ok(m['version'] == 2 and json.loads(path.read_bytes()[len(guard):])['version'] == 2, 'v1 document migrated and saved on load (G31)')
+    ok(m['version'] == 3 and json.loads(path.read_bytes()[len(guard):])['version'] == 3, 'v1 document migrated and saved on load (G31)')
     new_backups = [b for b in bdir.glob('*.json.php') if b.name not in before_backups]
     ok(len(new_backups) == 1 and new_backups[0].read_bytes() == v1_bytes, 'migration backed up the exact v1 bytes first (G31)')
     after_backups = {b.name for b in bdir.glob('*.json.php')}
     ok(mt['disruption']['name'] == 'Broken equipment' and mt['letter']['name'] == 'Care disruptions', "user's own type names kept (G31)")
     ok(all(next(f for f in mt[i]['fields'] if f['id'] == 'status').get('allowCustom') is True for i in ['visit', 'letter', 'appeal', 'supply', 'treatment']), 'built-in status fields allow free text after migration (G29)')
     ok(all(json.dumps(m[k], sort_keys=True) == json.dumps(v1[k], sort_keys=True) for k in ['conditions', 'entries', 'tags', 'docLabels']), 'migration left conditions, entries, tags, labels unchanged (G31)')
+    ok([t['id'] for t in m['types']] == [t['id'] for t in v1['types']] + hh_ids, 'home health types appended after the existing ones (G35)')
     mc.api('data')
     ok({b.name for b in bdir.glob('*.json.php')} == after_backups, 'second load does not migrate again (G31)')
+    # v2 -> v3 over HTTP: a v2 file (no home health types) gains them on load, records untouched (G35).
+    v2 = json.loads(json.dumps(m)); v2['version'] = 2; v2['types'] = [t for t in v2['types'] if t['id'] not in hh_ids]
+    v2_bytes = guard + json.dumps(v2, indent=4, ensure_ascii=False).encode(); path.write_bytes(v2_bytes)
+    before_backups = {b.name for b in bdir.glob('*.json.php')}
+    m3 = mc.api('data')[1]['doc']
+    new_backups = [b for b in bdir.glob('*.json.php') if b.name not in before_backups]
+    ok(m3['version'] == 3 and [t['id'] for t in m3['types']] == [t['id'] for t in v2['types']] + hh_ids, 'v2 document gains the home health types on load (G35)')
+    ok(len(new_backups) == 1 and new_backups[0].read_bytes() == v2_bytes, 'v3 migration backed up the exact v2 bytes first (G35)')
+    ok(json.dumps(m3['types'][:len(v2['types'])], sort_keys=True) == json.dumps(v2['types'], sort_keys=True), 'existing type definitions unchanged by v3 (G35)')
+    ok(all(json.dumps(m3[k], sort_keys=True) == json.dumps(v2[k], sort_keys=True) for k in ['conditions', 'entries', 'tags', 'docLabels']), 'v3 left conditions, entries, tags, labels unchanged (G35)')
+    # Home health records save and reload through the API (G33).
+    hh_ops = [{'op': 'put', 'kind': 'entry', 'value': {'id': 'hh-a', 'conditionId': cid, 'typeId': 'hh_auth', 'title': 'Nursing', 'values': {'visits_authorized': 3, 'status': 'Approved'}}},
+              {'op': 'put', 'kind': 'entry', 'value': {'id': 'hh-v', 'conditionId': cid, 'typeId': 'hh_visit', 'title': 'Visit', 'values': {'date': '2026-11-18', 'authorization': 'hh-a', 'outcome': 'Missed: nurse unavailable'}}},
+              {'op': 'put', 'kind': 'entry', 'value': {'id': 'hh-e', 'conditionId': cid, 'typeId': 'hh_event', 'title': 'Call', 'values': {'date': '2026-11-18', 'event_kind': 'Called the agency twice', 'authorization': 'hh-a'}}}]
+    ok(mc.api('ops', {'ops': hh_ops})[0] == 200, 'home health authorization, visit, and event saved')
+    got = {e['id']: e for e in mc.api('data')[1]['doc']['entries']}
+    ok(got['hh-v']['values']['outcome'] == 'Missed: nurse unavailable' and got['hh-e']['values']['event_kind'] == 'Called the agency twice' and got['hh-v']['values']['authorization'] == 'hh-a', 'home health records reload with links and typed event (G33)')
     # Only hashes on disk / in git
     # Account records hold only bcrypt hashes; the demo password literal exists only in the public demo UI module.
     accounts = (ROOT / 'includes/accounts.php').read_text()
