@@ -7,7 +7,7 @@ import { typeBadge } from './icons.js';
 import { noteHTML } from './richText.js';
 import { imageURL } from './images.js';
 import { DEMO_USERNAME, DEMO_PASSWORD } from './demoAccount.js';
-import { store, save, notice, remove } from './store.js';
+import { store, save, notice, remove, put } from './store.js';
 import { esc, plural, searchBox, eventRow, entryRow, typeChip, tagFilterChip, tagChip, closeDialog, hhPanel } from './ui.js';
 import { openEntryForm, openEntryDetail, deleteEntry, openConditionForm, openViewer, openQuickUpload, attachmentsHTML } from './forms.js';
 import { renderTypes, openTypeEditor } from './typesPage.js';
@@ -18,7 +18,7 @@ const app = document.querySelector('#app');
 const ui = {
   overviewQuery: '',
   condition: { id: '', typeIds: new Set(), tagIds: new Set(), query: '' },
-  timeline: { conditionId: '', range: 'all', typeIds: new Set(), tagIds: new Set(), query: '' },
+  timeline: { conditionId: '', range: 'all', typeIds: new Set(), tagIds: new Set(), query: '', disruptions: false, disEdit: false },
   docs: { kinds: new Set(), labelIds: new Set(), conditionId: '', query: '', group: 'label' },
 };
 const toggle = (set, id) => { set.has(id) ? set.delete(id) : set.add(id); };
@@ -134,7 +134,11 @@ function timelineEvents() {
 }
 function renderTimeline() {
   const doc = store.doc, t = ui.timeline, today = S.today();
-  const base = timelineEvents();
+  const all = timelineEvents(), dis = S.disruptionFilter(doc);
+  const disOf = ev => S.isDisruption(doc, S.entryById(doc, ev.entryId), dis);
+  if (!t.disruptions) t.disEdit = false;
+  // Disruptions preset narrows the timeline; Edit Disruption mode shows everything, grayed unless in it.
+  const base = t.disruptions && !t.disEdit ? all.filter(disOf) : all;
   // Chips come only from what is on this timeline (t4u-appts); drop stale selections.
   const types = S.timelineTypes(doc, base), tags = S.timelineTags(doc, base);
   for (const id of t.typeIds) if (!types.some(x => x.type.id === id)) t.typeIds.delete(id);
@@ -148,18 +152,24 @@ function renderTimeline() {
     const rows = list.map(ev => {
       let marker = '';
       if (!markerPlaced && ev.date < today) { markerPlaced = true; marker = '<li class="today-marker" aria-label="Today">Today</li>'; }
-      return marker + eventRow(ev);
+      if (!t.disEdit) return marker + eventRow(ev);
+      const inIt = disOf(ev), title = esc(ev.title);
+      return marker + eventRow(ev).replace('<li>', `<li class="dis-row ${inIt ? 'dis-in' : 'dis-out'}">`)
+        .replace('data-action="open-entry"', `data-action="dis-toggle" aria-pressed="${inIt}" title="${inIt ? `Remove “${title}” from Disruptions` : `Add “${title}” to Disruptions`}"`)
+        .replace(/<\/button><\/li>$/, `<span class="dis-mark" aria-hidden="true">${inIt ? '✓ In Disruptions' : '+ Add'}</span></button></li>`);
     }).join('');
     return `<section class="month"><h3><span>${esc(new Date(`${m}-15T12:00:00`).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }))}</span><span>${plural(list.length, 'item')}</span></h3><ul class="event-list">${rows}</ul></section>`;
   }).join('');
   const filtered = t.typeIds.size || t.tagIds.size || t.query.trim();
+  const disCount = all.filter(disOf).length;
+  const presets = `<div class="row presets" id="tl-presets"><span class="chip-label">Built-in</span><button type="button" class="preset-chip" data-action="tl-disruptions" aria-pressed="${t.disruptions}" title="Insurance denials, missed and cancelled visits, delays, appeals, and other disruptions">⚠ Disruptions <span class="count">${disCount}</span></button>${t.disruptions ? `<button type="button" class="dis-edit" data-action="tl-dis-edit" aria-pressed="${t.disEdit}">${t.disEdit ? 'Done editing' : 'Edit Disruption mode'}</button>` : ''}</div>${t.disEdit ? '<p class="dis-banner" role="status"><b>Edit Disruption mode.</b> Grayed-out items are not in the Disruptions filter. Click one to add it, or click an item that is in to take it out. Changes save right away.</p>' : ''}`;
   app.innerHTML = `<div class="page-heading"><div><p class="eyebrow">Everything, in order</p><h1>Timeline</h1><p class="muted">Every dated field becomes an event: visits, follow-ups, authorization expirations, appeal deadlines, reorder dates, treatment courses.</p></div></div>
-    <div class="filters" aria-label="Timeline filters"><div class="row"><label class="skip" for="tl-cond">Condition</label><select id="tl-cond"><option value="">All conditions</option>${liveConditions().map(c => `<option value="${esc(c.id)}"${c.id === t.conditionId ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}</select>
+    <div class="filters" aria-label="Timeline filters">${presets}<div class="row"><label class="skip" for="tl-cond">Condition</label><select id="tl-cond"><option value="">All conditions</option>${liveConditions().map(c => `<option value="${esc(c.id)}"${c.id === t.conditionId ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}</select>
       <div class="segmented" role="group" aria-label="Range">${[['all', 'All'], ['upcoming', 'Upcoming'], ['past', 'Past']].map(([v, l]) => `<button type="button" data-action="tl-range" data-id="${v}" aria-pressed="${t.range === v}">${l}</button>`).join('')}</div>
       ${searchBox('tl-search', t.query, 'Search the timeline', 'Search the timeline…')}</div>
       <div class="row chips" id="tl-types"><span class="chip-label">Types</span>${types.map(x => typeChip(x.type, x.count, t.typeIds.has(x.type.id), 'tl-type')).join('') || '<span class="muted">No dated entries yet.</span>'}</div>
       ${tags.length ? `<div class="row chips" id="tl-tags"><span class="chip-label">Tags</span>${tags.map(x => tagFilterChip(x.tag, x.count, t.tagIds.has(x.tag.id), 'tl-tag')).join('')}<span class="filter-summary">${t.tagIds.size > 1 ? 'Showing items with all selected tags' : ''}</span></div>` : ''}
-      <div class="row"><span class="filter-summary" id="tl-count">${filtered ? `Showing ${events.length} of ${base.length}` : plural(base.length, 'item')}</span>${filtered ? '<button type="button" class="link" data-action="tl-clear">Clear filters</button>' : ''}</div></div>
+      <div class="row"><span class="filter-summary" id="tl-count">${t.disEdit ? `${disCount} of ${all.length} items in Disruptions` : filtered ? `Showing ${events.length} of ${base.length}${t.disruptions ? ' disruptions' : ''}` : t.disruptions ? `${plural(base.length, 'disruption')} of ${plural(all.length, 'item')}` : plural(base.length, 'item')}</span>${filtered ? '<button type="button" class="link" data-action="tl-clear">Clear filters</button>' : ''}</div></div>
     ${monthHTML || '<div class="empty"><p>No timeline items match.</p></div>'}`;
   document.querySelector('#tl-cond').onchange = e => { t.conditionId = e.target.value; renderTimeline(); };
   bindSearch('tl-search', v => { t.query = v; });
@@ -215,6 +225,14 @@ async function action(name, id, el) {
   const doc = store.doc;
   switch (name) {
     case 'open-entry': return openEntryDetail(id);
+    case 'open-mention': {
+      // @mention chip in a note: open the document, entry, or condition it points at.
+      const kind = el.dataset.mention, doc = store.doc;
+      if (kind === 'file') { const f = D.documentList(doc).find(d => d.file.id === id); return f ? openViewer(id, f.file.name, f.kind) : notice('That document is no longer attached to anything.'); }
+      if (kind === 'entry') return S.entryById(doc, id) ? openEntryDetail(id) : notice('That entry was deleted.');
+      if (kind === 'condition') { if (!doc.conditions.some(c => c.id === id)) return notice('That condition was deleted.'); closeDialog(); location.hash = `#/c/${id}`; return; }
+      return;
+    }
     case 'edit-entry': return openEntryForm(S.entryById(doc, id));
     case 'delete-entry': return deleteEntry(id);
     case 'add-entry': return openEntryForm(null, { typeId: id, conditionId: route().id });
@@ -229,6 +247,14 @@ async function action(name, id, el) {
     case 'tl-range': ui.timeline.range = id; return render();
     case 'tl-type': toggle(ui.timeline.typeIds, id); return render();
     case 'tl-tag': toggle(ui.timeline.tagIds, id); return render();
+    case 'tl-disruptions': ui.timeline.disruptions = !ui.timeline.disruptions; ui.timeline.disEdit = false; return render();
+    case 'tl-dis-edit': if (ui.timeline.disruptions) ui.timeline.disEdit = !ui.timeline.disEdit; return render();
+    case 'dis-toggle': {
+      const f = S.toggleDisruption(store.doc, id), added = f.include.includes(id) || !f.exclude.includes(id) && S.disruptionByRule(store.doc, S.entryById(store.doc, id));
+      await save([put('filter', f)], added ? 'Added to Disruptions.' : 'Removed from Disruptions.');
+      document.querySelector(`[data-action="dis-toggle"][data-id="${CSS.escape(id)}"]`)?.focus();
+      return;
+    }
     case 'tl-clear': Object.assign(ui.timeline, { typeIds: new Set(), tagIds: new Set(), query: '' }); return render();
     case 'doc-kind': toggle(ui.docs.kinds, id); return render();
     case 'doc-label': toggle(ui.docs.labelIds, id); return render();
@@ -250,6 +276,7 @@ async function action(name, id, el) {
     }
   }
 }
+document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches?.('.mention[data-action]')) { e.preventDefault(); e.target.click(); } });
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-action]');
   if (t) {
