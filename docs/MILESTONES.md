@@ -20,3 +20,4 @@ Each milestone ends with its gates green and a small focused commit set. Gate id
 | M9 | Offline mode: version, manifest, sw.php, offline-plan, toggle/panel/explainer, IndexedDB queue, three-way sync, tests | E14 | G40–G49 |
 | M10 | Disruptions preset + Edit Disruption mode; @ link popover and chips; tests | E15, E16 | G52–G57 |
 | M11 | "…" header menu for account and demo options | E17 | G50, G58 |
+| M12 | Offline group at the navbar's left, collapsing into "…" when there's no room | E18 | G50, G59 |

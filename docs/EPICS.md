@@ -108,3 +108,9 @@ Source of truth for the request: `docs/gauntlet/request.md` (verbatim). Quality 
 - The header keeps the main navigation and the Offline group (with its separator) visible. Who is signed in, **Reset demo data** (demo account only), and **Sign out** move into one "…" menu at the right.
 - Accessible menu button: aria-haspopup/expanded/controls, arrow keys, Home/End, Escape returns focus; Tab, an outside click, choosing an item, or navigating closes it. It shifts to stay on screen on narrow phones.
 - Decision: the account name moved into the menu (with an initial avatar and "Signed in as …") rather than staying in the header, so the narrow header is one short row.
+
+## E18 — Offline group left of the navbar, or inside "…" (Weng, t21u-appts)
+- The Offline group (button + (i)) and a thin rule sit at the far left of the navbar, before the main links.
+- When the group, the links, and "…" don't fit on one row, the group moves into the "…" menu as "Offline mode" (live On/Off state and waiting count) and "What is Offline mode?". It's measured on every header width change with a ResizeObserver, run in the next animation frame so there's no resize loop and no flicker. Phones (≤640px) always collapse, even before measuring.
+- One source of truth: the inline toggle stays in the DOM while hidden, the menu items mirror it whenever the menu opens or the toggle re-renders, and both use the same `data-offline` actions.
+- Decision: "fits" means the group, the first and last links, and "…" share one row; otherwise collapse. In practice it's inline at about 1180px and wider.

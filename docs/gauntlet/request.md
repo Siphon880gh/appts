@@ -77,3 +77,6 @@ THEN Implement these two features: 1. Add disruption filter that's built in. It 
 
 ## t19u-appts (Nov 17, ~10:50 PM PT, APP Appts chat)
 Perhaps we should collapse those options including demo options under a "..."
+
+## t21u-appts (Nov 17, ~11:40 PM PT, APP Appts chat)
+THEN: Update the offline mode that appears at navbar such that it'll appear to the left of the navbar with a vertical separator OR if there's not enough space, then collapse the offline mode options including the (i) under a "..."

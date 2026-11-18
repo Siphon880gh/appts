@@ -179,6 +179,23 @@
    "role": "verify",
    "verdict": "pass",
    "note": "run-all PASS on PHP 8.4.14 (--screens, Chrome) and 7.4.33; offline 92; live MAMP 40/40; wf sha256 unchanged (5cc0c2207ef9...)"
+  },
+  {
+   "round": 17,
+   "role": "builder",
+   "summary": "t21u: Offline group at the far left of the navbar with a separator; collapses into the \"…\" menu (live state, keyboard) when the row has no room (ResizeObserver + 640px fallback); G50 updated, G59 added"
+  },
+  {
+   "round": 17,
+   "role": "critic",
+   "verdict": "fix",
+   "note": "self-run pass: menu items counted hidden Offline items for keyboard nav (fixed: visible items only); focus was lost after a menu-opened dialog closed (fixed: returns to …); a resize loop risk from the observer (fixed: width-only, next frame)"
+  },
+  {
+   "round": 18,
+   "role": "verify",
+   "verdict": "pass",
+   "note": "run-all PASS on PHP 8.4.14 (--screens, Chrome) and 7.4.33; offline 98; live MAMP 42/42; wf sha256 unchanged (5cc0c2207ef9...)"
   }
  ],
  "gates": {
@@ -239,7 +256,8 @@
   "G55": "pass",
   "G56": "pass",
   "G57": "pass",
-  "G58": "pass"
+  "G58": "pass",
+  "G59": "pass"
  },
  "openGaps": [
   "Critic is a self-run fresh-context pass, not an independent subagent",
@@ -256,12 +274,13 @@
   "No git remote is configured, so 'push' could not run; add one (git remote add origin <url>) and push main",
   "Disruptions rule is an English keyword list on choice values; free text in other fields is not read",
   "@ link labels are captured when linked; renaming a record later keeps the old label (the link still opens the right record)",
-  "@ menu tested in Chromium/Chrome only, not Safari"
+  "@ menu tested in Chromium/Chrome only, not Safari",
+  "Narrow header: '…' sits on its own row under the wrapped nav (the nav block takes the full width); acceptable, not yet tightened"
  ],
  "frozen": [
   "accountability quality floor",
   "no new dependencies"
  ],
- "evidence": "sh tests/run-all.sh --screens (2026-11-17 PST) on 8.4.14 and APPTS_PHP=7.4.33: php -l clean on both; storage 178; intake 59; schema PASS; merge 20; disruptions+mentions unit 22; api 103; browser 73/72; offline 92; disruptions+mentions 34; live MAMP 40/40",
+ "evidence": "sh tests/run-all.sh --screens (2026-11-17 PST) on 8.4.14 and APPTS_PHP=7.4.33: php -l clean on both; storage 178; intake 59; schema PASS; merge 20; disruptions+mentions unit 22; api 103; browser 73/72; offline 98; disruptions+mentions 34; live MAMP 42/42",
  "finished": "2026-11-17"
 }
