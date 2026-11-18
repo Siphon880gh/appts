@@ -6,11 +6,11 @@ import * as D from './documents.js';
 import { typeBadge } from './icons.js';
 import { noteHTML } from './richText.js';
 import { imageURL } from './images.js';
-import { pdfThumbHTML, clearPdfThumbs } from './pdfThumbs.js';
+import { pdfThumbHTML, clearPdfThumbs, loadThumbVersions } from './pdfThumbs.js';
 import { DEMO_USERNAME, DEMO_PASSWORD } from './demoAccount.js';
 import { store, save, notice, remove, put } from './store.js';
 import { esc, condNameHTML, condOptionAttrs, relLabel, eventTime, itemIcons, quickPreviewToggle, setQuickPreview, quickPreviewOn, plural, searchBox, eventRow, entryRow, typeChip, tagFilterChip, tagChip, closeDialog, hhPanel } from './ui.js';
-import { highlightsHTML, toggleHighlights, openHighlight, openHighlightForm, deleteHighlight } from './highlights.js';
+import { highlightsHTML, toggleHighlights, toggleHighlightSize, closeHighlights, csOpen, flashEntry, openHighlight, openHighlightForm, deleteHighlight } from './highlights.js';
 import { openEntryForm, openEntryDetail, deleteEntry, openConditionForm, openMemo, openViewer, openQuickUpload, attachmentsHTML } from './forms.js';
 import { renderTypes, openTypeEditor } from './typesPage.js';
 import * as offline from './offline.js';
@@ -212,7 +212,7 @@ function renderDocuments() {
   for (const k of d.kinds) if (!kinds.some(x => x.kind === k)) d.kinds.delete(k);
   for (const l of d.labelIds) if (!labels.some(x => x.label.id === l)) d.labelIds.delete(l);
   const shown = D.filterDocuments(all, { kinds: [...d.kinds], labelIds: [...d.labelIds], conditionId: d.conditionId, query: d.query });
-  const card = x => `<li class="doc-card" data-doc-kind="${x.kind}" data-doc-label="${esc(x.labelId)}"><button type="button" class="preview" data-action="view-file" data-id="${esc(x.file.id)}" data-name="${esc(x.file.name)}" data-kind="${x.kind}" aria-label="View ${esc(x.file.name)}">${x.kind === 'pdf' ? pdfThumbHTML(x.file.id, '<span class="pdf-tile" aria-hidden="true">PDF</span>') : `<img src="${esc(imageURL(x.file.id))}" alt="" loading="lazy">`}</button><div class="info"><strong>${esc(x.file.name)}</strong><span><span class="badge">${esc(D.labelById(doc, x.labelId).label)}</span> <small class="muted">${D.KIND_NAMES[x.kind]}${x.file.bytes ? ` · ${D.formatBytes(x.file.bytes)}` : ''}</small></span><span class="owner">${x.owner.kind === 'entry' ? `<button type="button" class="link" data-action="open-entry" data-id="${esc(x.owner.id)}">${esc(S.typeById(doc, x.owner.typeId)?.singular || 'Entry')}: ${esc(x.owner.title)}</button>${(() => { const ic = itemIcons({ highlight: S.entryById(doc, x.owner.id)?.highlight }); return ic.html; })()}` : `<a href="#/c/${esc(x.owner.id)}">Condition record</a>`}<br>${esc(x.conditionName)}${x.file.addedAt ? ` · Added ${relLabel(String(x.file.addedAt).slice(0, 10))}` : ''}</span></div></li>`;
+  const card = x => `<li class="doc-card" data-doc-kind="${x.kind}" data-doc-label="${esc(x.labelId)}"><button type="button" class="preview" data-action="view-file" data-id="${esc(x.file.id)}" data-name="${esc(x.file.name)}" data-kind="${x.kind}" aria-label="View ${esc(x.file.name)}">${x.kind === 'pdf' ? pdfThumbHTML(x.file.id, '<span class="pdf-tile" aria-hidden="true">PDF</span>') : `<img src="${esc(imageURL(x.file.id))}" alt="" loading="lazy">`}</button><div class="info"><strong>${esc(x.file.name)}</strong><span><span class="badge">${esc(D.labelById(doc, x.labelId).label)}</span> <small class="muted">${D.KIND_NAMES[x.kind]}${x.file.bytes ? ` · ${D.formatBytes(x.file.bytes)}` : ''}</small></span><span class="owner">${(x.owners || [x.owner]).map(o => o.kind === 'entry' ? `<span class="doc-owner"><button type="button" class="link" data-action="open-entry" data-id="${esc(o.id)}">${esc(S.typeById(doc, o.typeId)?.singular || 'Entry')}: ${esc(o.title)}</button>${(() => { const ic = itemIcons({ highlight: S.entryById(doc, o.id)?.highlight }); return ic.html; })()}</span>` : `<span class="doc-owner"><a href="#/c/${esc(o.id)}">Condition record</a></span>`).join('')}${(x.owners || []).length > 1 ? `<small class="muted doc-shared">Linked to ${x.owners.length} records</small>` : ''}<br>${esc([...new Set((x.owners || [x.owner]).map(o => o.conditionName || x.conditionName))].join(', '))}${x.file.addedAt ? ` · Added ${relLabel(String(x.file.addedAt).slice(0, 10))}` : ''}</span></div></li>`;
   const groups = D.groupDocuments(doc, shown, d.group);
   const filtered = d.kinds.size || d.labelIds.size || d.query.trim();
   app.innerHTML = `<div class="page-heading"><div><p class="eyebrow">Lab results, notes, letters, photos</p><h1>Documents</h1><p class="muted">Every PDF and image you've attached, across all conditions. Filter by file type and by label, then open one to view it or jump to the record it belongs to.</p></div><div class="actions"><button class="primary" type="button" data-action="quick-upload">+ Upload documents</button></div></div>
@@ -232,6 +232,7 @@ function bindSearch(id, set) {
   input.oninput = () => { clearTimeout(timer); timer = setTimeout(() => { set(input.value); render(); const again = document.querySelector(`#${id}`); again.focus(); again.setSelectionRange(again.value.length, again.value.length); }, 180); };
 }
 function render() {
+  document.documentElement.classList.remove('cs-open'); // the Clinical significance panel only lives on a condition page
   if (!store.account) return renderLogin();
   renderChrome();
   const { view, id } = route();
@@ -243,6 +244,11 @@ function render() {
   else renderOverview();
 }
 store.render = render;
+// Esc closes the docked Clinical significance panel when no dialog or popover is up (t67u).
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || !csOpen() || !document.querySelector('#cs-panel') || document.querySelector('dialog[open]') || e.target.closest?.('input,textarea,select')) return;
+  closeHighlights(); render(); document.querySelector('.cs-bar-btn')?.focus();
+});
 
 async function action(name, id, el) {
   const doc = store.doc;
@@ -260,7 +266,15 @@ async function action(name, id, el) {
     case 'add-highlight': return openHighlightForm(null, id);
     case 'edit-highlight': return openHighlightForm((doc.highlights || []).find(h => h.id === id));
     case 'delete-highlight': return deleteHighlight(id);
-    case 'cs-toggle': toggleHighlights(id); return render();
+    case 'cs-toggle': toggleHighlights(); return render();
+    case 'cs-size': toggleHighlightSize(); return render();
+    case 'cs-jump': {
+      // t67u: a key phrase jumps to its entry on the condition page; clear filters that hide it.
+      if (flashEntry(id)) return;
+      const e = S.entryById(doc, id); if (!e) return notice('That entry was deleted.');
+      if (route().view === 'c' && route().id === e.conditionId) { Object.assign(ui.condition, { typeIds: new Set(), tagIds: new Set(), query: '' }); render(); if (flashEntry(id)) return notice('Filters cleared to show that entry.'); }
+      return openEntryDetail(id);
+    }
     case 'edit-entry': return openEntryForm(S.entryById(doc, id));
     case 'delete-entry': return deleteEntry(id);
     case 'add-entry': return openEntryForm(null, { typeId: id, conditionId: route().id });
@@ -340,14 +354,14 @@ window.addEventListener('hashchange', () => { if (store.account) { closeDialog()
 window.addEventListener('focus', () => { if (store.account && !document.querySelector('dialog[open]') && !document.activeElement?.matches('input,textarea,select,[contenteditable=true]')) load().catch(() => {}); });
 
 async function load() {
-  const result = await api('data');
+  const [result] = await Promise.all([api('data'), loadThumbVersions()]);
   // Changes kept on this device (Offline mode) sit on top of the server or saved copy until sync.
   store.account = result.account; store.doc = await withPending(result.account, result.doc); render();
 }
 async function boot() {
   try {
     const { account } = await api('session');
-    if (account) { await load(); offline.checkVersion(); } else renderLogin();
+    if (account) { await offline.forgetStaleAssets(); await load(); offline.checkVersion(); } else renderLogin();
   } catch (err) {
     if (err instanceof AuthError) return renderLogin();
     app.innerHTML = `<section class="login"><h1>Could not open your records</h1><p>${esc(err.message)}</p><button id="retry" class="primary">Retry</button></section>`;

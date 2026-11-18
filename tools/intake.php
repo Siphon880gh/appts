@@ -409,12 +409,28 @@ final class Planner {
                 foreach ($records as $r) foreach ($r['attachments'] ?? [] as $a) if ($a['id'] === $want || lower((string) $a['name']) === lower($want)) { $fileId = $a['id']; break 2; }
                 if ($fileId === '') $this->fail("$where.file", "no document \"$want\" attached in this condition (give its file id or exact name)");
             }
+            // Key-phrase links (t67u): [{"text": "<phrase in the summary or detail>", "entry": "<entry id, ref, or exact title>"}]
+            $links = null;
+            if (isset($h['links'])) {
+                if (!is_array($h['links'])) $this->fail("$where.links", 'give a list of {"text", "entry"}');
+                $links = [];
+                foreach ($h['links'] as $j => $l) {
+                    $text = trim((string) ($l['text'] ?? '')); $want = (string) ($l['entry'] ?? '');
+                    if ($text === '' || $want === '') $this->fail("$where.links[$j]", 'give "text" and "entry"');
+                    if (mb_stripos($summary . "\n" . (string) ($h['detail'] ?? ($old['detail'] ?? '')), $text) === false) $this->fail("$where.links[$j]", "\"$text\" is not in the summary or detail");
+                    $lid = '';
+                    if (isset($this->refs[$want])) $lid = $this->refs[$want][0];
+                    else foreach ($this->doc['entries'] as $e) if ($e['conditionId'] === $cid && ($e['id'] === $want || lower($e['title']) === lower($want))) { $lid = $e['id']; break; }
+                    if ($lid === '') $this->fail("$where.links[$j].entry", "no entry \"$want\" in this condition");
+                    $links[] = ['text' => $text, 'entryId' => $lid];
+                }
+            }
             $value = ['id' => $old['id'] ?? new_id('hl'), 'conditionId' => $cid, 'title' => $title, 'summary' => $summary,
                 'detail' => (string) ($h['detail'] ?? ($old['detail'] ?? '')), 'quote' => (string) ($h['quote'] ?? ($old['quote'] ?? '')),
                 'date' => (string) ($h['date'] ?? ($old['date'] ?? '')), 'sourceEntryId' => $entryId !== '' ? $entryId : (string) ($old['sourceEntryId'] ?? ''),
                 'sourceFileId' => $fileId !== '' ? $fileId : (string) ($old['sourceFileId'] ?? ''),
                 'certainty' => (string) ($h['certainty'] ?? ($old['certainty'] ?? 'documented')), 'caveat' => (string) ($h['caveat'] ?? ($old['caveat'] ?? '')),
-                'origin' => (string) ($h['origin'] ?? 'ai'), 'sortOrder' => isset($h['order']) ? (int) $h['order'] : (int) ($old['sortOrder'] ?? ($count + $i))];
+                'origin' => (string) ($h['origin'] ?? 'ai'), 'links' => $links ?? ($old['links'] ?? []), 'sortOrder' => isset($h['order']) ? (int) $h['order'] : (int) ($old['sortOrder'] ?? ($count + $i))];
             try { clean_highlight($value, $old, $this->doc); } catch (InvalidArgumentException $e) { $this->fail($where, $e->getMessage()); }
             $this->ops[] = ['op' => 'put', 'kind' => 'highlight', 'value' => $value];
             $this->preview[] = ($old ? '~ highlight' : '+ new highlight') . " \"$title\"\n      $summary" . ($value['certainty'] !== 'documented' ? "\n      certainty: {$value['certainty']}" : '') . ($value['sourceEntryId'] !== '' ? "\n      source entry: {$value['sourceEntryId']}" : '') . ($value['sourceFileId'] !== '' ? "\n      source document: {$value['sourceFileId']}" : '') . ($value['caveat'] !== '' ? "\n      check: {$value['caveat']}" : '');

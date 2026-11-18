@@ -282,11 +282,27 @@ function clean_highlight(array $v, ?array $old, array $doc): array {
         'sourceFileId' => (string) $fileId,
         'certainty' => in_array($v['certainty'] ?? '', HIGHLIGHT_CERTAINTY, true) ? $v['certainty'] : 'documented',
         'caveat' => plain_field($v, 'caveat', 2000),
+        'links' => clean_highlight_links($v['links'] ?? []),
         'origin' => in_array($v['origin'] ?? '', HIGHLIGHT_ORIGINS, true) ? $v['origin'] : 'manual',
         'sortOrder' => is_int($v['sortOrder'] ?? null) ? $v['sortOrder'] : (int) ($old['sortOrder'] ?? 0),
         'createdAt' => $old['createdAt'] ?? gmdate('c'),
         'updatedAt' => gmdate('c'),
     ];
+}
+
+/** Key-phrase links (t67u): [{text, entryId}], a phrase in the summary/detail that jumps to an entry. */
+function clean_highlight_links($links): array {
+    if (!is_array($links)) return [];
+    $out = []; $seen = [];
+    foreach (array_slice($links, 0, 40) as $l) {
+        if (!is_array($l)) continue;
+        $text = trim((string) preg_replace('/[\x00-\x1F\x7F]+/', ' ', mb_substr((string) ($l['text'] ?? ''), 0, 200)));
+        $entryId = $l['entryId'] ?? '';
+        if ($text === '' || !is_string($entryId) || !preg_match(ID_PATTERN, $entryId) || isset($seen[mb_strtolower($text)])) continue;
+        $seen[mb_strtolower($text)] = true;
+        $out[] = ['text' => $text, 'entryId' => $entryId];
+    }
+    return $out;
 }
 
 function clean_doc_label(array $v, ?array $old): array {

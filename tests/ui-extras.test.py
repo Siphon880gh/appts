@@ -1,5 +1,5 @@
 """Playwright gates for t45u-t55u UI work: click outside closes dialogs (unsaved guard, drag-safe),
-Clinical Significance drawer, key highlights, list ★/📎 icons, Quick preview, 📎 gallery, and the
+Clinical Significance bar + bottom panel, key highlights, list ★/📎 icons, Quick preview, 📎 gallery, and the
 Timeline filter panel. Run: python3 tests/ui-extras.test.py [--no-screens]
 Screenshots go to $APPTS_SHOTS (default docs/screenshots/ui) when screens are on."""
 import base64, json, os, pathlib, shutil, subprocess, sys, tempfile
@@ -120,15 +120,55 @@ try:
         mode['confirm'] = True; pg.mouse.click(8, 500); pg.wait_for_timeout(200)
         ok(pg.locator('#entry-form').count() == 0, 'accepting the guard discards and closes')
 
-        # ---- Clinical Significance drawer (right side; bottom-left corner stays clear)
+        # ---- Clinical Significance (t67u): collapsed bar by default, bottom panel, key-phrase jumps
         go(pg, '#/c/cond-skin'); pg.wait_for_selector('#cs')
-        ok(pg.locator('#cs .cs-item, #cs li').count() >= 3, 'the condition shows its Clinical significance highlights')
-        pg.click('#cs [data-action=open-highlight] >> nth=0'); pg.wait_for_selector('#cs-drawer[open]'); pg.wait_for_timeout(450)  # after the slide-in
-        d = pg.locator('#cs-drawer').bounding_box(); vw = pg.viewport_size['width']
-        ok(abs(d['x'] + d['width'] - vw) < 2 and d['x'] > 300, 'the detail opens in a right-side drawer, leaving the bottom-left corner clear')
-        shot(pg, 'cs-drawer.png')
-        pg.mouse.click(40, 500); pg.wait_for_timeout(300)
-        ok(pg.locator('#cs-drawer[open]').count() == 0, 'a click outside the drawer closes it')
+        bar = pg.locator('#cs .cs-bar-btn')
+        ok(bar.get_attribute('aria-expanded') == 'false' and pg.locator('#cs-panel').count() == 0 and '· 3' in bar.inner_text(), f'collapsed by default: a compact "Clinical significance · N" bar ({bar.inner_text()!r})')
+        ok(pg.locator('#cs').bounding_box()['height'] < 60, 'the collapsed bar is compact')
+        shot(pg, 'cs-collapsed.png', full_page=False)
+        bar.click(); pg.wait_for_selector('#cs-panel')
+        vw, vh = pg.viewport_size['width'], pg.viewport_size['height']
+        d = pg.locator('#cs-panel').bounding_box()
+        ok(abs(d['y'] + d['height'] - vh) < 2 and d['height'] <= vh * 0.45 + 2, f'expanded, it is a panel docked to the bottom ({d})')
+        ok(pg.evaluate("getComputedStyle(document.querySelector('#cs-panel .cs-list')).overflowY") == 'auto', 'the panel scrolls inside')
+        ai = pg.locator('.hai-fab').first
+        if ai.count():
+            a = ai.bounding_box()
+            ok(a['x'] + a['width'] <= d['x'] or a['y'] + a['height'] <= d['y'], f'the bottom-left AI button stays clear of the panel ({a} vs {d})')
+        else:
+            ok(d['x'] >= 150, 'the panel is inset from the left so the AI corner stays clear')
+        ok(pg.locator('#cs-panel .cs-jump').count() >= 3, 'key phrases are links in the highlights')
+        shot(pg, 'cs-expanded.png', full_page=False)
+        pg.reload(); pg.wait_for_selector('#cs-panel')
+        ok(pg.locator('#cs .cs-bar-btn').get_attribute('aria-expanded') == 'true', 'the expanded state is remembered after reload')
+        pg.click('#cs-panel [data-action=cs-size]'); pg.wait_for_selector('#cs-panel.tall')
+        ok(pg.evaluate("parseFloat(getComputedStyle(document.querySelector('#cs-panel')).maxHeight)") > vh * 0.7, '"Taller" resizes the panel (max-height 78vh)')
+        pg.click('#cs-panel [data-action=cs-size]')
+        # a filter that hides the target entry: the jump clears it, scrolls, and flashes the entry
+        target = pg.locator('#cs-panel .cs-jump').first.get_attribute('data-id')
+        ttype = pg.evaluate(f"(async () => (await import('./js/store.js')).store.doc.entries.find(e => e.id === '{target}').typeId)()")
+        pg.locator(f'[data-action=cond-type]:not([data-id="{ttype}"])').first.click(); pg.wait_for_timeout(200)
+        hidden = pg.locator(f'.workspace .entry-row[data-id="{target}"]').count() == 0
+        ok(hidden, 'a type filter hides the entry the first key phrase points to')
+        pg.evaluate('window.scrollTo(0, 0)')
+        pg.locator('#cs-panel .cs-jump').first.click(); pg.wait_for_timeout(700)
+        row = pg.locator(f'.workspace .entry-row[data-id="{target}"]')
+        ok(row.count() == 1 and 'cs-flash' in (row.get_attribute('class') or ''), f'clicking a key phrase jumps to its entry and flashes it (filter cleared: {hidden})')
+        rb = row.bounding_box(); pb = pg.locator('#cs-panel').bounding_box()
+        ok(rb['y'] >= 0 and rb['y'] + rb['height'] <= pb['y'], f'the entry is scrolled into view above the panel ({rb["y"]:.0f} < {pb["y"]:.0f})')
+        shot(pg, 'cs-after-jump.png', full_page=False)
+        pg.click('#cs-panel [data-action=cs-toggle]'); pg.wait_for_timeout(200)
+        ok(pg.locator('#cs-panel').count() == 0 and pg.locator('#cs .cs-bar-btn').get_attribute('aria-expanded') == 'false', '✕ closes the panel back to the bar')
+        bar = pg.locator('#cs .cs-bar-btn'); bar.click(); pg.wait_for_selector('#cs-panel'); pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
+        ok(pg.locator('#cs-panel').count() == 0, 'Esc closes the panel too')
+        ipad = page_for(820, 1180, has_touch=True, is_mobile=True); login(ipad); go(ipad, '#/c/cond-skin'); ipad.wait_for_selector('#cs')
+        ipad.tap('#cs .cs-bar-btn'); ipad.wait_for_selector('#cs-panel')
+        ib = ipad.locator('#cs-panel').bounding_box()
+        ok(abs(ib['y'] + ib['height'] - 1180) < 2 and ib['x'] + ib['width'] <= 821, 'iPad: tap opens the docked panel within the screen')
+        ipad.locator('#cs-panel .cs-jump').first.tap(); ipad.wait_for_timeout(700)
+        ok(ipad.locator('.workspace .entry-row.cs-flash').count() == 1, 'iPad: tapping a key phrase jumps to the entry')
+        ipad.context.close()
+        pg.evaluate("localStorage.removeItem('appts.cs.open')")
 
         # ---- Quick preview (t49u, t52u): off by default, whole tile, pre-wrap, translucent + blur, persisted
         go(pg, '#/c/cond-knee'); pg.wait_for_selector('.entry-row')
@@ -214,7 +254,6 @@ try:
             ('condition edit', '#/c/cond-knee', '.condition-head [data-action=edit-condition]', True),
             ('Memo', '#/c/cond-knee', '[data-action=open-memo]', True),
             ('highlight form', '#/c/cond-knee', '.condition-head [data-action=add-highlight]', True),
-            ('Clinical significance drawer', '#/c/cond-skin', '#cs [data-action=open-highlight]', False),
             ('add condition', '#/', '[data-action=add-condition]', True),
             ('entry type editor', '#/types', '[data-action=edit-type]', True),
             ('document viewer', '#/documents', '.doc-card .preview', False),

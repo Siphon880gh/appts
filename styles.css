@@ -402,30 +402,39 @@ header.offline-collapsed .more-offline{display:block;border-bottom:1px solid var
 .card-next .when,.hh-used .when,.doc-card .when,dl.values .when{justify-items:start;text-align:left;vertical-align:top}
 .event.compact .when{grid-column:2;justify-self:start;justify-items:start;text-align:left;white-space:normal}
 
-/* Clinical significance: progressive highlights + right-side drawer (bottom-left stays clear for the AI button) */
-.cs{background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--accent);padding:14px 16px 10px;margin:0 0 22px}
-.cs .section-heading{margin-bottom:6px}
+/* Clinical significance (t67u): a compact bar, collapsed by default; expanded = a panel docked to the
+   bottom of the viewport, inset from the left so the "Add / edit with AI" corner button stays clear. */
+.cs-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px;padding:4px 6px 4px 4px;border:1px solid var(--line);border-left:4px solid #24496e;border-radius:6px;background:#f6f8fb}
+.cs-bar-btn{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;padding:6px 8px;font-weight:800;font-size:15px;color:var(--ink);min-height:36px}
+.cs-bar-btn:hover,.cs-bar-btn:focus-visible{background:rgba(36,73,110,.08)}
+.cs-count{font-weight:600;color:#55606e}.cs-chev{font-size:13px;color:#24496e;margin-left:2px}
+.cs-panel{position:fixed;z-index:60;left:200px;right:16px;bottom:0;max-height:42vh;display:flex;flex-direction:column;background:#fff;border:1px solid #c9d2dc;border-bottom:0;border-radius:10px 10px 0 0;box-shadow:0 -8px 28px rgba(16,32,56,.18)}
+.cs-panel.tall{max-height:78vh}
+.cs-panel-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--line);background:#f6f8fb;border-radius:10px 10px 0 0}
+.cs-panel-head h2{margin:0;font-size:16px}.cs-hint{font-size:12px;flex:1;min-width:0}
+.cs-panel-actions{display:flex;gap:6px;margin-left:auto}.cs-panel-actions button{min-height:34px}
+.cs-panel .cs-list{overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:4px 14px 14px;flex:1}
+html.cs-open body{padding-bottom:44vh}
 .cs-list{list-style:none;margin:0;padding:0}
-.cs-list li+li{border-top:1px solid var(--line)}
-.cs-item{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;width:100%;text-align:left;border:0;border-radius:0;background:transparent;padding:9px 2px;font-weight:400}
-button.cs-item:hover,button.cs-item:focus-visible{background:rgba(0,0,0,.035)}
-.cs-line{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.4}
-.cs-title{font-weight:800}.cs-sum{color:var(--ink)}
-.cs-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;flex:none;max-width:45%}
+.cs-hl{padding:10px 0}.cs-list li+li{border-top:1px solid var(--line)}
+.cs-hl-head{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.cs-title{font-weight:800}.cs-date{font-size:13px;color:#55606e}
+.cs-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-left:auto}
+.cs-sum{margin:4px 0;line-height:1.5;color:var(--ink)}
+.cs-jump{display:inline;border:0;padding:0 1px;margin:0;min-height:0;background:transparent;font:inherit;font-weight:700;color:#1d4f86;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px;text-decoration-color:rgba(29,79,134,.45);cursor:pointer;border-radius:2px}
+.cs-jump:hover,.cs-jump:focus-visible{background:#e3eefb;text-decoration-color:#1d4f86}
 .cs-flag{font-size:11px;font-weight:700;padding:1px 6px;border-radius:3px;background:#eef2f6;color:#24496e;white-space:nowrap}
 .cs-flag.uncertain{background:#fff1d6;color:#7a4a00}.cs-flag.reported{background:#f1ecfa;color:#4b2f80}.cs-flag.ai{background:#e8f3ef;color:#155e4b}
-.cs-more{font-size:12px;font-weight:800;color:#24496e;white-space:nowrap}
-.cs-toggle{margin:6px 0 2px}.cs-empty{margin:4px 0 8px}
-dialog.drawer{margin:0 0 0 auto;height:100vh;max-height:100vh;width:min(520px,100vw);max-width:100vw;border:0;border-left:1px solid var(--line);border-radius:0;padding:0;display:none;flex-direction:column}
-dialog.drawer[open]{display:flex;animation:cs-in .28s cubic-bezier(.22,.8,.3,1)}
-dialog.drawer .dialog-body{flex:1;overflow:auto}
-@keyframes cs-in{from{transform:translateX(100%)}to{transform:none}}
-@media (prefers-reduced-motion:reduce){dialog.drawer[open]{animation:none}}
-.cs-summary{font-size:16px;line-height:1.5;margin:4px 0 8px}
-.cs-caveat{background:#fff6e5;border-left:4px solid #c27c00;padding:8px 12px;margin:10px 0}.cs-caveat p{margin:4px 0}
-.cs-quote{margin:6px 0;padding:8px 12px;border-left:3px solid var(--line);background:#f7f7f5;font-family:ui-monospace,Menlo,monospace;font-size:13px}
-.cs-sources{padding-left:18px}.cs-sources li{margin:4px 0}
-@media (max-width:640px){.cs-item{flex-direction:column}.cs-meta{max-width:none;justify-content:flex-start}}
+.cs-more>summary{cursor:pointer;font-size:13px;font-weight:700;color:#24496e;padding:2px 0}
+.cs-more h4{margin:10px 0 4px;font-size:13px}
+.cs-caveat{background:#fff6e5;border-left:4px solid #c27c00;padding:6px 10px;margin:6px 0;font-size:14px}.cs-caveat p{margin:2px 0;display:inline}
+.cs-quote{margin:6px 0;padding:8px 12px;border-left:3px solid var(--line);background:#f7f7f5;font-family:ui-monospace,Menlo,monospace;font-size:13px;white-space:normal}
+.cs-sources{padding-left:18px;margin:4px 0}.cs-sources li{margin:4px 0}
+.entry-row.cs-flash{animation:cs-flash 2.4s ease-out}
+@keyframes cs-flash{0%,30%{background:#fff0a8;box-shadow:0 0 0 3px #e2b400}100%{background:transparent;box-shadow:0 0 0 0 transparent}}
+@media (prefers-reduced-motion:reduce){.entry-row.cs-flash{animation:none;background:#fff0a8;box-shadow:0 0 0 3px #e2b400}}
+.cs-link-row{display:grid;grid-template-columns:1fr 1fr auto;gap:6px;margin:4px 0}.cs-link-row input,.cs-link-row select{margin:0}
+@media (max-width:640px){.cs-panel{left:72px;right:0;max-height:50vh}.cs-panel.tall{max-height:80vh}.cs-hint{display:none}html.cs-open body{padding-bottom:52vh}.cs-link-row{grid-template-columns:1fr}}
 
 /* List icons: key highlight ★ (accent) and attachments 📎 */
 .item-icons{display:inline-flex;gap:6px;align-items:center;margin-left:8px;vertical-align:middle;font-weight:700}
@@ -525,3 +534,6 @@ dialog.drawer .dialog-body{flex:1;overflow:auto}
 .ag-item .pdf-thumb{width:100%;height:96px;border-radius:4px}
 .ag-item .pdf-thumb .pdf-thumb-img{border-radius:4px}
 .doc-item .pdf-thumb{width:52px;height:52px;flex:none}
+@media (hover:hover) and (pointer:fine){.qp-pop{pointer-events:none}} /* t66u: the preview never blocks a click */
+.qp-pop{transition:none;animation:none}
+.doc-owner{display:block}.doc-shared{display:block;font-size:12px}
