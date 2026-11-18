@@ -76,6 +76,7 @@ $p1 = plan([
 ]);
 [$code, $out] = cli(['apply', 'demo', $p1, '--dry-run']);
 ok($code === 0 && strpos($out, 'DRY RUN') === 0, 'dry run succeeds');
+ok(strpos($out, 'update[2] Visit "Ortho follow-up" is in another condition') !== false, 'updating an entry outside the chosen condition is flagged');
 ok(strpos($out, '+ new Home health authorization: "Wound care nursing: 6 more visits"') !== false && strpos($out, 'Authorization: Wound care nursing: 6 more visits') !== false && strpos($out, '~ update Home health visit') !== false, 'preview lists new entries, cross-links by title, and updates');
 ok(strpos($out, '+ new tag "Intake test"') !== false && strpos($out, '+ new document label "Authorization fax"') !== false && strpos($out, '[Progress Note]') !== false, 'preview shows new tags/labels and reuses existing ones (any case)');
 ok(file_get_contents(doc_path('demo')) === $beforeRaw && count(list_backups('demo')) === $backups0 && count(glob("$dir/uploads/demo/*") ?: []) === $uploads0, 'dry run writes no document, backup, or upload');
@@ -169,6 +170,16 @@ ok($code === 0 && by_title(doc('intaketmp'), 'CBC')['values'] === ['drawn' => '2
 // ---- the app reads what the CLI wrote (same document, same rules)
 $appDoc = normalize_doc(doc('demo'));
 ok($enc(apply_ops($appDoc, [['op' => 'put', 'kind' => 'entry', 'value' => $auth3]])['entries']) !== '', 'CLI-written entries pass the app\'s own validation again');
+
+// ---- the plan example in SKILL.md stays valid (dry run on demo, sample files substituted)
+$skill = (string) file_get_contents($root . '/.agents/skills/log-health-update/SKILL.md');
+ok(preg_match('/^---\nname: log-health-update\ndescription: .+\n---\n/', $skill) === 1, 'SKILL.md has name and description frontmatter');
+preg_match('/## Plan format\n\n```json\n(.*?)```/s', $skill, $m);
+file_put_contents("$dir/approval.pdf", synthetic_pdf('Approval', ['x']));
+file_put_contents("$dir/summary.pdf", synthetic_pdf('Summary', ['y']));
+$example = str_replace(['/Users/me/Downloads/approval.pdf', '/tmp/note.png', '/tmp/summary.pdf'], ["$dir/approval.pdf", "$dir/photo.png", "$dir/summary.pdf"], $m[1] ?? '');
+[$code, $out, $err] = cli(['apply', 'demo', '-', '--dry-run'], $example);
+ok($code === 0 && strpos($out, '+ new Home health visit: "Dressing change"') !== false && strpos($out, 'another condition') === false, "the SKILL.md plan example dry-runs cleanly ($err)");
 
 // ---- real storage untouched; wf never used
 ok(!is_file("$dir/data/wf.json.php"), 'wf was never loaded or created by the tests');
