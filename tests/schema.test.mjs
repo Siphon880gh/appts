@@ -150,3 +150,30 @@ console.log('PASS: document helpers (types, labels, filters, grouping).');
   ok(one.every((e, i) => i === 0 || one[i - 1].date <= e.date), 'Next up stays in date order');
   console.log('PASS: next-up dedupe.');
 }
+{
+  // G29/G30: built-in status fields allow free text; the disruption type is "Other care disruptions".
+  const dis = S.typeById(demo, 'disruption');
+  ok(dis.name === 'Other care disruptions' && dis.singular === 'Other care disruption', 'disruption type renamed');
+  const statusFields = demo.types.flatMap(t => t.fields.filter(f => f.label === 'Status').map(f => [t.id, f]));
+  ok(statusFields.length === 5 && statusFields.every(([, f]) => f.kind === 'select' && f.allowCustom === true), 'all 5 built-in Status fields allow free text');
+  ok(S.typeById(demo, 'doctor').fields.find(f => f.id === 'role').allowCustom === false, 'other built-in selects stay preset-only');
+  // G28: typed values are offered again; presets-only fields keep an odd stored value visible.
+  const supply = S.typeById(demo, 'supply'), st = supply.fields.find(f => f.id === 'status');
+  const ch = S.selectChoices(demo, 'supply', st);
+  ok(ch.used.includes('Backordered at pharmacy') && !ch.used.some(v => st.options.includes(v)), 'typed status offered under Used before');
+  ok(S.selectChoices(demo, 'supply', st, 'Brand new text').used[0] === 'Brand new text', 'current custom value listed first');
+  const role = S.typeById(demo, 'doctor').fields.find(f => f.id === 'role');
+  const rc = S.selectChoices(demo, 'doctor', role, 'Odd legacy');
+  ok(rc.used.length === 0 && rc.presets.includes('Odd legacy'), 'presets-only select keeps a legacy value without offering free text');
+  ok(S.FREE_TEXT && !st.options.includes(S.FREE_TEXT), 'free-text sentinel never collides with an option');
+  const t2 = S.addField({ id: 'x', fields: [], retiredFields: [] }, { label: 'Result', kind: 'select', options: ['Low', 'High'], allowCustom: true });
+  const t3 = S.addField(t2, { label: 'Note', kind: 'text', allowCustom: true });
+  ok(t2.fields[0].allowCustom === true && !('allowCustom' in t3.fields[1]), 'custom select fields can allow free text');
+  ok(S.updateField(t2, t2.fields[0].id, { allowCustom: false }).fields[0].allowCustom === false, 'free text can be switched off');
+  // A typed status is found by search and by the timeline filter.
+  const entry = demo.entries.find(e => e.values?.status === 'Backordered at pharmacy');
+  ok(S.matchesSearch(demo, entry, 'backordered'), 'search finds a typed status');
+  const evs = S.filterEvents(demo, S.allEvents(demo), { query: 'backordered at pharmacy' });
+  ok(evs.length > 0 && evs.every(ev => ev.entryId === entry.id), 'timeline filter finds a typed status');
+  console.log('PASS: free-text statuses and Other care disruptions.');
+}

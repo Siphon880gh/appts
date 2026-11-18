@@ -125,6 +125,35 @@ try:
     ok([a['label'] for a in v1['attachments']] == ['lbl-cbc', 'other'] and fresh.raw(f"api.php?action=file&id={wpdf['id']}")[1] == PDF and fresh.raw(f"api.php?action=file&id={wimg['id']}")[1] == PNG, 'PDF + image uploads persist across restart (G23)')
     # Demo reset only for demo
     ok(fresh.api('reset-demo', {})[0] == 403, 'wf cannot reset')
+    # ---- free-text status over HTTP (G28) and the v1 -> v2 migration on load (G31)
+    mc = Client(server); ok(mc.login('wf', pw)[0] == 200, 'wf signs in for migration checks')
+    doc = mc.api('data')[1]['doc']
+    cid = doc['conditions'][0]['id'] if doc['conditions'] else 'cond-ft'
+    ops = ([] if doc['conditions'] else [{'op': 'put', 'kind': 'condition', 'value': {'id': cid, 'name': 'Heel'}}]) + [{'op': 'put', 'kind': 'entry', 'value': {'id': 'entry-ft', 'conditionId': cid, 'typeId': 'visit', 'title': 'Wound check', 'values': {'date': '2026-11-20', 'status': 'Waiting on fax'}}}]
+    ok(mc.api('ops', {'ops': ops})[0] == 200, 'free-text status accepted')
+    doc = mc.api('data')[1]['doc']
+    ok(next(e for e in doc['entries'] if e['id'] == 'entry-ft')['values']['status'] == 'Waiting on fax', 'free-text status reloads verbatim (G28)')
+    ok(doc['version'] == 2 and next(t for t in doc['types'] if t['id'] == 'disruption')['name'] == 'Other care disruptions', 'current documents are v2 with the new name')
+    # Turn the stored file back into a v1 document with a user-renamed disruption type, then load it.
+    v1 = json.loads(json.dumps(doc)); v1['version'] = 1
+    for t in v1['types']:
+        if t['id'] == 'disruption': t['name'], t['singular'] = 'Broken equipment', 'Broken equipment'
+        if t['id'] == 'letter': t['name'] = 'Care disruptions'  # a non-disruption type that happens to use the old name stays as is
+        for f in t['fields']: f.pop('allowCustom', None)
+    guard = b"<?php http_response_code(404); exit; ?>\n"
+    path = storage / 'data' / 'wf.json.php'
+    v1_bytes = guard + json.dumps(v1, indent=4, ensure_ascii=False).encode(); path.write_bytes(v1_bytes)
+    bdir = storage / 'backups' / 'wf'; before_backups = {b.name for b in bdir.glob('*.json.php')}
+    m = mc.api('data')[1]['doc']; mt = {t['id']: t for t in m['types']}
+    ok(m['version'] == 2 and json.loads(path.read_bytes()[len(guard):])['version'] == 2, 'v1 document migrated and saved on load (G31)')
+    new_backups = [b for b in bdir.glob('*.json.php') if b.name not in before_backups]
+    ok(len(new_backups) == 1 and new_backups[0].read_bytes() == v1_bytes, 'migration backed up the exact v1 bytes first (G31)')
+    after_backups = {b.name for b in bdir.glob('*.json.php')}
+    ok(mt['disruption']['name'] == 'Broken equipment' and mt['letter']['name'] == 'Care disruptions', "user's own type names kept (G31)")
+    ok(all(next(f for f in mt[i]['fields'] if f['id'] == 'status').get('allowCustom') is True for i in ['visit', 'letter', 'appeal', 'supply', 'treatment']), 'built-in status fields allow free text after migration (G29)')
+    ok(all(json.dumps(m[k], sort_keys=True) == json.dumps(v1[k], sort_keys=True) for k in ['conditions', 'entries', 'tags', 'docLabels']), 'migration left conditions, entries, tags, labels unchanged (G31)')
+    mc.api('data')
+    ok({b.name for b in bdir.glob('*.json.php')} == after_backups, 'second load does not migrate again (G31)')
     # Only hashes on disk / in git
     # Account records hold only bcrypt hashes; the demo password literal exists only in the public demo UI module.
     accounts = (ROOT / 'includes/accounts.php').read_text()
