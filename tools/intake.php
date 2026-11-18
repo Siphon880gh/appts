@@ -308,6 +308,7 @@ final class Planner {
             $type = type_of($this->doc, $old['typeId']);
             $where .= " {$type['singular']} \"{$old['title']}\"";
             if (isset($p['title']) && $p['title'] !== $old['title']) $this->fail($where, 'titles are not changed by intake; edit it in the app');
+            if ($old['conditionId'] !== $cid) $this->warnings[] = "$where is in another condition, not the one chosen for this plan";
             $entry = $old;
             $changed = [];
             foreach (is_array($p['values'] ?? null) ? $p['values'] : [] as $k => $v) {
