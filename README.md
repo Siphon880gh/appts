@@ -99,6 +99,15 @@ Existing accounts get the three types automatically (document version 3, appende
 
 The timeline groups events by month and marks today. Filter by condition, past or upcoming, text, **entry type** (chips show only the types that appear in the timeline), and **one or more tags**. Type chips combine with OR; tag chips with AND.
 
+### Disruptions
+
+**Disruptions** is a built-in filter at the top of the Timeline. It gathers insurance denials, missed, cancelled, or rescheduled visits, delays and backorders, approvals that are paused or pending, appeals, clinical events, and other care disruptions. It works across your own entry types too, because it reads the values you chose, free-text ones included.
+
+To change what it includes, turn it on and choose **Edit Disruption mode**. Every event shows; those outside the filter are grayed out. Click a grayed event to add it, or click an included one to take it out. Changes save right away (also while Offline mode is on). The mode is only available for this filter.
+
+![Disruptions filter](docs/screenshots/timeline-disruptions.png)
+![Edit Disruption mode](docs/screenshots/disruption-edit.png)
+
 ![Timeline filtered to the Follow-up needed tag](docs/screenshots/timeline-filtered.png)
 ![Upcoming view](docs/screenshots/upcoming.png)
 
@@ -109,6 +118,13 @@ Tags are optional. Type a new name in a record's tag picker and press Enter to c
 ## Rich notes and attachments
 
 Every record and every condition has a rich-text note (bold, italic, underline, lists, links). Paste an image with **Ctrl/Cmd+V**, drag and drop it, or use the file picker. The server sanitizes HTML on save and the browser sanitizes it again on display. Only approved formatting, `http(s)`/`mailto` links, and this account's uploaded images survive.
+
+### Link records with @
+
+Type **@** in any note to link a document, an event, or a note you already wrote. A menu opens at the cursor with three libraries: **Documents**, **Events**, and **Notes**. Point at a library to see what's in it, or keep typing after the @ to search all of them at once (`@mri`, `@notes knee`). Use the arrow keys and Enter, or click; Escape closes the menu. In the saved note, the link opens the document or record. Links store only the record's id and the label you saw.
+
+![The @ menu](docs/screenshots/mention-popover.png)
+![Links in a saved note](docs/screenshots/mention-chips.png)
 
 ## Documents
 
@@ -182,6 +198,8 @@ sh tests/run-all.sh --screens       # also regenerate docs/screenshots
 | `tests/browser.test.py` | Playwright: sign-in, custom types and fields, paste and drag-drop uploads, tags, rich notes, XSS stripping, Documents filters, home health countdown and warnings, 390px layout |
 | `tests/offline.test.py` | Playwright + `php -S`: Offline mode on with the server up, then the server stopped (every view, a PDF, an image, miss page), queued edits and a pasted image, restart, sync merged with a server edit, version update, full-disk stop, sign-out cleanup; demo plus a temp account, never `wf` |
 | `tests/merge.test.mjs` | Offline sync merge rules: local apply, overlay, three-way merge, delete/restore cases, op order, id remap |
+| `tests/disruptions-mentions.test.mjs` | Disruptions rule (denials in, approvals out, custom types, free text), Edit Disruption toggles, filter sync merge; @ libraries, search, and trigger |
+| `tests/disruptions-mentions.test.py` | Playwright: Disruptions preset, Edit Disruption mode (gray, add, remove, persist, server check), the @ menu (hover, search, keyboard, Escape), saved links opening their records, 375px |
 
 The browser test needs Python Playwright with Chromium. `--screens` uses installed Google Chrome when it's present (`APPTS_BROWSER_CHANNEL=chrome`, temporary profile) because Playwright's headless shell can't render PDFs. Tests use temporary storage and never touch `storage/`.
 
@@ -192,7 +210,7 @@ The browser test needs Python Playwright with Chromium. `--screens` uses install
 - `includes/storage.php`, `includes/uploads.php`, `includes/sanitize.php`: guarded storage, upload validation, and the HTML allowlist.
 - `includes/domain.php`, `includes/seed-types.json`, `includes/demo-seed.php`: types, validation, operations, and synthetic demo data.
 - `includes/auth.php`, `includes/accounts.php`, `tools/set-password.php`: accounts.
-- `js/app.js` (views), `js/forms.js` (forms and detail), `js/typesPage.js`, `js/schema.js` (pure domain), `js/documents.js`, `js/icons.js`, `js/richText.js`, `js/store.js`, `js/api.js`, `js/images.js`, `js/ui.js`.
+- `js/app.js` (views), `js/forms.js` (forms and detail), `js/typesPage.js`, `js/schema.js` (pure domain), `js/documents.js`, `js/icons.js`, `js/richText.js`, `js/mentions.js` (@ links), `js/store.js`, `js/api.js`, `js/images.js`, `js/ui.js`.
 - `tools/intake.php`, `.agents/skills/log-health-update/SKILL.md`: the AI intake helper and skill. `tools/migrate-dry-run.php`: preview a document migration on a copy.
 - `sw.php` + `includes/sw.js`, `manifest.php`, `assets/`, `includes/version.php`, `includes/offline.php`, `js/offline.js`, `js/outbox.js`, `js/merge.js`: Offline mode (see `docs/OFFLINE_MODE.md`).
 - `docs/`: epics, milestones, prompts, implementation notes, and the gauntlet contract and state.

@@ -61,10 +61,16 @@ A critic compares Appts screenshots with the reference blind and picks the clear
 | G49 | A new version while on re-saves the copy, installs the new worker, stays on, and reloads into it | offline test PASS |
 | G50 | Header: the Offline group (button + (i)) is the first child of the actions bar, followed by a thin `nav-sep` rule, then name, Reset demo, Sign out; on narrow screens (390/375px) the Offline group has its own row, the separator is hidden, and nothing overflows | offline test PASS + header-desktop.png, header-narrow.png |
 | G51 | The (i) explainer opens with the bold, brand-colored headline "Want to show clinical information to your doctor?" above the clinic picture | offline test PASS + offline-info.png |
+| G52 | Timeline has a built-in **Disruptions** preset (with count) that shows insurance denials, missed/cancelled/rescheduled visits, delays, backorders, paused or pending approvals, appeals, clinical events, and other care disruptions (by type, and by the value of any choice field, free-text values included); approvals and completed visits are not in it | unit + Playwright + live MAMP PASS + timeline-disruptions.png |
+| G53 | **Edit Disruption mode** appears only while the preset is on: every event shows, those outside the filter grayed out; clicking (or Enter/Space) adds or removes one, saved per account as include/exclude ids, survives reload, queues and merges while offline; the server accepts only the built-in filter id | unit + storage + API + offline + Playwright PASS + disruption-edit.png |
+| G54 | Typing `@` in any rich note opens a popover at the caret listing the libraries (Documents, Events, Notes, with counts); hovering a library lists its items (documents show their type); clicking inserts a link chip and closes the popover | Playwright + live MAMP PASS + mention-popover.png |
+| G55 | Typing after `@` filters every library at once into one list (a library's name narrows to it), says when nothing matches; ↑/↓, →/←, Enter/Tab pick, Escape closes without closing the form; no popover inside an email address | unit + Playwright PASS |
+| G56 | Chips are stored as kind + id + label only (server and browser sanitizers drop handlers, styles, and invalid ids); in a saved note a document chip opens the document, an event or note chip opens its record (keyboard reachable); chips survive reload and are inert while editing | storage + API + Playwright PASS + mention-chips.png |
+| G57 | Edit Disruption mode and the @ popover fit at 375px with no horizontal overflow; no page errors; real `storage/` untouched | Playwright PASS |
 | G13 | Fresh critic reviews headless screenshots + live app and returns WIN | `state.json` verdict log |
 
 ## Hard boundaries
-- Work only inside `app/healthcare/appts/`. Local commits only: never push, no PRs, no cloud agents.
+- Work only inside `app/healthcare/appts/`. Local commits; push only when Weng asks (t18u did), never force, no PRs, no cloud agents.
 - Plain PHP, `index.php` entry, no Composer/vendor/router/bundler; no dependency upgrades.
 - Never delete user data on type/field changes. Never print passwords. wf data never committed.
 - Serve only with `php -S` on a free port, not 8099/8416/8500/8505/8518/8554; kill servers afterwards.

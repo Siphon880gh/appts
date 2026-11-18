@@ -92,3 +92,14 @@ Source of truth for the request: `docs/gauntlet/request.md` (verbatim). Quality 
 - A new version re-saves the copy, keeps the mode on, and reloads. Sign-out waits for sync, then clears the account copy.
 - Decisions: records and app always saved, documents chosen per condition; the version covers every shell file (Appts is many modules); `sw.php` at the app root so the scope is right under MAMP and php -S.
 
+## E15 — Built-in Disruptions filter (Weng, t18u-appts)
+- A **Disruptions** preset on the Timeline: insurance denials, missed, cancelled, or rescheduled visits, delays, backorders, paused or pending approvals, plus every appeal, clinical event, and other care disruption.
+- The rule reads the entry type and the value of every choice field, so free-text statuses ("Backordered at pharmacy") and the user's own types count too. Free text in other fields does not, to keep it precise.
+- **Edit Disruption mode** exists only for this filter. It shows every event, with those outside the filter grayed out; a click adds or removes one. Edits are saved per account as a `filters` record (`id: disruptions`, include/exclude entry ids), so the built-in rule keeps working for new entries.
+- Offline: the record queues like any other and merges as two sets on sync.
+
+## E16 — @ links in notes (Weng, t18u-appts)
+- Typing `@` in any rich note (entries and conditions) opens a popover at the caret: **Documents** (every uploaded PDF and image once), **Events** (every entry, newest first), **Notes** (records with notes already written).
+- Hovering a library lists its items; typing after `@` filters all libraries at once into one list; full keyboard support.
+- The chip stores only kind, id, and label. Both sanitizers enforce that, and click handling is added only when a saved note is displayed. A document chip opens the viewer; an event or note chip opens the record. Works offline, because the data comes from the saved copy.
+- Decisions: the label is captured when linked (a later rename keeps the old label; the link still opens the right record); deleted targets show a notice instead of failing.

@@ -140,6 +140,28 @@
    "role": "verify",
    "verdict": "pass",
    "note": "run-all PASS on PHP 8.4.14 (--screens, installed Chrome) and 7.4.33: storage 170, intake 59, schema, merge 20, api 98, browser 73/72, offline 69 then 71 after the 390px gate; offline test stable 5/5 runs; live MAMP 37/37 (SW scope = /weng/app/healthcare/appts/); wf sha256 unchanged (58a1fd74...)"
+  },
+  {
+   "round": 12,
+   "role": "builder",
+   "summary": "Header batch (APP All Root): Offline group first with a 1px nav-sep, explainer headline; G50-G51"
+  },
+  {
+   "round": 13,
+   "role": "builder",
+   "summary": "t18u: Disruptions preset + Edit Disruption mode (filters record, rule, sync), @ link popover (Documents/Events/Notes, hover, filter, keyboard) and sanitized chips that open their record; G52-G57"
+  },
+  {
+   "round": 13,
+   "role": "critic",
+   "verdict": "fix",
+   "note": "self-run pass: caret after an inserted chip sat on an element, so a second @ never opened (fixed: caret inside the trailing text node, element anchors handled); typing a library name (@notes) found nothing (fixed: library names count in search); a vacuous 'or True' check and a weak live assertion tightened"
+  },
+  {
+   "round": 14,
+   "role": "verify",
+   "verdict": "pass",
+   "note": "run-all PASS on PHP 8.4.14 (--screens, Chrome) and 7.4.33; live MAMP 39/39; wf sha256 unchanged (5cc0c2207ef9...)"
   }
  ],
  "gates": {
@@ -191,7 +213,15 @@
   "G46": "pass",
   "G47": "pass",
   "G48": "pass",
-  "G49": "pass"
+  "G49": "pass",
+  "G50": "pass",
+  "G51": "pass",
+  "G52": "pass",
+  "G53": "pass",
+  "G54": "pass",
+  "G55": "pass",
+  "G56": "pass",
+  "G57": "pass"
  },
  "openGaps": [
   "Critic is a self-run fresh-context pass, not an independent subagent",
@@ -204,12 +234,16 @@
   "Offline: Download opens the saved file inline (the cached response is the inline one); documents of conditions not chosen show as not saved",
   "Offline: an image pasted offline is not listed under My images until sync",
   "Offline: a clash on an entry type, tag, or document label keeps the server value and lists the field in the sync report; only entries and conditions also keep our value (in the notes)",
-  "Offline mode tested in Chromium/Chrome only, not Safari"
+  "Offline mode tested in Chromium/Chrome only, not Safari",
+  "No git remote is configured, so 'push' could not run; add one (git remote add origin <url>) and push main",
+  "Disruptions rule is an English keyword list on choice values; free text in other fields is not read",
+  "@ link labels are captured when linked; renaming a record later keeps the old label (the link still opens the right record)",
+  "@ menu tested in Chromium/Chrome only, not Safari"
  ],
  "frozen": [
   "accountability quality floor",
   "no new dependencies"
  ],
- "evidence": "sh tests/run-all.sh --screens (2026-11-17 PST) on 8.4.14 and APPTS_PHP=7.4.33: php -l clean on both; storage 170; intake 59; schema PASS; merge 20; api 98; browser 73/72; offline 71; live MAMP 37/37; run-all now stops on the first failing step",
+ "evidence": "sh tests/run-all.sh --screens (2026-11-17 PST) on 8.4.14 and APPTS_PHP=7.4.33: php -l clean on both; storage 178; intake 59; schema PASS; merge 20; disruptions+mentions unit 22; api 103; browser 73/72; offline 77; disruptions+mentions 34; live MAMP 39/39",
  "finished": "2026-11-17"
 }

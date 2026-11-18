@@ -71,3 +71,6 @@ Relayed request (APP All Root's summary of Weng's words): give Appts the same of
 - A status panel showing on/off, last saved time, item count, and size.
 - An (i) info button that opens a short explainer illustrated with a doctor at a clinic that doesn't share internet: turn this on first, while you're still online.
 Reference implementation: app/healthcare/postop (docs/OFFLINE_MODE.md, "Reusing this in another PHP app"; commits 1630fa4..2caa3de). Appts stores its data as files on the server, so plan the offline copy of each account's JSON and uploads to match. Weng wants no stopping to ask him decisions.
+
+## t18u-appts (Nov 17 evening PT; Weng's t18u, queued after APP All Root's header follow-ups)
+THEN Implement these two features: 1. Add disruption filter that's built in. It shows all insurance denials etc and other disruptions. User can edit the filter adding in events (grayed out until they ungray it) by going into Edit Disruption mode, only available for this filtering 2. Users can associate with PDFs and other events and their notes already created by pressing @ that shows a popover context menu of libraries, moving mouse over a Documents library shows you documents you can tag - but as user types after @ then it filters the choices at the context menu Make commits and push up
