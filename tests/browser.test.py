@@ -323,6 +323,21 @@ try:
             go(mobile, '#/'); mobile.screenshot(path=SCREENS / 'mobile-overview.png', full_page=True)
             go(mobile, '#/c/cond-knee'); mobile.screenshot(path=SCREENS / 'mobile-condition.png', full_page=True)
             ok(True, f'screenshots written to {SCREENS.relative_to(ROOT)}')
+        # ---- intake CLI (log-health-update skill): what it writes shows up after a reload (G39)
+        work = pathlib.Path(tempfile.mkdtemp(prefix='appts-intake-'))
+        (work / 'knee-scan.pdf').write_bytes(base64.b64decode(PDF_B64))
+        (work / 'plan.json').write_text(json.dumps({'condition': 'cond-knee', 'create': [
+            {'type': 'Clinical event', 'title': 'Knee locked on stairs (intake)', 'values': {'date': '2026-11-16', 'severity': 'mild'}, 'tags': ['From intake'],
+             'notes': 'Told the PT on the phone.', 'attachments': [{'path': str(work / 'knee-scan.pdf'), 'label': 'Intake scan'}]}]}))
+        run = subprocess.run([PHP, 'tools/intake.php', 'apply', 'demo', str(work / 'plan.json')], cwd=ROOT, capture_output=True, text=True, env=dict(os.environ, APPTS_STORAGE_DIR=str(tmp)))
+        ok(run.returncode == 0 and 'Saved: 1 new' in run.stdout, f'intake CLI applies a plan to the running demo account: {run.stderr.strip()}')
+        go(demo, '#/c/cond-knee'); demo.reload(); demo.wait_for_selector('.entry-row:has-text("Knee locked on stairs (intake)")')
+        row = demo.locator('.entry-row:has-text("Knee locked on stairs (intake)")').inner_text()
+        ok('From intake' in row and '1 document' in row and 'Mild' in row, 'the app shows the intake entry with its tag, value, and document after reload (G39)')
+        demo.click('.entry-row:has-text("Knee locked on stairs (intake)")'); demo.wait_for_selector('dialog[open] .attachments')
+        ok('Intake scan' in demo.locator('dialog[open] .attachments').inner_text() and 'Told the PT on the phone.' in demo.locator('dialog[open] .note-content').inner_text(), 'its document label and notes show in the detail (G39)')
+        demo.click('dialog[open] [data-close] >> nth=0')
+        shutil.rmtree(work, ignore_errors=True)
         ok(errors == [], f'no page errors: {errors}')
         browser.close()
 finally:
