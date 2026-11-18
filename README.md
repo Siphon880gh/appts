@@ -8,7 +8,7 @@ By Weng (Weng Fei Fung)
 
 **Appointments and insurance getting out of hand?** Some conditions mean many visits, scans, and insurance back-and-forth, for you or someone you care for. Appts keeps the appointments, insurance, and progress for each condition in one place.
 
-Appts is a personal medical-visit tracker organized by **condition**. For each condition you keep the doctors and specialists, visits (including lab work), authorization and referral letters, insurance appeals, medical supplies, care routines, treatments, clinical events, insurance events, and other care disruptions, all linked together. A timeline and an upcoming view show everything that's dated, and a Documents area collects every uploaded PDF and image.
+Appts is a personal medical-visit tracker organized by **condition**. For each condition you keep the doctors and specialists, visits (including lab work), authorization and referral letters, insurance appeals, medical supplies, care routines, treatments, clinical events, insurance events, other care disruptions, and home health nursing (authorizations, visits, and events), all linked together. A timeline and an upcoming view show everything that's dated, and a Documents area collects every uploaded PDF and image.
 
 The design keeps the accountability app's training-log look (navy ink, warm paper, condensed headings) with a sky-blue accent. It aims for patient-portal clarity: what's next, who you're seeing, and whether referrals and appeals are on track. The design rules are in [.impeccable.md](.impeccable.md).
 
@@ -71,12 +71,29 @@ Open a record to see its details. Each record shows its link fields (for example
 | Clinical events | Severity, related visit (for example, "wound edges worse") |
 | Insurance events | Outcome, reference, related letter (for example, "claim denied") |
 | Other care disruptions | What broke, affected treatment, rescheduled date (for example, "radiation machine down") |
+| Home health authorizations | Agency, nurse or discipline, authorized visit count, start and end dates, auth number, status, linked insurance event and letter, the authorization it continues |
+| Home health visits | Date, nurse, linked authorization, outcome (Completed, Missed: waiting for insurance approval, Missed: nurse unavailable, Missed: patient at clinic, or your own) |
+| Home health events | "Waiting for further approval", "Spoke to home health case manager", re-authorization requested, and so on (or your own), with who you spoke to and a follow-up date |
 
 "Other care disruptions" is the name for the requested "logistics event" (renamed from "Care disruptions" in t11u). Every date field becomes a timeline event.
 
 ### Free-text statuses
 
 Every built-in **Status** field (Visits, letters, appeals, supplies, Treatment) lets you pick a preset or choose **Free text…** and type your own, such as "Waiting on fax from PCP". Typed values are stored as the status. They show on rows, in details, and on the timeline, search and filter like presets, and come back under **Used before** next time. Any select field, including your own, can turn this on with **Allow free text** on the Entry types page.
+
+### Home health
+
+Home health nurses often stop coming while insurance reviews the next 5 to 7 visits, or miss a day because no nurse is free or you're at a clinic. Appts tracks this as three built-in types:
+
+- An **authorization** shows a countdown such as **2 of 5 authorized visits left**. Only visits whose outcome is **Completed** count. Missed, scheduled, rescheduled, and typed outcomes are listed as "Not counted" with their reasons.
+- The countdown appears on the authorization's row and detail, in a **Home health** box on the condition page, and in **Home health visits** on the overview.
+- It warns when 2 or fewer visits are left, when all are used, and when an authorization is awaiting approval (status "Pending approval" or "Waiting for further approval", or a "Waiting for further approval" event linked to it).
+- When a new authorization's **Continues authorization** field points at the old one, the old one reads "Continued" and leaves the overview.
+- Home health visits and events are regular timeline entries, so the type chips and search filter them.
+
+![Home health authorization with 2 of 5 visits left and a low-visits warning](docs/screenshots/home-health.png)
+
+Existing accounts get the three types automatically (document version 3, appended after your own types, backed up first, records untouched). `php tools/migrate-dry-run.php <account>` shows what would change, using a temp copy.
 
 ## Timeline and Upcoming
 
@@ -139,11 +156,11 @@ sh tests/run-all.sh --screens       # also regenerate docs/screenshots
 | --- | --- |
 | `php -l` | Every PHP file |
 | `tests/storage.test.php` | Guarded storage, atomic writes, locks, backups, sanitizer, domain ops |
-| `tests/schema.test.mjs` | Type, field, timeline, filter, tag, icon, contrast, and document helpers |
+| `tests/schema.test.mjs` | Type, field, timeline, filter, tag, icon, contrast, and document helpers; home health countdown math |
 | `tests/api.test.py` | Real `php -S`: logins, account isolation, blocked storage URLs, concurrent writes, restart persistence, uploads, labels |
 | PHP 7.4 gate | `php -l` on every file with MAMP's 7.4 binary plus the storage tests on 7.4. Set `APPTS_PHP=<binary>` to run the whole suite on another PHP. |
 | `tests/live.check.py` | Against a running MAMP/Apache: JSON API, both logins, cookie path, uploads (including 17 MB), blocked storage and server-only dirs, isolation, paste, screenshot |
-| `tests/browser.test.py` | Playwright: sign-in, custom types and fields, paste and drag-drop uploads, tags, rich notes, XSS stripping, Documents filters, 390px layout |
+| `tests/browser.test.py` | Playwright: sign-in, custom types and fields, paste and drag-drop uploads, tags, rich notes, XSS stripping, Documents filters, home health countdown and warnings, 390px layout |
 
 The browser test needs Python Playwright with Chromium. `--screens` uses installed Google Chrome when it's present (`APPTS_BROWSER_CHANNEL=chrome`, temporary profile) because Playwright's headless shell can't render PDFs. Tests use temporary storage and never touch `storage/`.
 
