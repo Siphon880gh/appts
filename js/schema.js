@@ -43,6 +43,7 @@ export function allFields(type) { return [...(type.fields || []), ...(type.retir
 
 export function addField(type, field) {
   const clean = { id: field.id || newId('f'), label: String(field.label || '').trim(), kind: field.kind, options: field.kind === 'select' ? [...new Set((field.options || []).map(o => String(o).trim()).filter(Boolean))] : [], required: !!field.required, target: field.kind === 'link' ? (field.target || 'doctor') : '' };
+  if (clean.kind === 'select') clean.allowCustom = !!field.allowCustom;
   if (!clean.label) throw Error('Give the field a label.');
   if (!KIND_LABEL[clean.kind]) throw Error('Choose a field kind.');
   if (clean.kind === 'select' && !clean.options.length) throw Error('Add at least one option for a select field.');
@@ -78,6 +79,23 @@ export function newType(doc, name = 'New type') {
 
 // ---- entries -------------------------------------------------------------
 const empty = v => v === undefined || v === null || v === '';
+/** Sentinel option value for "Free text…" in a select that allows free text. */
+export const FREE_TEXT = '__free_text__';
+/**
+ * Choices for a select field: its presets, plus (when the field allows free text) values typed
+ * before for this type's field, newest first, so a custom status can be reused.
+ */
+export function selectChoices(doc, typeId, field, current = '') {
+  const presets = [...(field.options || [])];
+  if (!field.allowCustom) return { presets: current && !presets.includes(current) ? [...presets, current] : presets, used: [] };
+  const seen = new Set(presets), used = [];
+  const entries = doc.entries.filter(e => e.typeId === typeId).sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+  for (const v of [current, ...entries.map(e => e.values?.[field.id])]) {
+    if (typeof v !== 'string' || !v.trim() || seen.has(v)) continue;
+    seen.add(v); used.push(v);
+  }
+  return { presets, used };
+}
 export function validateEntry(doc, type, entry) {
   const errors = [];
   if (!String(entry.title || '').trim()) errors.push(`${type.titleLabel || 'Title'} is required.`);

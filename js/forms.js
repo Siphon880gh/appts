@@ -101,7 +101,7 @@ function bindFormPaste(form, zone) {
 }
 
 // ---- field inputs ------------------------------------------------------------
-function fieldInput(field, value, conditionId) {
+function fieldInput(field, value, conditionId, typeId) {
   const name = `f:${field.id}`, id = `fld-${field.id}`, req = field.required ? ' required' : '', star = field.required ? ' <span class="req" aria-hidden="true">*</span>' : '';
   const label = `<label for="${id}">${esc(field.label)}${star}</label>`;
   const v = value ?? '';
@@ -111,8 +111,11 @@ function fieldInput(field, value, conditionId) {
     case 'number': return `<div>${label}<input id="${id}" type="number" step="any" name="${name}" value="${esc(v)}"${req}></div>`;
     case 'checkbox': return `<div><label class="check"><input type="checkbox" name="${name}"${v ? ' checked' : ''}>${esc(field.label)}</label></div>`;
     case 'select': {
-      const opts = [...field.options]; if (v && !opts.includes(v)) opts.push(v);
-      return `<div>${label}<select id="${id}" name="${name}"${req}><option value="">—</option>${opts.map(o => `<option${o === v ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select></div>`;
+      const { presets, used } = S.selectChoices(store.doc, typeId, field, v);
+      const opt = o => `<option value="${esc(o)}"${o === v ? ' selected' : ''}>${esc(o)}</option>`;
+      if (!field.allowCustom) return `<div>${label}<select id="${id}" name="${name}"${req}><option value="">—</option>${presets.map(opt).join('')}</select></div>`;
+      // Free text: presets, then values typed before ("Used before"), then "Free text…" which reveals a text box.
+      return `<div class="free-select">${label}<select id="${id}" name="${name}" data-free-select${req}><option value="">—</option>${presets.map(opt).join('')}${used.length ? `<optgroup label="Used before">${used.map(opt).join('')}</optgroup>` : ''}<option value="${S.FREE_TEXT}">Free text…</option></select><input type="text" name="${name}:custom" class="free-text" maxlength="500" placeholder="Type your own ${esc(field.label.toLowerCase())}" aria-label="${esc(field.label)} (free text)" hidden></div>`;
     }
     case 'link': {
       const targets = S.linkTargets(store.doc, field, conditionId), here = targets.filter(t => t.conditionId === conditionId), other = targets.filter(t => t.conditionId !== conditionId);
@@ -127,6 +130,7 @@ function readValues(form, type) {
   const values = {};
   for (const f of type.fields) {
     const el = form.elements[`f:${f.id}`]; if (!el) continue;
+    if (f.kind === 'select' && el.value === S.FREE_TEXT) { values[f.id] = (form.elements[`f:${f.id}:custom`]?.value || '').trim(); continue; }
     values[f.id] = f.kind === 'checkbox' ? el.checked : f.kind === 'number' ? (el.value === '' ? '' : Number(el.value)) : el.value.trim();
   }
   return values;
@@ -142,7 +146,7 @@ export function openEntryForm(entry, { typeId, conditionId } = {}) {
   const html = `<form id="entry-form" novalidate>${dialogHead(entry ? `Edit ${type.singular.toLowerCase()}` : `Add ${type.singular.toLowerCase()}`, type.name, typeBadge(type, 'lg'))}<div class="dialog-body">
     <div class="field-grid"><div class="wide"><label for="entry-title">${esc(type.titleLabel || 'Title')} <span class="req" aria-hidden="true">*</span></label><input id="entry-title" name="title" required maxlength="200" value="${esc(entry?.title)}" autofocus></div>
     <div class="wide"><label for="entry-condition">Condition</label><select id="entry-condition" name="conditionId">${conditions.map(c => `<option value="${esc(c.id)}"${c.id === condId ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>
-    ${type.fields.map(f => fieldInput(f, entry?.values?.[f.id], condId)).join('')}</div>
+    ${type.fields.map(f => fieldInput(f, entry?.values?.[f.id], condId, type.id)).join('')}</div>
     ${S.retiredValues(type, entry || { values: {} }).length ? `<div class="retired"><h3>Kept from removed fields</h3><p class="fine">These values stay with the entry. Restore the field on the Entry types page to edit them.</p>${S.retiredValues(type, entry).map(r => `<div><b>${esc(r.field.label)}:</b> ${esc(S.displayValue(doc, r.field, r.value))}</div>`).join('')}</div>` : ''}
     <div class="form-section">${tagPickerHTML('entry-tags')}</div>
     <div class="form-section"><h3>Notes</h3>${richEditor('entry-notes', 'Rich-text notes', entry?.notes?.html ? noteHTML(entry.notes) : '', { placeholder: 'What happened, what was said, what to remember…' })}</div>
@@ -155,6 +159,11 @@ export function openEntryForm(entry, { typeId, conditionId } = {}) {
     const tags = bindTagPicker(el.querySelector('.tag-picker'), entry?.tagIds || []);
     const zone = bindDocZone(el.querySelector('.doc-zone'), entry?.attachments || [], () => D.defaultLabelFor(type, readValues(form, type)));
     bindFormPaste(form, zone);
+    form.addEventListener('change', e => {
+      const sel = e.target.closest('[data-free-select]'); if (!sel) return;
+      const box = sel.parentElement.querySelector('.free-text'), on = sel.value === S.FREE_TEXT;
+      box.hidden = !on; if (on) box.focus();
+    });
     form.onsubmit = async e => {
       e.preventDefault();
       const error = form.querySelector('.form-error'), submit = form.querySelector('[type=submit]');

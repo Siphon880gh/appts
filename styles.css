@@ -200,6 +200,8 @@ dl.values dd{margin:0;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere
 .swatches button[aria-pressed=true]{outline:3px solid var(--navy);outline-offset:2px}
 .field-rows{list-style:none;padding:0;margin:0 0 12px;border-top:1px solid var(--line)}
 .field-rows li{display:grid;grid-template-columns:minmax(0,1fr) 120px auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.field-rows .free-toggle{grid-column:1/-1;margin:0;font-size:12px;font-weight:700;color:var(--muted);gap:6px}
+.free-select .free-text{margin-top:6px}
 .field-rows input{margin:0}
 .field-rows .kind{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
 .field-rows .row-actions{display:flex;gap:4px}

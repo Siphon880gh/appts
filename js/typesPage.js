@@ -22,7 +22,7 @@ export function openTypeEditor(typeId) {
   const linkTargets = () => S.sortTypes(doc.types.filter(t => t.id !== draft.id || !isNew)).map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('') + '<option value="any">Any entry</option>';
 
   function fieldsHTML() {
-    return draft.fields.map((f, i) => `<li data-field="${esc(f.id)}"><input aria-label="Field label" value="${esc(f.label)}" data-rename="${esc(f.id)}" maxlength="60"><span class="kind">${esc(S.KIND_LABEL[f.kind])}${f.kind === 'link' ? ` → ${esc(f.target === 'any' ? 'any' : S.typeById(doc, f.target)?.singular || f.target)}` : ''}${f.required ? ' · required' : ''}${f.kind === 'select' ? ` · ${f.options.length} options` : ''}</span><span class="row-actions"><button type="button" data-move="${esc(f.id)}" data-delta="-1" aria-label="Move ${esc(f.label)} up" ${i === 0 ? 'disabled' : ''}>↑</button><button type="button" data-move="${esc(f.id)}" data-delta="1" aria-label="Move ${esc(f.label)} down" ${i === draft.fields.length - 1 ? 'disabled' : ''}>↓</button><button type="button" class="danger" data-retire="${esc(f.id)}" aria-label="Remove ${esc(f.label)}">Remove</button></span></li>`).join('') || '<li><span class="muted">No fields yet. Every entry still has a title, notes, tags, and documents.</span></li>';
+    return draft.fields.map((f, i) => `<li data-field="${esc(f.id)}"><input aria-label="Field label" value="${esc(f.label)}" data-rename="${esc(f.id)}" maxlength="60"><span class="kind">${esc(S.KIND_LABEL[f.kind])}${f.kind === 'link' ? ` → ${esc(f.target === 'any' ? 'any' : S.typeById(doc, f.target)?.singular || f.target)}` : ''}${f.required ? ' · required' : ''}${f.kind === 'select' ? ` · ${f.options.length} options` : ''}</span>${f.kind === 'select' ? `<label class="check free-toggle" title="Let entries pick a preset or type their own value"><input type="checkbox" data-custom="${esc(f.id)}"${f.allowCustom ? ' checked' : ''}>Allow free text</label>` : ''}<span class="row-actions"><button type="button" data-move="${esc(f.id)}" data-delta="-1" aria-label="Move ${esc(f.label)} up" ${i === 0 ? 'disabled' : ''}>↑</button><button type="button" data-move="${esc(f.id)}" data-delta="1" aria-label="Move ${esc(f.label)} down" ${i === draft.fields.length - 1 ? 'disabled' : ''}>↓</button><button type="button" class="danger" data-retire="${esc(f.id)}" aria-label="Remove ${esc(f.label)}">Remove</button></span></li>`).join('') || '<li><span class="muted">No fields yet. Every entry still has a title, notes, tags, and documents.</span></li>';
   }
   function retiredHTML() {
     return draft.retiredFields?.length ? `<div class="retired"><h3>Removed fields (values kept)</h3>${draft.retiredFields.map(f => `<div class="row" style="display:flex;gap:10px;align-items:center;margin:4px 0"><span>${esc(f.label)} <small class="muted">${esc(S.KIND_LABEL[f.kind])}</small></span><button type="button" data-restore="${esc(f.id)}">Restore</button></div>`).join('')}</div>` : '';
@@ -40,7 +40,7 @@ export function openTypeEditor(typeId) {
     <span class="field-label">Color</span><div class="swatches">${S.TYPE_COLORS.map(c => `<button type="button" style="--swatch:${c}" data-swatch="${c}" aria-label="Color ${c}" aria-pressed="${c === draft.color}"></button>`).join('')}<input type="color" name="color" value="${esc(draft.color)}" aria-label="Custom color"></div>
     <div class="form-section"><h3>Fields</h3><ul class="field-rows">${fieldsHTML()}</ul><div id="retired-box">${retiredHTML()}</div>
     <div class="add-field" id="add-field"><div><label for="nf-label">New field label</label><input id="nf-label" maxlength="60" placeholder="e.g. Result value"></div><div><label for="nf-kind">Kind</label><select id="nf-kind">${kindOptions}</select></div>
-      <div class="wide" data-for="select" hidden><label for="nf-options">Options (one per line)</label><textarea id="nf-options" placeholder="Low&#10;Normal&#10;High"></textarea></div>
+      <div class="wide" data-for="select" hidden><label for="nf-options">Options (one per line)</label><textarea id="nf-options" placeholder="Low&#10;Normal&#10;High"></textarea><label class="check"><input type="checkbox" id="nf-custom">Allow free text (pick an option or type your own)</label></div>
       <div class="wide" data-for="link" hidden><label for="nf-target">Links to</label><select id="nf-target">${linkTargets()}</select></div>
       <label class="check wide"><input type="checkbox" id="nf-required">Required</label><div class="wide"><button type="button" id="nf-add">+ Add field</button> <span class="form-error" id="nf-error" role="alert"></span></div></div></div>
     <p class="form-error" role="alert" id="type-error"></p></div>
@@ -63,15 +63,16 @@ export function openTypeEditor(typeId) {
     });
     form.elements.color.oninput = () => { draft.color = form.elements.color.value; el.querySelectorAll('[data-swatch]').forEach(x => x.setAttribute('aria-pressed', x.dataset.swatch === draft.color)); redraw(); };
     el.querySelector('.field-rows').addEventListener('input', e => { const id = e.target.dataset.rename; if (id) draft = S.updateField(draft, id, { label: e.target.value }); });
+    el.querySelector('.field-rows').addEventListener('change', e => { const id = e.target.dataset.custom; if (id) draft = S.updateField(draft, id, { allowCustom: e.target.checked }); });
     form.elements.primaryDateField.onchange = () => { draft.primaryDateField = form.elements.primaryDateField.value; };
     const kind = el.querySelector('#nf-kind');
     kind.onchange = () => el.querySelectorAll('#add-field [data-for]').forEach(x => { x.hidden = x.dataset.for !== kind.value; });
     el.querySelector('#nf-add').onclick = () => {
       const err = el.querySelector('#nf-error');
       try {
-        draft = S.addField(draft, { label: el.querySelector('#nf-label').value, kind: kind.value, options: el.querySelector('#nf-options').value.split('\n'), target: el.querySelector('#nf-target').value, required: el.querySelector('#nf-required').checked });
+        draft = S.addField(draft, { label: el.querySelector('#nf-label').value, kind: kind.value, options: el.querySelector('#nf-options').value.split('\n'), target: el.querySelector('#nf-target').value, required: el.querySelector('#nf-required').checked, allowCustom: el.querySelector('#nf-custom').checked });
         if (kind.value === 'date' && !draft.primaryDateField) draft.primaryDateField = draft.fields.at(-1).id;
-        el.querySelector('#nf-label').value = ''; el.querySelector('#nf-options').value = ''; el.querySelector('#nf-required').checked = false; err.textContent = '';
+        el.querySelector('#nf-label').value = ''; el.querySelector('#nf-options').value = ''; el.querySelector('#nf-required').checked = false; el.querySelector('#nf-custom').checked = false; err.textContent = '';
         redraw(); el.querySelector('#nf-label').focus();
       } catch (e2) { err.textContent = e2.message; }
     };
