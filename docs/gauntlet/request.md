@@ -64,3 +64,10 @@ We can also add Home Health nurses visiting you into something that we track. Of
 
 ## t15u-appts (7:04 PM PT, APP Appts chat)
 THEN: Create a skill at local codebase at .agents/skills/* where user can upload images, pdf's, etc free flow explaining their appointments, insurance, clinical disruptions etc, and their account and condition is updated. Ask user to clarify which user and what condition. No need to ask for password since this is asking codebase directly
+
+## t17-appts (7:35 PM PT; Weng's t17u in APP All Root's chat, relayed via APP All Root)
+Relayed request (APP All Root's summary of Weng's words): give Appts the same offline / cache / PWA status feature just built into Postop.
+- A primary "Offline mode" toggle. Turning it on caches everything, then answers every request from the cache, including the front page URL.
+- A status panel showing on/off, last saved time, item count, and size.
+- An (i) info button that opens a short explainer illustrated with a doctor at a clinic that doesn't share internet: turn this on first, while you're still online.
+Reference implementation: app/healthcare/postop (docs/OFFLINE_MODE.md, "Reusing this in another PHP app"; commits 1630fa4..2caa3de). Appts stores its data as files on the server, so plan the offline copy of each account's JSON and uploads to match. Weng wants no stopping to ask him decisions.
