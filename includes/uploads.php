@@ -56,7 +56,7 @@ function list_uploads(string $account, bool $imagesOnly = false): array {
         if (!preg_match(FILE_ID_PATTERN, $id) || ($imagesOnly && !preg_match(IMAGE_ID_PATTERN, $id))) continue;
         $bytes = read_guarded($path);
         if ($bytes === null) continue;
-        try { $info = inspect_file_bytes($bytes); } catch (InvalidArgumentException) { continue; }
+        try { $info = inspect_file_bytes($bytes); } catch (InvalidArgumentException $e) { continue; }
         $files[] = $info + ['createdAt' => gmdate('c', (int) filemtime($path))];
     }
     usort($files, fn($a, $b) => strcmp($b['createdAt'], $a['createdAt']));

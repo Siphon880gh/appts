@@ -8,7 +8,7 @@ require_once __DIR__ . '/../includes/demo-seed.php';
 require_once __DIR__ . '/../includes/uploads.php';
 $checks = 0;
 function ok(bool $cond, string $what): void { global $checks; $checks++; if (!$cond) { fwrite(STDERR, "FAIL: $what\n"); exit(1); } }
-function throws(callable $fn, string $what): void { try { $fn(); } catch (InvalidArgumentException) { ok(true, $what); return; } ok(false, $what); }
+function throws(callable $fn, string $what): void { try { $fn(); } catch (InvalidArgumentException $e) { ok(true, $what); return; } ok(false, $what); }
 
 // Guarded round trip and atomic writes
 ok(guarded_decode(guarded_encode("abc\0")) === "abc\0", 'guard round trip');

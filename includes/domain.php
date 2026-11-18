@@ -41,7 +41,8 @@ function normalize_doc(array $doc): array {
     return $doc;
 }
 
-function fail(string $message): never { throw new InvalidArgumentException($message); }
+/** Throws; never returns. */
+function fail(string $message): void { throw new InvalidArgumentException($message); }
 
 function str_field(array $v, string $key, int $max, bool $required = false, string $label = ''): string {
     $s = $v[$key] ?? '';
@@ -52,22 +53,22 @@ function str_field(array $v, string $key, int $max, bool $required = false, stri
     return $s;
 }
 
-function valid_id(mixed $id): string {
+function valid_id($id): string {
     if (!is_string($id) || !preg_match(ID_PATTERN, $id)) fail('Invalid id.');
     return $id;
 }
 
-function valid_color(mixed $c): string {
+function valid_color($c): string {
     return is_string($c) && preg_match('/^#[0-9a-fA-F]{6}$/D', $c) ? strtolower($c) : '#5c6674';
 }
 
-function valid_date_or_empty(mixed $d, string $label): string {
+function valid_date_or_empty($d, string $label): string {
     if ($d === null || $d === '') return '';
     if (!is_string($d) || !preg_match(DATE_PATTERN, $d) || !checkdate((int) substr($d, 5, 2), (int) substr($d, 8, 2), (int) substr($d, 0, 4))) fail("$label must be a valid date.");
     return $d;
 }
 
-function clean_notes(mixed $notes): array {
+function clean_notes($notes): array {
     if (!is_array($notes)) return ['html' => '', 'text' => '', 'imageIds' => []];
     $html = sanitize_html(is_string($notes['html'] ?? null) ? $notes['html'] : '');
     if (strlen($html) > 200000) fail('Notes are too long.');
@@ -76,7 +77,7 @@ function clean_notes(mixed $notes): array {
 }
 
 /** Documents attached to an entry or condition: {id, name, mime, kind, bytes, label, addedAt}. */
-function clean_attachments(mixed $list, array $doc): array {
+function clean_attachments($list, array $doc): array {
     $labels = array_column($doc['docLabels'] ?? [], 'id');
     $out = [];
     $seen = [];
@@ -94,7 +95,7 @@ function clean_attachments(mixed $list, array $doc): array {
     return $out;
 }
 
-function clean_field(mixed $f): array {
+function clean_field($f): array {
     if (!is_array($f)) fail('Invalid field.');
     $kind = $f['kind'] ?? '';
     if (!in_array($kind, FIELD_KINDS, true)) fail('Unknown field kind.');
@@ -193,14 +194,20 @@ function clean_entry(array $v, ?array $old, array $doc): array {
         $kind = $kinds[$key]['kind'] ?? 'text';
         $label = $kinds[$key]['label'] ?? $key;
         if ($value === null || $value === '') { $values[$key] = ''; continue; }
-        $values[$key] = match ($kind) {
-            'checkbox' => (bool) $value,
-            'number' => is_numeric($value) ? $value + 0 : fail("$label must be a number."),
-            'date' => valid_date_or_empty($value, $label),
-            'link' => valid_id($value),
-            'longtext' => is_string($value) && mb_strlen($value) <= 20000 ? $value : fail("$label is too long."),
-            default => is_string($value) && mb_strlen($value) <= 500 ? trim($value) : fail("$label must be text under 500 characters."),
-        };
+        switch ($kind) {
+            case 'checkbox': $values[$key] = (bool) $value; break;
+            case 'number':
+                if (!is_numeric($value)) fail("$label must be a number.");
+                $values[$key] = $value + 0; break;
+            case 'date': $values[$key] = valid_date_or_empty($value, $label); break;
+            case 'link': $values[$key] = valid_id($value); break;
+            case 'longtext':
+                if (!is_string($value) || mb_strlen($value) > 20000) fail("$label is too long.");
+                $values[$key] = $value; break;
+            default:
+                if (!is_string($value) || mb_strlen($value) > 500) fail("$label must be text under 500 characters.");
+                $values[$key] = trim($value);
+        }
     }
     foreach ($type['fields'] as $f) {
         if ($f['required'] && ($values[$f['id']] ?? '') === '') fail($f['label'] . ' is required.');
@@ -224,7 +231,7 @@ function clean_entry(array $v, ?array $old, array $doc): array {
 }
 
 /** Apply a batch of operations. Order matters: tags and types before the entries that use them. */
-function apply_ops(array $doc, mixed $ops): array {
+function apply_ops(array $doc, $ops): array {
     if (!is_array($ops) || !$ops || count($ops) > 200) fail('Send between 1 and 200 changes.');
     $doc = normalize_doc($doc);
     $collections = ['condition' => 'conditions', 'type' => 'types', 'entry' => 'entries', 'tag' => 'tags', 'docLabel' => 'docLabels'];
@@ -238,13 +245,13 @@ function apply_ops(array $doc, mixed $ops): array {
             if (!is_array($value)) fail('Invalid record.');
             $index = find_index($doc[$col], valid_id($value['id'] ?? null));
             $old = $index === null ? null : $doc[$col][$index];
-            $clean = match ($kind) {
-                'condition' => clean_condition($value, $old, $doc),
-                'docLabel' => clean_doc_label($value, $old),
-                'type' => clean_type($value, $old),
-                'tag' => clean_tag($value),
-                'entry' => clean_entry($value, $old, $doc),
-            };
+            switch ($kind) {
+                case 'condition': $clean = clean_condition($value, $old, $doc); break;
+                case 'docLabel': $clean = clean_doc_label($value, $old); break;
+                case 'type': $clean = clean_type($value, $old); break;
+                case 'tag': $clean = clean_tag($value); break;
+                default: $clean = clean_entry($value, $old, $doc);
+            }
             if ($index === null) $doc[$col][] = $clean; else $doc[$col][$index] = $clean;
         } elseif (($op['op'] ?? '') === 'delete') {
             $id = valid_id($op['id'] ?? null);

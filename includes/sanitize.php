@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/compat.php';
 
 const IMAGE_ID_PATTERN = '/^[a-f0-9]{64}\.(png|jpg|gif|webp)$/D';
 const FILE_ID_PATTERN = '/^[a-f0-9]{64}\.(png|jpg|gif|webp|pdf)$/D';

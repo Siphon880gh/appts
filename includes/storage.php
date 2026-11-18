@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/compat.php';
 
 /*
  * File storage for Appts.
@@ -42,7 +43,7 @@ function guarded_encode(string $bytes): string { return STORAGE_GUARD . $bytes; 
 
 function guarded_decode(string $raw): string {
     if (!str_starts_with($raw, STORAGE_GUARD)) throw new RuntimeException('Storage file is missing its guard.');
-    return substr($raw, strlen(STORAGE_GUARD));
+    return (string) substr($raw, strlen(STORAGE_GUARD));
 }
 
 /** Write via a uniquely named temp .php file in the same folder, then rename over the target. */
@@ -71,7 +72,8 @@ function read_guarded(string $path): ?string {
 }
 
 /** Run $fn while holding an exclusive lock for one account. */
-function with_lock(string $account, callable $fn): mixed {
+/** @return mixed */
+function with_lock(string $account, callable $fn) {
     $path = storage_dir('locks') . '/' . $account . '.lock.php';
     $handle = fopen($path, 'c');
     if ($handle === false) throw new RuntimeException('Could not open the account lock.');
