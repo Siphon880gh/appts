@@ -27,7 +27,7 @@ function json_body(): array {
 
 /** Load the account document, creating it on first use (demo gets synthetic seed data). */
 function load_doc(array $account): array {
-    $doc = read_doc($account['username']);
+    $doc = migrate_stored_doc($account['username']);
     if ($doc !== null) return normalize_doc($doc);
     return with_lock($account['username'], function () use ($account) {
         $doc = read_doc($account['username']);

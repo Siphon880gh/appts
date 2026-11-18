@@ -108,5 +108,75 @@ foreach ($demo['types'] as $t) foreach ($t['fields'] as $f) if ($f['kind'] === '
 foreach ($demo['conditions'] as $c) ok(str_contains($c['name'], '(sample)'), 'demo condition labelled sample');
 foreach ($demo['entries'] as $e) if ($e['typeId'] === 'doctor') ok(str_contains($e['title'], '(sample)'), 'demo doctor labelled sample');
 
+// ---- v2: free-text selects, "Other care disruptions", and the v1 -> v2 migration (G29-G31)
+$seedTypes = seed_types();
+$byId = [];
+foreach ($seedTypes as $t) $byId[$t['id']] = $t;
+ok($byId['disruption']['name'] === 'Other care disruptions' && $byId['disruption']['singular'] === 'Other care disruption', 'seed renames the disruption type');
+$statusTypes = [];
+foreach ($seedTypes as $t) foreach ($t['fields'] as $f) if ($f['label'] === 'Status') { ok($f['kind'] === 'select' && $f['allowCustom'] === true, "{$t['id']} status allows free text"); $statusTypes[] = $t['id']; }
+ok($statusTypes === ['visit', 'letter', 'appeal', 'supply', 'treatment'], 'all 5 built-in status fields found');
+ok($byId['doctor']['fields'][array_search('role', array_column($byId['doctor']['fields'], 'id'), true)]['allowCustom'] === false, 'non-status selects stay preset-only');
+ok(new_doc()['version'] === DOC_VERSION && DOC_VERSION === 2, 'new documents are version 2');
+
+/** Build what a version-1 document looked like: old name, no allowCustom flags. */
+function as_v1(array $doc): array {
+    $doc['version'] = 1;
+    foreach ($doc['types'] as &$t) {
+        if ($t['id'] === 'disruption') { $t['name'] = 'Care disruptions'; $t['singular'] = 'Care disruption'; }
+        foreach ($t['fields'] as &$f) unset($f['allowCustom']);
+        unset($f);
+    }
+    unset($t);
+    return $doc;
+}
+$v1 = as_v1(demo_doc('2026-11-17'));
+$v1['types'][] = ['id' => 'custom-sel', 'name' => 'Custom', 'singular' => 'Custom', 'icon' => '', 'color' => '#336699', 'titleLabel' => 'Title', 'primaryDateField' => '', 'fields' => [['id' => 'status', 'label' => 'Status', 'kind' => 'select', 'options' => ['A'], 'required' => false, 'target' => '']], 'retiredFields' => [], 'builtin' => false, 'archived' => false, 'sortOrder' => 20];
+$v1['entries'][0]['values']['status'] = 'Some typed status';
+$m = migrate_doc($v1);
+$mt = [];
+foreach ($m['types'] as $t) $mt[$t['id']] = $t;
+ok($m['version'] === 2, 'migration sets version 2');
+ok($mt['disruption']['name'] === 'Other care disruptions' && $mt['disruption']['singular'] === 'Other care disruption', 'migration renames a default-named disruption type');
+foreach ($statusTypes as $id) { $f = $mt[$id]['fields'][array_search('status', array_column($mt[$id]['fields'], 'id'), true)]; ok(($f['allowCustom'] ?? null) === true, "migration enables free text on $id status"); }
+ok(!array_key_exists('allowCustom', $mt['doctor']['fields'][array_search('role', array_column($mt['doctor']['fields'], 'id'), true)]), 'migration leaves non-status selects alone');
+ok(json_encode($mt['custom-sel']) === json_encode(end($v1['types'])), 'migration leaves custom types alone');
+$enc = function ($x): string { return json_encode($x, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT); };
+foreach (array_keys($v1) as $k) if ($k !== 'types' && $k !== 'version') ok($enc($m[$k]) === $enc($v1[$k]), "migration leaves '$k' byte-identical");
+ok(count($m['types']) === count($v1['types']) && array_column($m['types'], 'id') === array_column($v1['types'], 'id'), 'migration keeps every type in order');
+ok($enc(migrate_doc($m)) === $enc($m) && $enc(normalize_doc($m)) === $enc(normalize_doc(migrate_doc($m))), 'migration is idempotent');
+// A user's own rename and an explicit allowCustom=false are kept.
+$renamed = $v1;
+foreach ($renamed['types'] as &$t) {
+    if ($t['id'] === 'disruption') { $t['name'] = 'Equipment problems'; $t['singular'] = 'Equipment problem'; }
+    if ($t['id'] === 'visit') foreach ($t['fields'] as &$f) if ($f['id'] === 'status') $f['allowCustom'] = false;
+    unset($f);
+}
+unset($t);
+$rm = migrate_doc($renamed);
+$rt = [];
+foreach ($rm['types'] as $t) $rt[$t['id']] = $t;
+ok($rt['disruption']['name'] === 'Equipment problems' && $rt['disruption']['singular'] === 'Equipment problem', 'migration keeps a user-renamed disruption type');
+ok($rt['visit']['fields'][array_search('status', array_column($rt['visit']['fields'], 'id'), true)]['allowCustom'] === false, 'migration keeps an explicit allowCustom=false');
+// Stored document: migrated once, under the lock, after a backup of the v1 file.
+write_doc('mig', $v1);
+$before = (string) file_get_contents(doc_path('mig'));
+$backups = count(list_backups('mig'));
+$stored = migrate_stored_doc('mig');
+ok($stored['version'] === 2 && read_doc('mig')['version'] === 2, 'stored v1 document migrated on load');
+ok(count(list_backups('mig')) === $backups + 1, 'migration backs up first');
+$latest = list_backups('mig'); sort($latest);
+ok(file_get_contents(end($latest)) === $before, 'backup holds the exact v1 bytes');
+$after = read_doc('mig');
+foreach (['conditions', 'entries', 'tags', 'docLabels'] as $k) ok($enc($after[$k]) === $enc($v1[$k]), "stored '$k' unchanged by migration");
+migrate_stored_doc('mig');
+ok(count(list_backups('mig')) === $backups + 1, 'already-migrated document is not rewritten');
+ok(migrate_stored_doc('nobody') === null, 'missing account document stays missing');
+// Free-text values are stored as-is; the flag survives type edits.
+$fx = apply_ops(new_doc(), [['op' => 'put', 'kind' => 'condition', 'value' => ['id' => 'c1', 'name' => 'Heel']], ['op' => 'put', 'kind' => 'entry', 'value' => ['id' => 'e1', 'conditionId' => 'c1', 'typeId' => 'visit', 'title' => 'Wound check', 'values' => ['date' => '2026-11-20', 'status' => 'Waiting on fax']]]]);
+ok($fx['entries'][0]['values']['status'] === 'Waiting on fax', 'free-text status saved verbatim');
+$ct = clean_type(['id' => 'ct', 'name' => 'Labs', 'fields' => [['id' => 'res', 'label' => 'Result', 'kind' => 'select', 'options' => ['Low', 'High'], 'allowCustom' => true], ['id' => 'n', 'label' => 'Note', 'kind' => 'text', 'allowCustom' => true]]], null);
+ok($ct['fields'][0]['allowCustom'] === true && !array_key_exists('allowCustom', $ct['fields'][1]), 'allowCustom kept on selects only');
+
 exec('rm -rf ' . escapeshellarg($dir));
 echo "PASS: $checks storage, sanitizer, and domain checks ($linkCount link fields exercised by demo seed).\n";

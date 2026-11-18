@@ -107,6 +107,7 @@
     "id": "status",
     "label": "Status",
     "kind": "select",
+    "allowCustom": true,
     "options": [
      "Scheduled",
      "Completed",
@@ -157,6 +158,7 @@
     "id": "status",
     "label": "Status",
     "kind": "select",
+    "allowCustom": true,
     "options": [
      "Requested",
      "Pending",
@@ -222,6 +224,7 @@
     "id": "status",
     "label": "Status",
     "kind": "select",
+    "allowCustom": true,
     "options": [
      "Open",
      "Submitted",
@@ -287,6 +290,7 @@
     "id": "status",
     "label": "Status",
     "kind": "select",
+    "allowCustom": true,
     "options": [
      "Needed",
      "Ordered",
@@ -399,6 +403,7 @@
     "id": "status",
     "label": "Status",
     "kind": "select",
+    "allowCustom": true,
     "options": [
      "Planned",
      "Active",
@@ -549,8 +554,8 @@
  },
  {
   "id": "disruption",
-  "name": "Care disruptions",
-  "singular": "Care disruption",
+  "name": "Other care disruptions",
+  "singular": "Other care disruption",
   "icon": "cone",
   "color": "#6b5b2a",
   "titleLabel": "What happened",

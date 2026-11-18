@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/sanitize.php';
+require_once __DIR__ . '/storage.php';
 
 /*
  * The per-account document:
@@ -14,13 +15,19 @@ const CONDITION_STATUSES = ['active', 'resolved', 'archived'];
 const ID_PATTERN = '/^[A-Za-z0-9_-]{1,64}$/D';
 const IMAGE_TYPES_BY_EXT = ['image/png' => 'png', 'image/jpeg' => 'jpg', 'image/gif' => 'gif', 'image/webp' => 'webp'];
 const DOC_LABEL_SEEDS = ['lab' => 'Lab', 'consultation' => 'Consultation Note', 'pcp' => 'PCP Note', 'progress' => 'Progress Note', 'imaging' => 'Imaging', 'discharge' => 'Discharge Summary', 'insurance' => 'Insurance Letter', 'other' => 'Other'];
+/** Document format version. 2 = select fields may allow free text; disruption type renamed (t11u). */
+const DOC_VERSION = 2;
 const DATE_PATTERN = '/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/D';
 
 function seed_types(): array {
     $types = json_decode((string) file_get_contents(__DIR__ . '/seed-types.json'), true, 64, JSON_THROW_ON_ERROR);
     foreach ($types as $i => &$type) {
         $type += ['builtin' => true, 'archived' => false, 'sortOrder' => $i, 'retiredFields' => []];
-        foreach ($type['fields'] as &$field) $field += ['options' => [], 'required' => false, 'target' => ''];
+        foreach ($type['fields'] as &$field) {
+            $field += ['options' => [], 'required' => false, 'target' => ''];
+            if ($field['kind'] === 'select') $field += ['allowCustom' => false];
+        }
+        unset($field);
     }
     return $types;
 }
@@ -32,13 +39,63 @@ function seed_doc_labels(): array {
 }
 
 function new_doc(): array {
-    return ['version' => 1, 'revision' => 0, 'updatedAt' => gmdate('c'), 'conditions' => [], 'types' => seed_types(), 'entries' => [], 'tags' => [], 'docLabels' => seed_doc_labels()];
+    return ['version' => DOC_VERSION, 'revision' => 0, 'updatedAt' => gmdate('c'), 'conditions' => [], 'types' => seed_types(), 'entries' => [], 'tags' => [], 'docLabels' => seed_doc_labels()];
 }
 
 /** Fill in collections added after a document was first written. */
 function normalize_doc(array $doc): array {
     $doc += ['conditions' => [], 'types' => [], 'entries' => [], 'tags' => [], 'docLabels' => seed_doc_labels()];
+    return migrate_doc($doc);
+}
+
+function doc_needs_migration(array $doc): bool { return (int) ($doc['version'] ?? 1) < DOC_VERSION; }
+
+/**
+ * Upgrade an older account document. Idempotent, and it only touches type definitions (plus `version`):
+ *  - v2: the built-in "Care disruptions" type becomes "Other care disruptions", but only while its
+ *    name/singular still equal the old defaults (a user's own rename is kept); built-in select fields
+ *    that the seed marks allowCustom (the Status fields) get allowCustom=true unless already set.
+ * Conditions, entries, tags, labels, and attachments are never read or changed.
+ */
+function migrate_doc(array $doc): array {
+    if (!doc_needs_migration($doc)) return $doc;
+    $seed = [];
+    foreach (seed_types() as $t) $seed[$t['id']] = $t;
+    if (is_array($doc['types'] ?? null)) {
+        foreach ($doc['types'] as &$type) {
+            if (!is_array($type) || empty($type['builtin']) || !isset($seed[$type['id'] ?? ''])) continue;
+            if ($type['id'] === 'disruption') {
+                if (($type['name'] ?? '') === 'Care disruptions') $type['name'] = 'Other care disruptions';
+                if (($type['singular'] ?? '') === 'Care disruption') $type['singular'] = 'Other care disruption';
+            }
+            $seedFields = [];
+            foreach ($seed[$type['id']]['fields'] as $f) $seedFields[$f['id']] = $f;
+            foreach ($type['fields'] ?? [] as $i => $f) {
+                if (is_array($f) && ($f['kind'] ?? '') === 'select' && !array_key_exists('allowCustom', $f) && !empty($seedFields[$f['id'] ?? '']['allowCustom'])) {
+                    $type['fields'][$i]['allowCustom'] = true;
+                }
+            }
+        }
+        unset($type);
+    }
+    $doc['version'] = DOC_VERSION;
     return $doc;
+}
+
+/**
+ * Persist the migration for a stored account document (under the account lock; write_doc backs up
+ * the current file first). Returns the up-to-date document, or null when the account has none yet.
+ */
+function migrate_stored_doc(string $account): ?array {
+    $doc = read_doc($account);
+    if ($doc === null || !doc_needs_migration($doc)) return $doc;
+    return with_lock($account, function () use ($account) {
+        $doc = read_doc($account);
+        if ($doc === null || !doc_needs_migration($doc)) return $doc;
+        $doc = migrate_doc($doc);
+        write_doc($account, $doc);
+        return $doc;
+    });
 }
 
 /** Throws; never returns. */
@@ -106,6 +163,7 @@ function clean_field($f): array {
         }
         if (count($field['options']) > 40) fail('A select field can have at most 40 options.');
     }
+    if ($kind === 'select') $field['allowCustom'] = !empty($f['allowCustom']);
     if ($kind === 'link') $field['target'] = ($f['target'] ?? '') === 'any' ? 'any' : valid_id($f['target'] ?? 'doctor');
     return $field;
 }
