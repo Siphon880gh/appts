@@ -76,6 +76,13 @@ else:
 st, _, _ = wf.raw('api.php?action=file&id=' + small['file']['id'])
 ok(st in (403, 404), "wf cannot read demo's upload")
 
+# ---- Offline mode under MAMP (G40, G41, G45)
+st, plan = demo.api('offline-plan')
+ok(st == 200 and plan['account'] == 'demo' and plan['estimate']['totalBytes'] > 0 and 'wf' not in json.dumps([c['name'] for c in plan['conditions']]), 'offline-plan answers for demo through Apache (own account only)')
+st, body, headers = Client(Remote()).raw('sw.php')
+ok(st == 200 and 'javascript' in headers.get('Content-Type', '') and plan['version'].encode() in body, 'sw.php serves the service worker through Apache')
+ok(Client(Remote()).raw('includes/sw.js')[0] in (403, 404) and Client(Remote()).raw('includes/offline.php')[0] in (403, 404), 'includes/sw.js and includes/offline.php are not web-readable')
+ok(Client(Remote()).api('offline-plan')[0] == 401, 'offline-plan needs sign-in through Apache')
 with sync_playwright() as p:
     import os
     channel = os.environ.get('APPTS_BROWSER_CHANNEL')
@@ -85,6 +92,17 @@ with sync_playwright() as p:
     page.goto(BASE); page.click('#fill-demo'); page.click('#login-form [type=submit]'); page.wait_for_selector('.condition-card')
     ok(page.locator('.condition-card').count() > 0, 'browser signs in to demo through Apache')
     ok('2 of 5 authorized visits left' in page.locator('.hh-overview').inner_text(), 'home health countdown renders through Apache')
+    for _ in range(60):  # (string wait_for_function is blocked by the app's CSP once pages come from the copy)
+        if page.evaluate("navigator.serviceWorker.controller !== null"): break
+        page.wait_for_timeout(150)
+    scope = page.evaluate("navigator.serviceWorker.getRegistration().then(r => r.scope)")
+    ok(scope == BASE, f'service worker registers under the MAMP subpath with scope {scope}')
+    page.click('#account-actions .offline-pill'); page.wait_for_selector('#offline-dialog [data-offline=on]:not([disabled])')
+    page.click('#offline-dialog [data-offline=on]'); page.wait_for_selector('#offline-dialog .offline-onoff.on', timeout=30000)
+    probe = page.evaluate("fetch('api.php?action=session&probe=live').then(r => r.headers.get('X-Appts-Offline'))")
+    ok(probe == 'miss', 'Offline mode turns on under MAMP and answers from the copy, not Apache')
+    page.click('#offline-dialog [data-offline=off]'); page.wait_for_selector('#offline-dialog .offline-onoff.off')
+    page.click('#offline-dialog [data-offline-close]')
     page.click('[data-action=add-condition] >> nth=0'); page.wait_for_selector('#condition-notes')
     page.evaluate("""([b64]) => { const t = document.querySelector('#condition-notes'); const dt = new DataTransfer(); const bin = atob(b64);
       dt.items.add(new File([Uint8Array.from(bin, c => c.charCodeAt(0))], 'clip.png', { type: 'image/png' })); t.focus();
