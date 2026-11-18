@@ -15,7 +15,8 @@ let registration = null, busy = false, lastReport = [], plan = null;
 export function formatBytes(n) {
   if (!n) return '0 KB';
   if (n < 1024 * 1024) return `${Math.max(1, Math.round(n / 1024))} KB`;
-  return `${(n / 1024 / 1024).toFixed(n < 10 * 1024 * 1024 ? 1 : 0)} MB`;
+  if (n < 1024 ** 3) return `${(n / 1024 / 1024).toFixed(n < 10 * 1024 * 1024 ? 1 : 0)} MB`;
+  return `${(n / 1024 ** 3).toFixed(n < 10 * 1024 ** 3 ? 1 : 0)} GB`;
 }
 const when = iso => iso ? new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'never';
 
@@ -253,7 +254,7 @@ function show(html, label) {
 }
 export function openInfo() {
   const on = O.readState().on;
-  show(`<form method="dialog" class="offline-sheet"><header class="dialog-head"><h2 id="offline-info-title">What is Offline mode?</h2><button class="close" value="close" aria-label="Close">✕ Close</button></header>
+  show(`<form method="dialog" class="offline-sheet"><div class="dialog-head"><h2 id="offline-info-title">What is Offline mode?</h2><button class="close" value="close" aria-label="Close">✕ Close</button></div>
     ${CLINIC_SVG}
     <p class="offline-lead"><strong>Turn this on first, while you're still online.</strong> Some clinics don't share their internet, and phone signal inside can be weak.</p>
     <ol class="offline-steps"><li>Before you leave, open Appts and turn on <b>Offline mode</b>. Appts saves your records, the documents of the conditions you choose, and the app itself on this device.</li>
@@ -277,11 +278,11 @@ export async function openPanel({ warn = '' } = {}) {
   } else {
     body = `<p class="offline-lead">Save your records on this device before you go somewhere without internet, like a clinic that doesn't share its Wi-Fi.</p>${status}${report}${stuck}
       ${waiting ? `<div class="offline-sync"><p><strong>${waiting} change${waiting === 1 ? '' : 's'} made offline ${waiting === 1 ? 'is' : 'are'} ready to sync.</strong> Appts merges them with anything changed on the server meanwhile; nothing is overwritten.</p><button type="button" class="primary" data-offline="sync">Sync ${waiting} change${waiting === 1 ? '' : 's'} now</button></div>` : ''}
-      <fieldset class="offline-pick"><legend>Documents to save</legend><p class="fine">Your records and the app are always saved. Choose whose documents (PDFs and images) to include.</p><div class="offline-conditions"><p class="muted">Checking what to save…</p></div><p class="offline-estimate" aria-live="polite"></p></fieldset>
+      <fieldset class="offline-pick"><legend>Documents to save</legend><p class="fine">Your records and the app are always saved. Choose which conditions' documents (PDFs and images) to include.</p><div class="offline-conditions"><p class="muted">Checking what to save…</p></div><p class="offline-estimate" aria-live="polite"></p></fieldset>
       <div class="offline-progress" hidden><progress max="1" value="0"></progress><p role="status" class="offline-progress-text"></p></div>
       <div class="dialog-foot"><button type="button" data-offline-close>Close</button><button type="button" class="primary" data-offline="on" disabled>Turn on Offline mode</button></div>`;
   }
-  show(`<div class="offline-sheet"><header class="dialog-head"><h2 id="offline-panel-title">Offline mode</h2><button type="button" class="close" data-offline-close aria-label="Close">✕ Close</button></header>${warn ? `<p class="offline-warn" role="alert">${esc(warn)}</p>` : ''}<p class="offline-error" role="alert"></p>${body}</div>`, 'offline-panel-title');
+  show(`<div class="offline-sheet"><div class="dialog-head"><h2 id="offline-panel-title">Offline mode</h2><button type="button" class="close" data-offline-close aria-label="Close">✕ Close</button></div>${warn ? `<p class="offline-warn" role="alert">${esc(warn)}</p>` : ''}<p class="offline-error" role="alert"></p>${body}</div>`, 'offline-panel-title');
   if (!st.on) loadPlanInto(dlg());
 }
 async function loadPlanInto(d) {
