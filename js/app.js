@@ -11,6 +11,8 @@ import { store, save, notice, remove } from './store.js';
 import { esc, plural, searchBox, eventRow, entryRow, typeChip, tagFilterChip, tagChip, closeDialog, hhPanel } from './ui.js';
 import { openEntryForm, openEntryDetail, deleteEntry, openConditionForm, openViewer, openQuickUpload, attachmentsHTML } from './forms.js';
 import { renderTypes, openTypeEditor } from './typesPage.js';
+import * as offline from './offline.js';
+import { queueing, withPending } from './outbox.js';
 
 const app = document.querySelector('#app');
 const ui = {
@@ -32,7 +34,7 @@ function renderChrome() {
   if (!store.account) { nav.innerHTML = ''; actions.innerHTML = ''; return; }
   const { view } = route(), current = v => (view === v || (v === '' && view === 'c')) ? ' aria-current="page"' : '';
   nav.innerHTML = [['', 'Conditions'], ['upcoming', 'Upcoming'], ['timeline', 'Timeline'], ['documents', 'Documents'], ['types', 'Entry types']].map(([v, l]) => `<a href="#/${v}"${current(v)}>${l}</a>`).join('');
-  actions.innerHTML = `<span>${esc(store.account.displayName)}${store.account.isDemo ? ' · demo' : ''}</span>${store.account.isDemo ? '<button type="button" data-action="reset-demo">Reset demo</button>' : ''}<button type="button" data-action="logout">Sign out</button>`;
+  actions.innerHTML = `<span>${esc(store.account.displayName)}${store.account.isDemo ? ' · demo' : ''}</span>${store.account.isDemo ? '<button type="button" data-action="reset-demo">Reset demo</button>' : ''}<button type="button" data-action="logout">Sign out</button>${offline.chromeHTML()}`;
 }
 
 // ---- login ----------------------------------------------------------------------------
@@ -236,9 +238,15 @@ async function action(name, id, el) {
     case 'new-type': return openTypeEditor(null);
     case 'edit-type': return openTypeEditor(id);
     case 'reset-demo':
+      if (queueing()) return notice('Turn Offline mode off and sync your changes before restoring the demo records.');
       if (!confirm('Restore the synthetic demo records? Changes made in the demo account are replaced.')) return;
       store.doc = (await api('reset-demo', { body: {} })).doc; render(); return notice('Demo records restored.');
-    case 'logout': await api('logout', { body: {} }); store.account = null; store.doc = null; closeDialog(); location.hash = '#/'; return render();
+    case 'logout': {
+      if (!(await offline.beforeLogout())) return;
+      const username = store.account.username;
+      await api('logout', { body: {} }); await offline.afterLogout(username);
+      store.account = null; store.doc = null; closeDialog(); location.hash = '#/'; return render();
+    }
   }
 }
 document.addEventListener('click', e => {
@@ -260,16 +268,17 @@ window.addEventListener('focus', () => { if (store.account && !document.querySel
 
 async function load() {
   const result = await api('data');
-  store.account = result.account; store.doc = result.doc; render();
+  // Changes kept on this device (Offline mode) sit on top of the server or saved copy until sync.
+  store.account = result.account; store.doc = await withPending(result.account, result.doc); render();
 }
 async function boot() {
   try {
     const { account } = await api('session');
-    if (account) await load(); else renderLogin();
+    if (account) { await load(); offline.checkVersion(); } else renderLogin();
   } catch (err) {
     if (err instanceof AuthError) return renderLogin();
     app.innerHTML = `<section class="login"><h1>Could not open your records</h1><p>${esc(err.message)}</p><button id="retry" class="primary">Retry</button></section>`;
     document.querySelector('#retry').onclick = boot;
   }
 }
-boot();
+offline.initOffline().finally(boot);
