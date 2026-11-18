@@ -1,7 +1,28 @@
-# Real account data, images, backups, locks, and password overrides never go to git.
+# storage/ stays out of git: real account data (wf and any other account), their uploads,
+# backups, locks, and password overrides (storage/accounts.json.php) never go to git.
+# Tracked exceptions: the guard files that keep each folder unreadable on Apache and php -S,
+# and the synthetic demo account (its document and its generated sample uploads).
 /storage/*
 !/storage/index.php
 !/storage/.htaccess
+!/storage/data/
+/storage/data/*
+!/storage/data/index.php
+!/storage/data/.htaccess
+!/storage/data/demo.json.php
+!/storage/uploads/
+/storage/uploads/*
+!/storage/uploads/index.php
+!/storage/uploads/.htaccess
+!/storage/uploads/demo/
+!/storage/locks/
+/storage/locks/*
+!/storage/locks/index.php
+!/storage/locks/.htaccess
+!/storage/backups/
+/storage/backups/*
+!/storage/backups/index.php
+!/storage/backups/.htaccess
 .playwright-mcp/
 /tests/.artifacts/
 __pycache__/
