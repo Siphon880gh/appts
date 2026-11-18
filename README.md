@@ -181,6 +181,10 @@ All data is stored on the server, per account, under `storage/` (or `APPTS_STORA
 
 Every stored file is a `.php` file that starts with `<?php http_response_code(404); exit; ?>`, so even `php -S` without a router returns 404 instead of the bytes. Apache also gets `storage/.htaccess` (`Require all denied`). Writes are atomic (temp file plus rename) under an exclusive lock. Files are served only through `api.php` after the session check, with `nosniff`. Images also get a sandbox CSP.
 
+## Add / edit with AI
+
+The **Add / edit with AI** button in the bottom-left corner is the entry point: it tells you how to open this folder in the AI tool you already use, so you can update the signed-in account's document at `storage/data/<account>.json.php` or run a skill such as `.agents/skills/clinical-significance`, then reload.
+
 ## Log updates with an AI agent
 
 `.agents/skills/log-health-update/SKILL.md` lets an AI coding agent working in this folder (Cursor, Claude Code, and similar) turn whatever you drop in, such as photos, screenshots, PDFs, or a few sentences about what happened, into Appts records:
