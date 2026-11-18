@@ -40,12 +40,12 @@ function seed_doc_labels(): array {
 }
 
 function new_doc(): array {
-    return ['version' => DOC_VERSION, 'revision' => 0, 'updatedAt' => gmdate('c'), 'conditions' => [], 'types' => seed_types(), 'entries' => [], 'tags' => [], 'docLabels' => seed_doc_labels()];
+    return ['version' => DOC_VERSION, 'revision' => 0, 'updatedAt' => gmdate('c'), 'conditions' => [], 'types' => seed_types(), 'entries' => [], 'tags' => [], 'docLabels' => seed_doc_labels(), 'filters' => []];
 }
 
 /** Fill in collections added after a document was first written. */
 function normalize_doc(array $doc): array {
-    $doc += ['conditions' => [], 'types' => [], 'entries' => [], 'tags' => [], 'docLabels' => seed_doc_labels()];
+    $doc += ['conditions' => [], 'types' => [], 'entries' => [], 'tags' => [], 'docLabels' => seed_doc_labels(), 'filters' => []];
     return migrate_doc($doc);
 }
 
@@ -253,6 +253,22 @@ function clean_tag(array $v): array {
     return ['id' => valid_id($v['id'] ?? null), 'label' => str_field($v, 'label', 40, true, 'Tag'), 'color' => valid_color($v['color'] ?? '')];
 }
 
+/** Built-in saved filters. Only "disruptions" exists: the entries added to or removed from its built-in rule. */
+const FILTER_IDS = ['disruptions'];
+function clean_filter(array $v): array {
+    $id = valid_id($v['id'] ?? null);
+    if (!in_array($id, FILTER_IDS, true)) fail('Unknown filter.');
+    $ids = function ($list): array {
+        $out = [];
+        foreach (is_array($list) ? $list : [] as $x) if (is_string($x) && preg_match(ID_PATTERN, $x)) $out[$x] = true;
+        if (count($out) > 5000) fail('Too many entries in one filter.');
+        return array_keys($out);
+    };
+    $include = $ids($v['include'] ?? []);
+    $exclude = array_values(array_diff($ids($v['exclude'] ?? []), $include));
+    return ['id' => $id, 'include' => $include, 'exclude' => $exclude, 'updatedAt' => gmdate('c')];
+}
+
 function find_index(array $list, string $id): ?int {
     foreach ($list as $i => $item) if (($item['id'] ?? null) === $id) return $i;
     return null;
@@ -314,7 +330,7 @@ function clean_entry(array $v, ?array $old, array $doc): array {
 function apply_ops(array $doc, $ops): array {
     if (!is_array($ops) || !$ops || count($ops) > 200) fail('Send between 1 and 200 changes.');
     $doc = normalize_doc($doc);
-    $collections = ['condition' => 'conditions', 'type' => 'types', 'entry' => 'entries', 'tag' => 'tags', 'docLabel' => 'docLabels'];
+    $collections = ['condition' => 'conditions', 'type' => 'types', 'entry' => 'entries', 'tag' => 'tags', 'docLabel' => 'docLabels', 'filter' => 'filters'];
     foreach ($ops as $op) {
         if (!is_array($op)) fail('Invalid change.');
         $kind = $op['kind'] ?? '';
@@ -330,6 +346,7 @@ function apply_ops(array $doc, $ops): array {
                 case 'docLabel': $clean = clean_doc_label($value, $old); break;
                 case 'type': $clean = clean_type($value, $old); break;
                 case 'tag': $clean = clean_tag($value); break;
+                case 'filter': $clean = clean_filter($value); break;
                 default: $clean = clean_entry($value, $old, $doc);
             }
             if ($index === null) $doc[$col][] = $clean; else $doc[$col][$index] = $clean;
