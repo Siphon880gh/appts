@@ -97,6 +97,31 @@
       "role": "verify",
       "verdict": "pass",
       "note": "run-all PASS on PHP 8.4.14 (--screens, Chrome) and 7.4.33: storage 170, schema incl. home health countdown, api 98, browser 70; dry run on a copy of wf: v1->3, 5 allowCustom flags + disruption rename + 3 appended types, records byte-identical, real file sha256 unchanged; live MAMP 29/29 (demo reset, countdown renders through Apache, wf file byte-identical)"
+    },
+    {
+      "round": 8,
+      "role": "builder",
+      "summary": "t15u: tools/intake.php (accounts/conditions/types/entries/apply --dry-run; append-only, app validation, lock+backup, guarded uploads, tags/labels on the fly, @ref links) and .agents/skills/log-health-update/SKILL.md"
+    },
+    {
+      "round": 8,
+      "role": "critic",
+      "verdict": "LOSE",
+      "gaps": [
+        "Skill example updated an entry in a different condition than the one chosen, silently",
+        "Nothing kept the SKILL.md plan example in sync with the CLI"
+      ]
+    },
+    {
+      "round": 8,
+      "role": "builder",
+      "summary": "Warn on other-condition updates; example now uses the chosen condition; intake test dry-runs the SKILL.md example and checks frontmatter; .agents/ blocked from the web"
+    },
+    {
+      "round": 8,
+      "role": "verify",
+      "verdict": "pass",
+      "note": "run-all PASS on PHP 8.4.14 (--screens) and 7.4.33: storage 170, intake 59 (both PHPs), schema, api 98, browser 73/72; live MAMP 31/31 (tools/intake.php and SKILL.md 403); wf file sha256 unchanged (58a1fd74...)"
     }
   ],
   "gates": {
@@ -134,7 +159,11 @@
     "G32": "pass",
     "G33": "pass",
     "G34": "pass",
-    "G35": "pass"
+    "G35": "pass",
+    "G36": "pass",
+    "G37": "pass",
+    "G38": "pass",
+    "G39": "pass"
   },
   "openGaps": [
     "Critic is a self-run fresh-context pass, not an independent subagent",
@@ -148,6 +177,6 @@
     "accountability quality floor",
     "no new dependencies"
   ],
-  "evidence": "sh tests/run-all.sh --screens (2026-11-17 PST): php -l clean on 8.4.14 + 7.4.33; storage 170 PASS; schema (13 types, free text, home health countdown) PASS; api 98 PASS; browser 70 PASS (installed Chrome); live MAMP 29/29",
+  "evidence": "sh tests/run-all.sh --screens (2026-11-17 PST): php -l clean on 8.4.14 + 7.4.33; storage 170; intake CLI 59 (8.4 + 7.4); schema PASS; api 98; browser 73 (installed Chrome); live MAMP 31/31",
   "finished": "2026-11-17"
 }
