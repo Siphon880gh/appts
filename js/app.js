@@ -12,6 +12,7 @@ import { esc, plural, searchBox, eventRow, entryRow, typeChip, tagFilterChip, ta
 import { openEntryForm, openEntryDetail, deleteEntry, openConditionForm, openViewer, openQuickUpload, attachmentsHTML } from './forms.js';
 import { renderTypes, openTypeEditor } from './typesPage.js';
 import * as offline from './offline.js';
+import { moreMenuHTML } from './moreMenu.js';
 import { queueing, withPending } from './outbox.js';
 
 const app = document.querySelector('#app');
@@ -34,8 +35,8 @@ function renderChrome() {
   if (!store.account) { nav.innerHTML = ''; actions.innerHTML = ''; return; }
   const { view } = route(), current = v => (view === v || (v === '' && view === 'c')) ? ' aria-current="page"' : '';
   nav.innerHTML = [['', 'Conditions'], ['upcoming', 'Upcoming'], ['timeline', 'Timeline'], ['documents', 'Documents'], ['types', 'Entry types']].map(([v, l]) => `<a href="#/${v}"${current(v)}>${l}</a>`).join('');
-  // Offline mode first, set apart by a thin rule, then the account controls.
-  actions.innerHTML = `${offline.chromeHTML()}<span class="nav-sep" aria-hidden="true"></span><span class="account-name">${esc(store.account.displayName)}${store.account.isDemo ? ' · demo' : ''}</span>${store.account.isDemo ? '<button type="button" data-action="reset-demo">Reset demo</button>' : ''}<button type="button" data-action="logout">Sign out</button>`;
+  // Offline mode first, set apart by a thin rule; the account and demo options sit behind "…" (t19u).
+  actions.innerHTML = `${offline.chromeHTML()}<span class="nav-sep" aria-hidden="true"></span>${moreMenuHTML(store.account)}`;
 }
 
 // ---- login ----------------------------------------------------------------------------
