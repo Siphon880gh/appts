@@ -130,6 +130,14 @@ console.log(`PASS: ${checks} domain checks across ${BUILTINS.length} built-in ty
 const D = await import('../js/documents.js');
 const docs = D.documentList(demo);
 ok(docs.length === 5 && docs.some(d => d.owner.kind === 'condition'), 'documents gathered from entries and conditions');
+{ // t69u: one file (same sha id) linked to two entries is ONE document listing both records
+  const shared = structuredClone(demo), att = shared.entries.find(e => (e.attachments || []).length).attachments[0];
+  const other = shared.entries.find(e => !(e.attachments || []).some(a => a.id === att.id));
+  other.attachments = [...(other.attachments || []), { ...att, addedAt: '2000-01-01T00:00:00Z' }];
+  const list = D.documentList(shared), one = list.filter(d => d.file.id === att.id);
+  ok(list.length === docs.length && one.length === 1 && one[0].owners.length === 2 && one[0].owners.some(o => o.id === other.id), 'Documents dedupes by file sha: one card, both linked entries kept');
+  ok(D.filterDocuments(list, { query: other.title.split(' ')[0] }).some(d => d.file.id === att.id), 'searching either linked record finds the shared document');
+}
 eq(D.documentKinds(docs).map(k => [k.kind, k.count]), [['pdf', 3], ['image', 2]], 'file-type chips derived from uploads');
 eq(new Set(D.documentLabels(demo, docs).map(x => x.label.id)), new Set(docs.map(d => d.labelId)), 'label chips derived from uploads');
 ok(D.filterDocuments(docs, { kinds: ['pdf'] }).every(d => d.kind === 'pdf') && D.filterDocuments(docs, { kinds: ['pdf'] }).length === 3, 'filter by file type');

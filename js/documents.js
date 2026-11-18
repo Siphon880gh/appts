@@ -6,12 +6,25 @@ export const fileKind = a => (a.kind === 'pdf' || /\.pdf$/.test(a.id || '')) ? '
 export const labelById = (doc, id) => (doc.docLabels || []).find(l => l.id === id) || (doc.docLabels || []).find(l => l.id === 'other') || { id: 'other', label: 'Other' };
 
 /** Every upload attached to an entry or a condition, newest first. */
+/**
+ * One item per stored file (t69u): the same file (same sha256 id) attached to several records is ONE
+ * document listing every record it belongs to (`owners`); `owner`/`conditionId` are the first of them.
+ */
 export function documentList(doc) {
-  const out = [];
+  const byId = new Map();
   const conditionName = id => doc.conditions.find(c => c.id === id)?.name || '';
-  for (const c of doc.conditions) for (const a of c.attachments || []) out.push({ key: `c:${c.id}:${a.id}`, file: a, kind: fileKind(a), labelId: labelById(doc, a.label).id, conditionId: c.id, conditionName: c.name, owner: { kind: 'condition', id: c.id, title: c.name } });
-  for (const e of doc.entries) for (const a of e.attachments || []) out.push({ key: `e:${e.id}:${a.id}`, file: a, kind: fileKind(a), labelId: labelById(doc, a.label).id, conditionId: e.conditionId, conditionName: conditionName(e.conditionId), owner: { kind: 'entry', id: e.id, title: e.title, typeId: e.typeId } });
-  return out.sort((a, b) => String(b.file.addedAt || '').localeCompare(String(a.file.addedAt || '')) || a.file.name.localeCompare(b.file.name));
+  const add = (a, owner, conditionId) => {
+    const o = { ...owner, conditionId, conditionName: conditionName(conditionId) };
+    let d = byId.get(a.id);
+    if (!d) { d = { key: `f:${a.id}`, file: a, kind: fileKind(a), labelId: labelById(doc, a.label).id, labelIds: [], conditionId, conditionName: o.conditionName, conditionIds: [], owner: o, owners: [] }; byId.set(a.id, d); }
+    else if (String(a.addedAt || '') > String(d.file.addedAt || '')) d.file = { ...d.file, addedAt: a.addedAt };
+    if (!d.owners.some(x => x.kind === o.kind && x.id === o.id)) d.owners.push(o);
+    const l = labelById(doc, a.label).id; if (!d.labelIds.includes(l)) d.labelIds.push(l);
+    if (!d.conditionIds.includes(conditionId)) d.conditionIds.push(conditionId);
+  };
+  for (const c of doc.conditions) for (const a of c.attachments || []) add(a, { kind: 'condition', id: c.id, title: c.name }, c.id);
+  for (const e of doc.entries) for (const a of e.attachments || []) add(a, { kind: 'entry', id: e.id, title: e.title, typeId: e.typeId }, e.conditionId);
+  return [...byId.values()].sort((a, b) => String(b.file.addedAt || '').localeCompare(String(a.file.addedAt || '')) || a.file.name.localeCompare(b.file.name));
 }
 export function documentKinds(list) {
   return ['pdf', 'image'].map(kind => ({ kind, label: KIND_NAMES[kind], count: list.filter(d => d.kind === kind).length })).filter(k => k.count);
@@ -21,8 +34,9 @@ export function documentLabels(doc, list) {
 }
 export function filterDocuments(list, { kinds = [], labelIds = [], conditionId = '', query = '' } = {}) {
   const k = new Set(kinds), l = new Set(labelIds), words = query.toLowerCase().split(/\s+/).filter(Boolean);
-  return list.filter(d => (!k.size || k.has(d.kind)) && (!l.size || l.has(d.labelId)) && (!conditionId || d.conditionId === conditionId)
-    && words.every(w => `${d.file.name} ${d.owner.title} ${d.conditionName}`.toLowerCase().includes(w)));
+  const has = (arr, one, set) => (arr && arr.length ? arr : [one]).some(x => set(x));
+  return list.filter(d => (!k.size || k.has(d.kind)) && (!l.size || has(d.labelIds, d.labelId, x => l.has(x))) && (!conditionId || has(d.conditionIds, d.conditionId, x => x === conditionId))
+    && words.every(w => `${d.file.name} ${(d.owners || [d.owner]).map(o => `${o.title} ${o.conditionName || ''}`).join(' ')} ${d.conditionName}`.toLowerCase().includes(w)));
 }
 export function groupDocuments(doc, list, by = 'label') {
   const groups = new Map();

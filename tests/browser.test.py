@@ -179,7 +179,10 @@ try:
         wf.click('#doc-kinds [data-id=pdf]')
         ok(wf.locator('.doc-card').count() == wf.locator('.doc-card[data-doc-kind=pdf]').count() == 1, 'filter by file type: PDF (G25)')
         wf.click('#doc-kinds [data-id=pdf]'); wf.click('#doc-labels button:has-text("Blood panel")')
-        ok(wf.locator('.doc-card').count() == 2 and total == 3, 'filter by label (G25)')
+        # dropped.png and wound-photo.png are the same bytes (same sha): ONE card that lists both records (t69u)
+        ok(wf.locator('.doc-card').count() == 2 and total == 2, f'filter by label (G25), same file shown once ({total} cards)')
+        shared = wf.locator('.doc-card:has(.doc-shared)')
+        ok(shared.count() == 1 and 'Linked to 2 records' in shared.inner_text(), 'a file attached to two records is one card naming both (t69u)')
         wf.click('.doc-card [data-action=view-file][data-kind=pdf]'); wf.wait_for_selector('#viewer[open] iframe')
         ok(True, 'PDF opens in the inline viewer'); wf.click('#viewer [data-close] >> nth=0')
 
