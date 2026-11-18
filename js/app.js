@@ -12,7 +12,7 @@ import { esc, plural, searchBox, eventRow, entryRow, typeChip, tagFilterChip, ta
 import { openEntryForm, openEntryDetail, deleteEntry, openConditionForm, openViewer, openQuickUpload, attachmentsHTML } from './forms.js';
 import { renderTypes, openTypeEditor } from './typesPage.js';
 import * as offline from './offline.js';
-import { moreMenuHTML } from './moreMenu.js';
+import { moreMenuHTML, fitHeader } from './moreMenu.js';
 import { queueing, withPending } from './outbox.js';
 
 const app = document.querySelector('#app');
@@ -31,12 +31,15 @@ const liveConditions = () => store.doc.conditions.filter(c => c.status !== 'arch
 
 // ---- chrome ---------------------------------------------------------------------------
 function renderChrome() {
-  const nav = document.querySelector('#nav'), actions = document.querySelector('#account-actions');
-  if (!store.account) { nav.innerHTML = ''; actions.innerHTML = ''; return; }
+  const nav = document.querySelector('#nav'), actions = document.querySelector('#account-actions'), slot = document.querySelector('#offline-slot');
+  if (!store.account) { nav.innerHTML = ''; actions.innerHTML = ''; slot.innerHTML = ''; return; }
   const { view } = route(), current = v => (view === v || (v === '' && view === 'c')) ? ' aria-current="page"' : '';
   nav.innerHTML = [['', 'Conditions'], ['upcoming', 'Upcoming'], ['timeline', 'Timeline'], ['documents', 'Documents'], ['types', 'Entry types']].map(([v, l]) => `<a href="#/${v}"${current(v)}>${l}</a>`).join('');
-  // Offline mode first, set apart by a thin rule; the account and demo options sit behind "…" (t19u).
-  actions.innerHTML = `${offline.chromeHTML()}<span class="nav-sep" aria-hidden="true"></span>${moreMenuHTML(store.account)}`;
+  // Offline mode at the far left of the navbar with a thin rule (t21u); account and demo options behind "…" (t19u).
+  // When the row has no room, the Offline group moves into the "…" menu (fitHeader).
+  slot.innerHTML = `${offline.chromeHTML()}<span class="nav-sep" aria-hidden="true"></span>`;
+  actions.innerHTML = moreMenuHTML(store.account);
+  fitHeader();
 }
 
 // ---- login ----------------------------------------------------------------------------

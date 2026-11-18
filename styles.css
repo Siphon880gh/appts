@@ -14,8 +14,8 @@ header{min-height:74px;display:flex;align-items:center;flex-wrap:wrap;gap:10px 2
 #nav a:hover{background:#2d405b}
 #nav a[aria-current=page]{background:var(--paper);color:var(--navy)}
 #account-actions{margin-left:auto;display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12px;color:#c6d0df}
-#account-actions button{color:#edf0f4;background:transparent;border-color:#526078}
-#account-actions button:hover{background:#2d405b}
+#account-actions button,#offline-slot button{color:#edf0f4;background:transparent;border-color:#526078}
+#account-actions button:hover,#offline-slot button:hover{background:#2d405b}
 main{max-width:1440px;margin:auto;padding:40px 5vw 70px}
 h1,h2,h3,p{margin-top:0}
 h1,h2,h3{font-family:var(--display)}
@@ -286,11 +286,11 @@ dl.values dd{margin:0;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere
 .offline-controls{display:inline-flex;align-items:stretch}
 /* Thin rule between the Offline group and the account controls (on the navy header, a muted line) */
 .nav-sep{align-self:stretch;width:1px;min-height:28px;margin:4px 8px;background:var(--line);opacity:.45}
-#account-actions .offline-pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px 0 0 999px;padding:0 10px 0 12px}
-#account-actions .offline-pill b{font-weight:800;color:#c6d0df}
-#account-actions .offline-pill.on{background:var(--accent);color:var(--navy);border-color:var(--accent)}
-#account-actions .offline-pill.on b{color:var(--navy)}
-#account-actions .offline-info{border-radius:0 999px 999px 0;border-left:0;padding:0 11px;font:italic 800 14px/1 Georgia,serif}
+#offline-slot .offline-pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px 0 0 999px;padding:0 10px 0 12px}
+#offline-slot .offline-pill b{font-weight:800;color:#c6d0df}
+#offline-slot .offline-pill.on{background:var(--accent);color:var(--navy);border-color:var(--accent)}
+#offline-slot .offline-pill.on b{color:var(--navy)}
+#offline-slot .offline-info{border-radius:0 999px 999px 0;border-left:0;padding:0 11px;font:italic 800 14px/1 Georgia,serif}
 .offline-count{display:inline-grid;place-items:center;min-width:19px;height:19px;padding:0 5px;border-radius:999px;background:#f0b44c;color:var(--navy);font-size:11px;font-weight:800}
 .offline-dialog{max-width:min(620px,calc(100vw - 24px))}
 .offline-sheet>:not(.dialog-head):not(.dialog-foot){margin-left:26px;margin-right:26px}
@@ -370,3 +370,15 @@ body.offline-on>header{border-bottom-color:#f0b44c}
 #account-actions .more-menu [role=menuitem] small{display:block;font-weight:400;font-size:12px;color:var(--muted);margin-top:1px}
 #account-actions .more-menu [role=menuitem]:hover,#account-actions .more-menu [role=menuitem]:focus{background:var(--soft);outline:none}
 #account-actions .more-menu [role=menuitem]:focus-visible{box-shadow:inset 0 0 0 2px var(--navy)}
+/* Offline group at the far left of the navbar (t21u); collapses into "…" when the row has no room */
+#offline-slot{display:flex;align-items:center;font-size:12px}
+#offline-slot:empty{display:none}
+#offline-slot .nav-sep{margin:4px 0 4px 18px}
+header.offline-collapsed #offline-slot{display:none}
+.more-offline{display:none}
+header.offline-collapsed .more-offline{display:block;border-bottom:1px solid var(--line);padding-bottom:4px;margin-bottom:4px}
+#account-actions .more-menu .more-offline-toggle b{display:inline-block;margin-left:6px;padding:0 7px;border-radius:999px;background:var(--line);color:var(--ink);font-size:11px}
+#account-actions .more-menu .more-offline-toggle.on b{background:var(--accent);color:var(--navy)}
+.more-offline-count{display:inline-block;margin-left:6px;min-width:18px;padding:0 5px;border-radius:999px;background:#f2b134;color:var(--navy);font-size:11px;text-align:center}
+.more-i{display:inline-grid;place-items:center;width:20px;height:20px;margin-right:8px;border:1px solid var(--line);border-radius:50%;font:italic 800 12px/1 Georgia,serif;vertical-align:-1px}
+@media (max-width:640px){#offline-slot{display:none}.more-offline{display:block;border-bottom:1px solid var(--line);padding-bottom:4px;margin-bottom:4px}}

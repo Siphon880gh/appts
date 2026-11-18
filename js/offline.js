@@ -229,7 +229,7 @@ export function chromeHTML() {
   const on = O.readState().on, waiting = O.ctx.pending + O.ctx.files;
   return `<span class="offline-controls"><button type="button" class="offline-pill${on ? ' on' : ''}" data-offline="panel" aria-haspopup="dialog" title="Offline mode: ${on ? 'on' : 'off'}">Offline <b>${on ? 'On' : 'Off'}</b>${waiting ? `<span class="offline-count" title="Changes waiting to sync">${waiting}</span>` : ''}</button><button type="button" class="offline-info" data-offline="info" aria-label="What is Offline mode?" title="What is Offline mode?">i</button></span>`;
 }
-function refreshChrome() { const c = document.querySelector('.offline-controls'); if (c) c.outerHTML = chromeHTML(); }
+function refreshChrome() { const c = document.querySelector('.offline-controls'); if (c) c.outerHTML = chromeHTML(); document.dispatchEvent(new Event('appts-offline-chrome')); }
 
 const CLINIC_SVG = `<svg class="offline-art" viewBox="0 0 360 190" role="img" aria-labelledby="offline-art-title"><title id="offline-art-title">A doctor at a clinic with a “No guest Wi-Fi” sign; the patient's phone still shows Appts with records saved on the device.</title>
 <rect x="0" y="0" width="360" height="190" fill="#eaf4fb"/><rect x="0" y="160" width="360" height="30" fill="#d7d9d9"/>
