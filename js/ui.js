@@ -147,7 +147,7 @@ export function noteText(notes) {
   body.querySelectorAll('p,div,h1,h2,h3,h4,blockquote,pre,ul,ol,table').forEach(el => el.append('\n\n'));
   return body.textContent.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
 }
-let qpEl = null, qpFor = null, qpTimer = 0, qpHideTimer = 0;
+let qpEl = null, qpFor = null, qpTimer = 0, qpHideTimer = 0, qpMuted = null; // qpMuted: tile clicked while previewing; no re-show until the pointer leaves it (t66u)
 function qpPanel() {
   if (qpEl) return qpEl;
   qpEl = document.createElement('div');
@@ -181,17 +181,23 @@ document.addEventListener('mouseover', e => {
   const row = qpRow(e.target); if (!row) return;
   if (e.target.closest('[data-gallery]')) { clearTimeout(qpTimer); if (qpFor) hideQuickPreview(); return; } // 📎 gallery wins (t53u)
   clearTimeout(qpHideTimer);
-  if (row === qpFor) return;
+  if (row === qpFor || row === qpMuted) return;
   clearTimeout(qpTimer); qpTimer = setTimeout(() => showQuickPreview(row), 220);
 });
-document.addEventListener('mouseout', e => { if (!quickPreviewOn()) return; const row = qpRow(e.target); if (row && !row.contains(e.relatedTarget)) { clearTimeout(qpTimer); if (qpFor) scheduleHide(); } });
+document.addEventListener('mouseout', e => { if (!quickPreviewOn()) return; const row = qpRow(e.target); if (row && !row.contains(e.relatedTarget)) { if (row === qpMuted) qpMuted = null; clearTimeout(qpTimer); if (qpFor) scheduleHide(); } });
 document.addEventListener('focusin', e => { if (!quickPreviewOn()) return; const row = qpRow(e.target); if (row && row.matches(':focus-visible')) showQuickPreview(row); else if (!qpEl?.contains(e.target)) hideQuickPreview(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && qpEl && !qpEl.hidden) hideQuickPreview(); });
 window.addEventListener('scroll', () => { if (qpFor) hideQuickPreview(); }, { passive: true });
 // Touch / iPad: with Quick preview on, the first tap on a tile shows its preview; tapping the same
 // tile again (or "Open entry" in the preview) opens it; a tap anywhere else dismisses the preview.
 let lastPointer = 'mouse', qpBypass = false;
-document.addEventListener('pointerdown', e => { lastPointer = e.pointerType || 'mouse'; }, true);
+document.addEventListener('pointerdown', e => {
+  lastPointer = e.pointerType || 'mouse';
+  // Mouse/pen (t66u): any press dismisses the preview at once, with no fade, and the click carries on
+  // to whatever is underneath (the popover itself lets clicks through on hover screens), so a click on
+  // the tile opens the entry. That tile stays quiet until the pointer leaves it and comes back.
+  if (lastPointer !== 'touch' && quickPreviewOn()) { const row = qpRow(e.target); qpMuted = row || qpFor || null; clearTimeout(qpTimer); clearTimeout(qpHideTimer); if (qpFor) hideQuickPreview(); }
+}, true);
 document.addEventListener('keydown', () => { lastPointer = 'mouse'; }, true);
 document.addEventListener('click', e => {
   if (agEl && agEl.contains(e.target)) { if (e.target.closest('[data-action=view-file]')) setTimeout(hideGallery, 0); return; }
