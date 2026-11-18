@@ -61,3 +61,6 @@ And I guess also at the healthcare index
 
 ## t14u-appts (7:03 PM PT, APP Appts chat)
 We can also add Home Health nurses visiting you into something that we track. Often they stop visiting because of insurance needing to approve the next 5-7 visits. And sometimes they can't come because they dont have time availability, and sometimes they cant come because you have to go to a clinic. Have a way to track this, including the authorized visits counting down. And an event can be waiting for further approval. another can be spoken to case manager at home health. Update sample data
+
+## t15u-appts (7:04 PM PT, APP Appts chat)
+THEN: Create a skill at local codebase at .agents/skills/* where user can upload images, pdf's, etc free flow explaining their appointments, insurance, clinical disruptions etc, and their account and condition is updated. Ask user to clarify which user and what condition. No need to ask for password since this is asking codebase directly
