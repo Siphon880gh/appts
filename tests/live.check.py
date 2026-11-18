@@ -19,6 +19,7 @@ class Remote:
 pw = demo_password()
 php = lambda code: subprocess.run([PHP, '-r', f'require "includes/demo-seed.php"; {code}'], cwd=ROOT, capture_output=True, check=True).stdout
 
+doc_version = int(subprocess.run([PHP, '-r', 'require "includes/domain.php"; echo DOC_VERSION;'], cwd=ROOT, capture_output=True, check=True).stdout)
 anon = Client(Remote())
 st, body, h = anon.raw('')
 ok(st == 200 and b'Appts' in body, f'index.php renders at {BASE}')
@@ -31,6 +32,9 @@ st, body, h = demo.raw('api.php?action=login', 'POST', json.dumps({'username': '
 cookie = h.get('Set-Cookie', '')
 ok(st == 200, 'demo signs in')
 ok(f'path={PATH}' in cookie and 'HttpOnly' in cookie and 'SameSite=Strict' in cookie, f'session cookie scoped to {PATH}, HttpOnly, SameSite=Strict')
+# Reset the demo (synthetic data only) so it carries the current sample story, home health included.
+st, data = demo.api('reset-demo', {})
+ok(st == 200 and data['doc']['version'] == doc_version and any(e['typeId'] == 'hh_auth' for e in data['doc']['entries']), 'demo reset to the current sample data (home health story included)')
 st, data = demo.api('data')
 ok(st == 200 and len(data['doc']['entries']) > 0 and len(data['doc']['conditions']) > 0, f"demo records load ({len(data['doc']['conditions'])} conditions, {len(data['doc']['entries'])} entries)")
 
@@ -59,7 +63,6 @@ import hashlib, re as _re
 wf_file = ROOT / 'storage' / 'data' / 'wf.json.php'
 wf_hash = hashlib.sha256(wf_file.read_bytes()).hexdigest() if wf_file.exists() else None
 wf_version = int(_re.search(rb'"version":\s*(\d+)', wf_file.read_bytes()).group(1)) if wf_file.exists() else None
-doc_version = int(subprocess.run([PHP, '-r', 'require "includes/domain.php"; echo DOC_VERSION;'], cwd=ROOT, capture_output=True, check=True).stdout)
 wf = Client(Remote())
 st, _ = wf.login('wf', pw)
 ok(st == 200, 'wf signs in (same password as demo)')
@@ -81,6 +84,7 @@ with sync_playwright() as p:
     errors = []; page.on('pageerror', lambda e: errors.append(str(e)))
     page.goto(BASE); page.click('#fill-demo'); page.click('#login-form [type=submit]'); page.wait_for_selector('.condition-card')
     ok(page.locator('.condition-card').count() > 0, 'browser signs in to demo through Apache')
+    ok('2 of 5 authorized visits left' in page.locator('.hh-overview').inner_text(), 'home health countdown renders through Apache')
     page.click('[data-action=add-condition] >> nth=0'); page.wait_for_selector('#condition-notes')
     page.evaluate("""([b64]) => { const t = document.querySelector('#condition-notes'); const dt = new DataTransfer(); const bin = atob(b64);
       dt.items.add(new File([Uint8Array.from(bin, c => c.charCodeAt(0))], 'clip.png', { type: 'image/png' })); t.focus();
