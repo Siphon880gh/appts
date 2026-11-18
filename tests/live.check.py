@@ -53,11 +53,23 @@ for p in ['storage/', 'storage/data/demo.json.php', 'storage/uploads/demo/' + pn
     leaked = b'"entries"' in body or PNG in body or b'%PDF' in body or b'$2y$' in body or b'"visit_kind"' in body or b'DEMO_PASSWORD' in body
     ok(st in (403, 404) and not leaked, f'{p} blocked ({st}, no data bytes)')
 
+# wf is Weng's real account: never write to it. Loading its records would apply a pending
+# document migration (a write), so the records are only loaded when the stored file is current.
+import hashlib, re as _re
+wf_file = ROOT / 'storage' / 'data' / 'wf.json.php'
+wf_hash = hashlib.sha256(wf_file.read_bytes()).hexdigest() if wf_file.exists() else None
+wf_version = int(_re.search(rb'"version":\s*(\d+)', wf_file.read_bytes()).group(1)) if wf_file.exists() else None
+doc_version = int(subprocess.run([PHP, '-r', 'require "includes/domain.php"; echo DOC_VERSION;'], cwd=ROOT, capture_output=True, check=True).stdout)
 wf = Client(Remote())
 st, _ = wf.login('wf', pw)
 ok(st == 200, 'wf signs in (same password as demo)')
-st, wdata = wf.api('data')
-ok(st == 200 and 'entries' in wdata['doc'], f"wf records load ({len(wdata['doc']['conditions'])} conditions, {len(wdata['doc']['entries'])} entries) - read only")
+st, sess = wf.api('session')
+ok(st == 200 and sess['account']['username'] == 'wf', 'wf session works under the subpath')
+if wf_version is not None and wf_version < doc_version:
+    print(f'  skip - wf records not loaded: stored document is v{wf_version}, loading would migrate it to v{doc_version} (that happens on Weng\'s next visit)')
+else:
+    st, wdata = wf.api('data')
+    ok(st == 200 and 'entries' in wdata['doc'], f"wf records load ({len(wdata['doc']['conditions'])} conditions, {len(wdata['doc']['entries'])} entries) - read only")
 st, _, _ = wf.raw('api.php?action=file&id=' + small['file']['id'])
 ok(st in (403, 404), "wf cannot read demo's upload")
 
@@ -80,4 +92,6 @@ with sync_playwright() as p:
     page.screenshot(path=str(shot), full_page=True)
     ok(errors == [], f'no page errors: {errors}')
     browser.close()
+if wf_hash is not None and wf_version is not None and wf_version < doc_version:
+    ok(hashlib.sha256(wf_file.read_bytes()).hexdigest() == wf_hash, "wf's stored file is byte-identical after the live check")
 print(f'PASS: {checks} live checks against {BASE}')
