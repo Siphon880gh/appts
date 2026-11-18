@@ -8,6 +8,7 @@ header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: no-referrer');
 header("Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'");
 
+require_once __DIR__ . '/includes/env.php';
 require __DIR__ . '/includes/version.php';
 require __DIR__ . '/includes/head.php';
 require __DIR__ . '/includes/layout.php';

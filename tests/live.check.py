@@ -1,12 +1,20 @@
 """Live check against an already-running Apache/MAMP install (not started by this script).
-Run: python3 tests/live.check.py [base-url]   default http://localhost:8888/weng/app/healthcare/appts/
+Run: python3 tests/live.check.py [base-url]   default APP_BASE_URL from .env, else http://localhost:8888/weng/app/healthcare/appts/
 Writes only to the demo account (uploads, removed again where possible); signs in to wf read-only.
 Screenshot: docs/screenshots/mamp-overview.png. Never prints the password."""
 import base64, json, pathlib, subprocess, sys, urllib.parse
 from serve import ROOT, Client, PNG, PHP, demo_password
 from playwright.sync_api import sync_playwright
 
-BASE = (sys.argv[1] if len(sys.argv) > 1 else 'http://localhost:8888/weng/app/healthcare/appts/').rstrip('/') + '/'
+def env_base():
+    # APP_BASE_URL from the app's .env (see .example.env); MAMP's URL when there is none.
+    f = pathlib.Path(__file__).resolve().parent.parent / '.env'
+    for line in (f.read_text().splitlines() if f.exists() else []):
+        k, _, v = line.strip().partition('=')
+        if k.strip() == 'APP_BASE_URL' and v.strip(): return v.strip().strip('"\'').rstrip('/') + '/'
+    return None
+ENV_BASE = env_base()
+BASE = (sys.argv[1] if len(sys.argv) > 1 else ENV_BASE or 'http://localhost:8888/weng/app/healthcare/appts/').rstrip('/') + '/'
 PATH = urllib.parse.urlparse(BASE).path
 checks = 0
 def ok(cond, what):
@@ -23,6 +31,13 @@ doc_version = int(subprocess.run([PHP, '-r', 'require "includes/domain.php"; ech
 anon = Client(Remote())
 st, body, h = anon.raw('')
 ok(st == 200 and b'Appts' in body, f'index.php renders at {BASE}')
+for f in ['.env', '.example.env']:
+    st = anon.raw(f)[0]
+    ok(st in (403, 404), f'{f} is blocked by Apache ({st})')
+st, body, h = anon.raw('manifest.php')
+ok(st == 200 and json.loads(body).get('id') == ((ENV_BASE + 'index.php') if ENV_BASE else './index.php'), f"manifest id uses APP_BASE_URL: {json.loads(body).get('id') if st == 200 else st}")
+st, body, h = anon.raw('')
+ok((f'<meta name="appts-base-url" content="{ENV_BASE}">' in body.decode()) if ENV_BASE else ('appts-base-url' not in body.decode()), 'index.php exposes the base URL for the service worker scope')
 st, body, h = anon.raw('api.php?action=session')
 ok(st == 200 and 'json' in h.get('Content-Type', '') and json.loads(body) == {'account': None}, 'api.php answers JSON (no PHP parse error)')
 print('  server:', h.get('X-Powered-By', 'PHP version hidden'))

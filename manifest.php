@@ -1,13 +1,16 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/includes/env.php';
 require __DIR__ . '/includes/version.php';
 header('Content-Type: application/manifest+json; charset=utf-8');
 header('Cache-Control: no-cache');
 $v = app_version();
+$base = app_base_url(); // absolute id when APP_BASE_URL is set (.env); relative paths otherwise
 echo json_encode([
     'name' => 'Appts: appointments, insurance, and progress by condition',
     'short_name' => 'Appts',
     'description' => 'Appointments, insurance, and progress for each condition in one place.',
+    'id' => $base !== '' ? $base . 'index.php' : './index.php',
     'start_url' => './index.php',
     'scope' => './',
     'display' => 'standalone',

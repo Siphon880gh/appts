@@ -5,6 +5,8 @@ import { api, AuthError } from './api.js';
 import { store, notice } from './store.js';
 import * as O from './outbox.js';
 import { planSync, remapIds } from './merge.js';
+/** Service worker scope: the APP_BASE_URL path from .env when the page is served from it, else this folder. */
+const swScope = () => { const base = document.querySelector('meta[name=appts-base-url]')?.content || ''; return base && location.href.startsWith(base) ? new URL(base).pathname : './'; };
 
 export const VERSION = document.querySelector('meta[name="appts-version"]')?.content || '';
 const dlg = () => document.querySelector('#offline-dialog');
@@ -23,7 +25,7 @@ const when = iso => iso ? new Date(iso).toLocaleString(undefined, { month: 'shor
 // ---- service worker --------------------------------------------------------------------
 export async function registerWorker() {
   if (!('serviceWorker' in navigator)) return null;
-  try { registration = await navigator.serviceWorker.register(`sw.php?v=${encodeURIComponent(VERSION)}`, { scope: './', updateViaCache: 'none' }); }
+  try { registration = await navigator.serviceWorker.register(`sw.php?v=${encodeURIComponent(VERSION)}`, { scope: swScope(), updateViaCache: 'none' }); }
   catch (err) { console.warn('Appts: service worker not registered', err); return null; }
   // A new release's worker takes over at once (its flag comes from Cache Storage, so the mode carries over).
   const promote = w => { if (w) { w.postMessage({ type: 'appts-skip-waiting' }); w.postMessage({ type: 'appts-offline-mode', on: !!O.readState().on }); } };
@@ -149,7 +151,7 @@ export async function checkVersion() {
 async function installWorker(version) {
   if (!('serviceWorker' in navigator)) return;
   try {
-    const reg = await navigator.serviceWorker.register(`sw.php?v=${encodeURIComponent(version)}`, { scope: './', updateViaCache: 'none' });
+    const reg = await navigator.serviceWorker.register(`sw.php?v=${encodeURIComponent(version)}`, { scope: swScope(), updateViaCache: 'none' });
     const fresh = () => [reg.installing, reg.waiting, reg.active].find(w => w && w.scriptURL.endsWith(`sw.php?v=${version}`));
     for (let i = 0; i < 50; i++) {
       const w = fresh();

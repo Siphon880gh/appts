@@ -14,6 +14,7 @@ declare(strict_types=1);
  *   php tools/intake.php apply <account> <plan.json|-> [--dry-run]
  */
 require __DIR__ . '/../includes/demo-seed.php';
+require_once __DIR__ . '/../includes/env.php';
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 
 const INTAKE_COLORS = ['#2f5d8a', '#a4541c', '#5b4a99', '#8f2f45', '#3f6b3a', '#9a6a00', '#245e6b', '#b42318', '#7a2e8a', '#6b5b2a', '#172943', '#c2410c', '#0f766e', '#be185d', '#4d7c0f', '#64748b'];
@@ -438,7 +439,7 @@ function cmd_apply(array $account, array $plan, bool $dry): int {
         if ($op['kind'] !== 'entry') continue;
         if (entry_of($doc, $op['value']['id'])) $changed++; else $made++;
     }
-    echo "Saved: $made new, $changed updated (revision {$saved['doc']['revision']}; backup taken first). Reload Appts and open #/c/{$saved['planner']->conditionId}\n";
+    echo "Saved: $made new, $changed updated (revision {$saved['doc']['revision']}; backup taken first). Reload Appts and open " . app_base_url() . "#/c/{$saved['planner']->conditionId}\n";
     return 0;
 }
 
