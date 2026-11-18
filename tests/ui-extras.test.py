@@ -152,7 +152,7 @@ try:
         tile = pg.locator('.entry-row:has-text("Gallery test event")').first
         tile.locator('.att-icon').hover(); pg.wait_for_selector('#att-gallery:not([hidden])')
         g = pg.locator('#att-gallery')
-        ok(g.locator('.ag-item').count() == 4 and g.locator('.ag-item img').count() == 3 and g.locator('.ag-pdf').count() == 1, 'the gallery shows image thumbnails and a PDF tile')
+        ok(g.locator('.ag-item').count() == 4 and g.locator('.ag-item > img').count() == 3 and g.locator('.ag-item .pdf-thumb').count() == 1 and g.locator('.ag-pdf').count() == 1, 'the gallery shows image thumbnails and a PDF preview (tile underneath as fallback)')
         tr = g.locator('.ag-track')
         ok(round(tr.evaluate('e => e.clientWidth') / 140) == 3, 'three thumbnails fit at a time')
         ok(tr.evaluate('e => getComputedStyle(e).scrollSnapType').startswith('x'), 'the strip scrolls sideways with snap')
@@ -198,6 +198,55 @@ try:
         pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
         go(pg, '#/c/cond-skin'); pg.wait_for_selector('[data-action=open-memo]')
         ok(pg.locator('[data-action=open-memo] .memo-dot').count() == 0, 'another condition has its own (empty) memo')
+
+        # ---- t65u: EVERY modal/drawer closes on an outside click; ones with edits ask first
+        def outside_point(box):
+            vw, vh = pg.viewport_size['width'], pg.viewport_size['height']
+            if box['x'] > 30: return 12, vh / 2
+            if box['x'] + box['width'] < vw - 30: return vw - 12, vh / 2
+            return vw / 2, max(5, box['y'] - 12)
+        def click_outside():
+            d = pg.locator('dialog[open]').last; x, y = outside_point(d.bounding_box()); pg.mouse.click(x, y); pg.wait_for_timeout(200)
+        def open_count(): return pg.locator('dialog[open]').count()
+        modals = [
+            ('entry form', '#/c/cond-knee', '[data-action=add-entry]', True),
+            ('entry detail', '#/c/cond-knee', '.entry-row', False),
+            ('condition edit', '#/c/cond-knee', '.condition-head [data-action=edit-condition]', True),
+            ('Memo', '#/c/cond-knee', '[data-action=open-memo]', True),
+            ('highlight form', '#/c/cond-knee', '.condition-head [data-action=add-highlight]', True),
+            ('Clinical significance drawer', '#/c/cond-skin', '#cs [data-action=open-highlight]', False),
+            ('add condition', '#/', '[data-action=add-condition]', True),
+            ('entry type editor', '#/types', '[data-action=edit-type]', True),
+            ('document viewer', '#/documents', '.doc-card .preview', False),
+            ('quick upload', '#/documents', '[data-action=quick-upload]', False),
+            ('Offline mode info', '#/', '[data-offline=info]', False),
+        ]
+        seen = []
+        for name, route, opener, editable in modals:
+            go(pg, route); pg.wait_for_selector(opener, state='attached'); pg.mouse.move(2, 2)
+            pg.locator(opener).first.click(); pg.wait_for_selector('dialog[open]')
+            click_outside()
+            ok(open_count() == 0, f'{name}: an outside click closes it')
+            if editable:
+                pg.locator(opener).first.click(); pg.wait_for_selector('dialog[open]')
+                field = pg.locator('dialog[open] form textarea:visible, dialog[open] form input[type=text]:visible, dialog[open] form input:not([type]):visible').first
+                field.click(); field.press('End'); field.type(' x')
+                mode['confirm'] = False; click_outside()
+                ok(open_count() == 1, f'{name}: with unsaved edits an outside click asks first and stays open when declined')
+                mode['confirm'] = True; click_outside()
+                ok(open_count() == 0, f'{name}: accepting discards and closes')
+            seen.append(name)
+        # the expanded note editor sits on top of the entry form: an outside click closes only it
+        go(pg, '#/c/cond-knee'); pg.locator('[data-action=add-entry]').first.click(); pg.wait_for_selector('dialog[open] [data-expand]')
+        pg.locator('dialog[open] [data-expand]').first.click(); pg.wait_for_selector('dialog.editor-expanded[open]')
+        click_outside()
+        ok(pg.locator('dialog.editor-expanded[open]').count() == 0 and open_count() == 1, 'expanded note editor: an outside click returns to the form (draft kept)')
+        mode['confirm'] = True; click_outside(); ok(open_count() == 0, 'then the form closes on an outside click too')
+        # description popover
+        go(pg, '#/c/cond-knee'); pg.locator('.condition-head h1 .cond-name').hover(); pg.wait_for_selector('#desc-pop:not([hidden])')
+        pg.mouse.click(12, 600); pg.wait_for_timeout(150)
+        ok(pg.locator('#desc-pop:not([hidden])').count() == 0, 'description popover: an outside click closes it')
+        ok(len(seen) == len(modals), f'all {len(modals)} modals checked: {", ".join(seen)}')
         # ---- touch / iPad: tap shows preview, tap again or "Open entry" opens it, tap elsewhere dismisses
         ip = page_for(820, 1180, has_touch=True, is_mobile=True); login(ip)
         ip.evaluate("localStorage.setItem('appts.quickPreview', '1')"); ip.reload(); ip.wait_for_selector('.condition-card')

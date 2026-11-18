@@ -1,5 +1,5 @@
 #!/bin/sh
-# Runs every automated gate: PHP lint (current PHP and PHP 7.4), storage, intake CLI, domain/schema, offline merge, API (real php -S), browser, Offline mode, and Disruptions + @mentions (Playwright).
+# Runs every automated gate: PHP lint (current PHP and PHP 7.4), storage, intake CLI, PDF thumbnails, domain/schema, offline merge, API (real php -S), browser, Offline mode, and Disruptions + @mentions (Playwright).
 # Usage: sh tests/run-all.sh [--screens|--no-screens]
 #   APPTS_PHP=/path/to/php      run the whole suite (php -r, php -S) with that binary
 #   APPTS_PHP74=/path/to/php7.4 PHP 7.4 binary for the compatibility gate (default: MAMP's)
@@ -23,12 +23,14 @@ if [ -x "$PHP74" ]; then
   step "storage (7.4)" 1 "$PHP74" tests/storage.test.php
   step ".env (7.4)" 1 "$PHP74" tests/env.test.php
   step "intake CLI (7.4)" 1 env APPTS_PHP="$PHP74" "$PHP74" tests/intake.test.php
+  step "PDF thumbnails (7.4)" 1 "$PHP74" tests/thumbs.test.php
 else
   echo "FAIL: PHP 7.4 binary not found at $PHP74 (set APPTS_PHP74)"; exit 1
 fi
 step storage 1 "$PHP" tests/storage.test.php
 step "intake CLI" 1 env APPTS_PHP="$PHP" "$PHP" tests/intake.test.php
 step ".env" 1 "$PHP" tests/env.test.php
+step "PDF thumbnails" 1 "$PHP" tests/thumbs.test.php
 step schema 3 node tests/schema.test.mjs
 step merge 1 node tests/merge.test.mjs
 step "disruptions + mentions (unit)" 1 node tests/disruptions-mentions.test.mjs
@@ -38,4 +40,6 @@ if [ "$1" = "--screens" ] && [ -z "$APPTS_BROWSER_CHANNEL" ] && [ -d "/Applicati
 step browser 1 python3 tests/browser.test.py "${1:---no-screens}"
 step offline 1 python3 tests/offline.test.py "${1:---no-screens}"
 step "disruptions + mentions" 1 python3 tests/disruptions-mentions.test.py "${1:---no-screens}"
+step "UI extras (dialogs, previews, filters, memo)" 1 python3 tests/ui-extras.test.py "${1:---no-screens}"
+step "PDF previews (server + browser fallback)" 1 python3 tests/thumbs.test.py "${1:---no-screens}"
 echo "ALL GATES PASS"
