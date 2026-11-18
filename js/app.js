@@ -38,7 +38,7 @@ function renderChrome() {
 // ---- login ----------------------------------------------------------------------------
 function renderLogin() {
   renderChrome();
-  app.innerHTML = `<section class="login"><div class="eyebrow">Every condition. Every visit.</div><h1>Your care, organized by condition.</h1><p class="muted">Doctors, visits, referrals, appeals, supplies, care, treatment, and documents, kept together for each diagnosis.</p>
+  app.innerHTML = `<section class="login"><div class="eyebrow">Appts · your care, by condition</div><h1>Appointments and insurance getting out of hand?</h1><p class="muted">Some conditions mean many visits, scans, and insurance back-and-forth, for you or someone you care for. Appts keeps the appointments, insurance, and progress for each condition in one place.</p>
     <form id="login-form"><h2>Sign in</h2><label>Username<input name="username" autocomplete="username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label><button class="primary" type="submit">Sign in</button><p class="form-error" role="alert"></p></form>
     <section class="demo-login" aria-label="Demo account"><strong>Demo-only credentials</strong><button type="button" class="demo-row" id="fill-demo"><span><code>${esc(DEMO_USERNAME)}</code> / <code>${esc(DEMO_PASSWORD)}</code></span><small>Synthetic sample patient with three conditions · Click to fill</small></button></section>
     <p class="fine">Records are saved as files on this PHP server (storage/, not reachable from the web). The demo account contains only made-up data.</p></section>`;
@@ -75,7 +75,7 @@ function renderOverview() {
       <div class="section-heading"><h2>Your conditions</h2><span class="muted">${plural(conds.length, 'active condition')}</span></div><div class="condition-grid">${conds.map(conditionCard).join('')}</div>
       ${others.length ? `<p class="fine" style="margin-top:20px">Archived: ${others.map(c => `<a href="#/c/${esc(c.id)}">${esc(c.name)}</a>`).join(', ')}</p>` : ''}`;
   }
-  app.innerHTML = `<div class="page-heading"><div><p class="eyebrow">Your care, by condition</p><h1>Every condition. Every visit. One clear record.</h1><p class="muted">See what's next, who you're seeing, and whether your referrals and appeals are on track.</p></div><div class="actions"><button class="primary" type="button" data-action="add-condition">+ Add condition</button></div></div>
+  app.innerHTML = `<div class="page-heading"><div><p class="eyebrow">Your care, by condition</p><h1>Every condition. Every visit. One clear record.</h1><p class="muted tagline"><b>Appointments and insurance getting out of hand?</b> Appts keeps the appointments, insurance, and progress for each condition in one place.</p></div><div class="actions"><button class="primary" type="button" data-action="add-condition">+ Add condition</button></div></div>
     <div style="margin:0 0 26px">${searchBox('overview-search', q, 'Search all records', 'Search doctors, visits, reference numbers, notes…')}</div><div id="overview-body">${body}</div>`;
   bindSearch('overview-search', v => { ui.overviewQuery = v; });
 }
