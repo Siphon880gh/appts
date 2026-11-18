@@ -67,3 +67,12 @@ Source of truth for the request: `docs/gauntlet/request.md` (verbatim). Quality 
 - The server keeps accepting any text for a select value (≤ 500 chars). Presets are a UI aid, so an old value never becomes unsavable.
 - The built-in "Care disruptions" type is renamed **Other care disruptions** (singular "Other care disruption").
 - **Migration (document version 2):** on load, a version-1 account document is migrated once under the account lock, after the normal pre-write backup. It renames the disruption type only while its name or singular is still the old default (a user's own rename is kept), and sets `allowCustom: true` on built-in status fields that don't have the flag yet. Conditions, entries, tags, documents, and labels are never touched. The migration is idempotent. `tools/migrate-dry-run.php <account>` shows what would change, using a temp copy.
+
+## E12 — Home health nursing (added by Weng, t14u-appts)
+- Three built-in types: **Home health authorizations** (agency, nurse/discipline, authorized visits, start/end, auth #, status with free text, linked insurance event and letter, "Continues authorization"), **Home health visits** (date, time, nurse, linked authorization, outcome: Scheduled / Completed / Missed: waiting for insurance approval / Missed: nurse unavailable / Missed: patient at clinic / Rescheduled, free text allowed), and **Home health events** (Waiting for further approval, Spoke to home health case manager, Re-authorization requested, New visits approved, Agency rescheduled, Nurse changed, free text allowed).
+- Decision: events are their own type rather than a select on visits, so they get their own timeline chip and don't pretend to be visits.
+- Countdown: only outcome "Completed" counts. States are ok, low (2 or fewer left), used up, awaiting (status Pending/Waiting, or a linked "Waiting for further approval" event), ended (past end date with visits left; quiet), and superseded (a newer authorization continues it).
+- Shown on the authorization row and detail, the condition sidebar, and the overview.
+- **Migration (document version 3):** appends the three types to accounts that don't have them, after the account's own types. Steps are gated by the version they start from, so a v2 account never re-runs the v2 rename. Records are never touched, and the normal pre-write backup runs first.
+- Demo: the scalp condition has a used-up first authorization, three missed visits (one per reason), a waiting-for-approval event, a case manager call, and a second authorization with 2 of 5 left.
+

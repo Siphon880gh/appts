@@ -38,10 +38,13 @@ A critic compares Appts screenshots with the reference blind and picks the clear
 | G26 | Cross-account access to an upload (PDF or image) is denied | api test PASS |
 | G27 | PHP 7.4 compatibility (MAMP mod_php 7.4.33) and 8.4: every PHP file lints on both; storage tests pass on 7.4; full suite passes with `APPTS_PHP=<7.4 binary>`; live MAMP check returns JSON | `tests/run-all.sh` + `APPTS_PHP=… sh tests/run-all.sh` |
 | G28 | A free-text status typed in an entry saves, survives reload, shows in the row and detail, is found by search and the timeline filter, and is offered again under "Used before" | browser + api + node tests PASS |
-| G29 | All 5 built-in Status fields offer **Free text…**; "Allow free text" can be toggled on any select field on the Entry types page (custom selects included) | node + browser tests PASS |
+| G29 | All built-in Status fields (6 since home health) offer **Free text…**; "Allow free text" can be toggled on any select field on the Entry types page (custom selects included) | node + browser tests PASS |
 | G30 | The built-in type is called "Other care disruptions" / "Other care disruption" everywhere (seed, condition page, timeline chips, Entry types page, demo, docs) | node + browser tests + `git grep` |
 | G31 | Migration v1→v2 is idempotent, backs up first, renames only a default-named disruption type, enables free text on built-in status fields, and leaves every condition, entry, tag, label, and attachment byte-identical; dry run on a copy of `wf` shows only type changes | storage + api tests PASS + `tools/migrate-dry-run.php wf` |
 | G32 | Tagline (t12u): sign-in headline + description, quiet overview line, README intro, page title/meta | browser test PASS + README |
+| G33 | Home health countdown: "X of N authorized visits left" on the authorization, condition sidebar, and overview; low (2 or fewer), used-up, and awaiting-approval warnings; survives reload | node + browser + live tests PASS |
+| G34 | Only Completed visits count; each missed reason (insurance approval, nurse unavailable, patient at clinic, typed) is listed and never counted; home health events filter on the timeline | node + browser tests PASS |
+| G35 | Migration v2→v3 appends the home health types after existing ones, backs up first, is idempotent, leaves every existing type and record byte-identical, never re-runs v2 steps; dry run on a copy of `wf` shows only type changes | storage + api tests PASS + `tools/migrate-dry-run.php wf` |
 | G13 | Fresh critic reviews headless screenshots + live app and returns WIN | `state.json` verdict log |
 
 ## Hard boundaries
