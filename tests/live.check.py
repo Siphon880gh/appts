@@ -52,7 +52,7 @@ ok(st in (200, 201) and bigr['file']['kind'] == 'pdf', '17 MB PDF accepted (Apac
 big_path = ROOT / 'storage' / 'uploads' / 'demo' / (bigr['file']['id'] + '.php')
 if big_path.exists(): big_path.unlink()
 
-for p in ['storage/', 'storage/data/demo.json.php', 'storage/uploads/demo/' + png['file']['id'] + '.php', 'storage/uploads/demo/' + small['file']['id'] + '.php', 'storage/locks/demo.lock.php', 'storage/backups/demo/', 'storage/.htaccess', 'includes/accounts.php', 'includes/seed-types.json', 'tools/set-password.php', 'tests/serve.py']:
+for p in ['storage/', 'storage/data/demo.json.php', 'storage/uploads/demo/' + png['file']['id'] + '.php', 'storage/uploads/demo/' + small['file']['id'] + '.php', 'storage/locks/demo.lock.php', 'storage/backups/demo/', 'storage/.htaccess', 'includes/accounts.php', 'includes/seed-types.json', 'tools/set-password.php', 'tools/intake.php', '.agents/skills/log-health-update/SKILL.md', 'tests/serve.py']:
     st, body, _ = anon.raw(p)
     leaked = b'"entries"' in body or PNG in body or b'%PDF' in body or b'$2y$' in body or b'"visit_kind"' in body or b'DEMO_PASSWORD' in body
     ok(st in (403, 404) and not leaked, f'{p} blocked ({st}, no data bytes)')
