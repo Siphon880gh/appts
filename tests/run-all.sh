@@ -1,5 +1,5 @@
 #!/bin/sh
-# Runs every automated gate: PHP lint (current PHP and PHP 7.4), storage, intake CLI, domain/schema, offline merge, API (real php -S), browser and Offline mode (Playwright).
+# Runs every automated gate: PHP lint (current PHP and PHP 7.4), storage, intake CLI, domain/schema, offline merge, API (real php -S), browser, Offline mode, and Disruptions + @mentions (Playwright).
 # Usage: sh tests/run-all.sh [--screens|--no-screens]
 #   APPTS_PHP=/path/to/php      run the whole suite (php -r, php -S) with that binary
 #   APPTS_PHP74=/path/to/php7.4 PHP 7.4 binary for the compatibility gate (default: MAMP's)
@@ -29,9 +29,11 @@ step storage 1 "$PHP" tests/storage.test.php
 step "intake CLI" 1 env APPTS_PHP="$PHP" "$PHP" tests/intake.test.php
 step schema 3 node tests/schema.test.mjs
 step merge 1 node tests/merge.test.mjs
+step "disruptions + mentions (unit)" 1 node tests/disruptions-mentions.test.mjs
 step api 1 python3 tests/api.test.py
 # Screenshot runs use installed Google Chrome (temporary profile) so the PDF viewer renders; headless-shell has none.
 if [ "$1" = "--screens" ] && [ -z "$APPTS_BROWSER_CHANNEL" ] && [ -d "/Applications/Google Chrome.app" ]; then export APPTS_BROWSER_CHANNEL=chrome; fi
 step browser 1 python3 tests/browser.test.py "${1:---no-screens}"
 step offline 1 python3 tests/offline.test.py "${1:---no-screens}"
+step "disruptions + mentions" 1 python3 tests/disruptions-mentions.test.py "${1:---no-screens}"
 echo "ALL GATES PASS"

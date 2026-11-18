@@ -174,6 +174,15 @@ try:
     ok(mc.api('ops', {'ops': hh_ops})[0] == 200, 'home health authorization, visit, and event saved')
     got = {e['id']: e for e in mc.api('data')[1]['doc']['entries']}
     ok(got['hh-v']['values']['outcome'] == 'Missed: nurse unavailable' and got['hh-e']['values']['event_kind'] == 'Called the agency twice' and got['hh-v']['values']['authorization'] == 'hh-a', 'home health records reload with links and typed event (G33)')
+    # t18u over HTTP: Disruptions filter edits and @mention chips (G53, G56).
+    ok(mc.api('ops', {'ops': [{'op': 'put', 'kind': 'filter', 'value': {'id': 'disruptions', 'include': ['hh-e'], 'exclude': ['hh-v']}}]})[0] == 200, 'Disruptions filter edits saved (G53)')
+    f = mc.api('data')[1]['doc']['filters']
+    ok(len(f) == 1 and f[0]['include'] == ['hh-e'] and f[0]['exclude'] == ['hh-v'], 'Disruptions filter edits reload (G53)')
+    ok(mc.api('ops', {'ops': [{'op': 'put', 'kind': 'filter', 'value': {'id': 'favorites', 'include': []}}]})[0] == 400, 'only the built-in Disruptions filter exists (G53)')
+    chip = '<p>See <span data-mention="entry" data-ref="hh-v" onclick="steal()">@Visit</span></p>'
+    ok(mc.api('ops', {'ops': [{'op': 'put', 'kind': 'entry', 'value': {**got['hh-e'], 'notes': {'html': chip}}}]})[0] == 200, 'note with an @mention saved (G56)')
+    html = next(e for e in mc.api('data')[1]['doc']['entries'] if e['id'] == 'hh-e')['notes']['html']
+    ok(html == '<p>See <span class="mention" data-mention="entry" data-ref="hh-v" contenteditable="false">@Visit</span></p>', 'the server stores the chip as an id reference without handlers (G56)')
     # Only hashes on disk / in git
     # Account records hold only bcrypt hashes; the demo password literal exists only in the public demo UI module.
     accounts = (ROOT / 'includes/accounts.php').read_text()

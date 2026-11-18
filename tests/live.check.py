@@ -109,7 +109,17 @@ with sync_playwright() as p:
       t.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true })); }""", [base64.b64encode(PNG).decode()])
     page.wait_for_selector('dialog[open] #condition-notes img[data-image-id]', timeout=10000)
     ok(True, 'Ctrl/Cmd+V image paste uploads through Apache and shows in the note')
+    # t18u through Apache: @ links in a note (G54), unsaved; then the Disruptions preset (G52).
+    page.keyboard.type(' @'); page.wait_for_selector('.mention-pop:not([hidden]) .mention-lib')
+    page.hover('.mention-lib:has(b:text-is("Documents"))'); page.wait_for_selector('.mention-items .mention-item')
+    page.click('.mention-items .mention-item >> nth=0'); page.wait_for_selector('#condition-notes .mention[data-mention=file]')
+    ok(True, '@ opens the libraries popover and links a document through Apache (G54)')
     page.click('dialog[open] [data-close] >> nth=0'); page.wait_for_timeout(300)
+    page.evaluate("location.hash = '#/timeline'"); page.wait_for_selector('#tl-presets'); page.click('[data-action=tl-disruptions]')
+    page.wait_for_selector('[data-action=tl-disruptions][aria-pressed=true]')
+    shown = ' '.join(page.locator('main .event-list').all_inner_texts())
+    ok('MRI prior authorization denied' in shown and 'Radiation authorization approved' not in shown and page.locator('[data-action=tl-dis-edit]').count() == 1, 'Disruptions preset shows insurance denials, not approvals, through Apache (G52)')
+    page.click('[data-action=tl-disruptions]'); page.evaluate("location.hash = '#/'"); page.wait_for_selector('.condition-card')
     shot = ROOT / 'docs' / 'screenshots' / 'mamp-overview.png'
     page.screenshot(path=str(shot), full_page=True)
     ok(errors == [], f'no page errors: {errors}')

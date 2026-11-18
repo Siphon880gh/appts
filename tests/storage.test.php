@@ -213,5 +213,17 @@ ok($fx['entries'][0]['values']['status'] === 'Waiting on fax', 'free-text status
 $ct = clean_type(['id' => 'ct', 'name' => 'Labs', 'fields' => [['id' => 'res', 'label' => 'Result', 'kind' => 'select', 'options' => ['Low', 'High'], 'allowCustom' => true], ['id' => 'n', 'label' => 'Note', 'kind' => 'text', 'allowCustom' => true]]], null);
 ok($ct['fields'][0]['allowCustom'] === true && !array_key_exists('allowCustom', $ct['fields'][1]), 'allowCustom kept on selects only');
 
+// t18u: @mention chips keep only kind, id, and label; anything else is plain text.
+$fid = str_repeat('a', 64) . '.pdf';
+$m = sanitize_html('<p>See <span data-mention="file" data-ref="' . $fid . '" onclick="x()" style="color:red" class="evil">@MRI report</span> and <span data-mention="entry" data-ref="e-1">@Appeal</span></p>');
+ok($m === '<p>See <span class="mention" data-mention="file" data-ref="' . $fid . '" contenteditable="false">@MRI report</span> and <span class="mention" data-mention="entry" data-ref="e-1" contenteditable="false">@Appeal</span></p>', 'mention chips kept as id references, handlers and styles stripped');
+ok(sanitize_html('<p><span data-mention="file" data-ref="../../etc/passwd">@x</span><span data-mention="script" data-ref="a">@y</span><span style="x">z</span></p>') === '<p>@x@yz</p>', 'invalid mention kinds or ids become plain text');
+ok(strpos(sanitize_html('<p><span data-mention="entry" data-ref="e1"><b onclick="x">@<img src=x onerror=y>Hi</b></span></p>'), 'onerror') === false, 'markup inside a chip is reduced to its text');
+// t18u: the built-in Disruptions filter record.
+$fd = apply_ops($fx, [['op' => 'put', 'kind' => 'filter', 'value' => ['id' => 'disruptions', 'include' => ['e1', 'e1', 'bad id!'], 'exclude' => ['e1', 'e2']]]]);
+ok($fd['filters'][0]['include'] === ['e1'] && $fd['filters'][0]['exclude'] === ['e2'], 'Disruptions filter: unique valid ids, an id is never both in and out');
+throws(function () use ($fx) { apply_ops($fx, [['op' => 'put', 'kind' => 'filter', 'value' => ['id' => 'favorites', 'include' => []]]]); }, 'only the built-in Disruptions filter can be saved');
+ok(new_doc()['filters'] === [] && normalize_doc(['version' => 3])['filters'] === [], 'documents start with no filter edits');
+
 exec('rm -rf ' . escapeshellarg($dir));
 echo "PASS: $checks storage, sanitizer, and domain checks ($linkCount link fields exercised by demo seed).\n";
