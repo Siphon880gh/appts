@@ -33,11 +33,12 @@ export function applyLocal(doc, ops) {
     } else if (op.op === 'delete') {
       if (op.kind === 'type') throw Error('Entry types cannot be deleted. Archive the type instead; its entries stay.');
       if (op.kind === 'docLabel') throw Error('Document labels stay so older uploads keep their label. Rename it instead.');
+      if (op.kind === 'filter' && !/^view-/.test(op.id)) throw Error('The built-in Disruptions filter cannot be deleted.');
       if (op.kind === 'condition' && next.entries.some(e => e.conditionId === op.id)) throw Error('Move or delete this condition’s entries first, or archive the condition.');
       const i = next[col].findIndex(r => r.id === op.id);
       if (i < 0) throw Error('That record no longer exists.');
       next[col].splice(i, 1);
-      if (op.kind === 'tag') next.entries.forEach(e => { e.tagIds = (e.tagIds || []).filter(t => t !== op.id); });
+      if (op.kind === 'tag') { next.entries.forEach(e => { e.tagIds = (e.tagIds || []).filter(t => t !== op.id); }); (next.filters || []).forEach(f => { if (f.tagIds) f.tagIds = f.tagIds.filter(t => t !== op.id); }); }
     } else throw Error('Unknown change.');
   }
   next.revision = (next.revision || 0) + 1;
@@ -80,7 +81,7 @@ export function mergeRecord(kind, base, ours, theirs, path = '') {
     if (same(t, b)) { if (o !== undefined) out[k] = clone(o); continue; }
     // Both sides changed this key.
     if (k === 'values' && o && t && typeof o === 'object' && typeof t === 'object') { const m = mergeRecord(kind, b || {}, o, t, 'values.'); out[k] = m.value; conflicts.push(...m.conflicts); }
-    else if (k === 'tagIds' || k === 'options' || k === 'imageIds' || k === 'include' || k === 'exclude') out[k] = setMerge(x => (x && typeof x === 'object' ? JSON.stringify(x) : x), b, o, t);
+    else if (k === 'tagIds' || k === 'options' || k === 'imageIds' || k === 'include' || k === 'exclude' || k === 'typeIds') out[k] = setMerge(x => (x && typeof x === 'object' ? JSON.stringify(x) : x), b, o, t);
     else if (k === 'attachments') out[k] = setMerge(x => x && x.id, b, o, t);
     else if (k === 'fields' || k === 'retiredFields') out[k] = unionBy(x => x.id, t, o).map(f => { const ff = (t || []).find(x => x.id === f.id), of = (o || []).find(x => x.id === f.id), bf = (b || []).find(x => x.id === f.id); if (!ff || !of) return clone(f); const m = mergeRecord('field', bf, of, ff, `${k}.${f.id}.`); conflicts.push(...m.conflicts); return m.value; });
     else if (k === 'notes' && o && t) out[k] = { html: `${t.html || ''}<p><strong>Also written offline on this device:</strong></p>${o.html || ''}`, imageIds: unionBy(x => x, t.imageIds, o.imageIds) };
@@ -99,7 +100,7 @@ export function mergeRecord(kind, base, ours, theirs, path = '') {
  * {ops: [{op, key}], report: [{key, kind, id, note}]} with ops in an order the server accepts.
  */
 export function planSync(pending, server) {
-  const puts = { tag: [], docLabel: [], type: [], condition: [], entry: [], filter: [] }, deletes = { entry: [], condition: [], tag: [] }, report = [];
+  const puts = { tag: [], docLabel: [], type: [], condition: [], entry: [], filter: [] }, deletes = { entry: [], condition: [], tag: [], filter: [] }, report = [];
   for (const p of pending) {
     const theirs = find(server[COLLECTIONS[p.kind]], p.id), key = p.key;
     if (p.ours === null) {
@@ -118,7 +119,7 @@ export function planSync(pending, server) {
     puts[p.kind].push({ op: { op: 'put', kind: p.kind, value: { ...value, notes: value.notes ? { html: value.notes.html || '' } : value.notes } }, key });
     if (value.notes === undefined) delete puts[p.kind][puts[p.kind].length - 1].op.value.notes;
   }
-  const ops = [...puts.tag, ...puts.docLabel, ...puts.type, ...puts.condition, ...puts.entry, ...puts.filter, ...deletes.entry, ...deletes.condition, ...deletes.tag];
+  const ops = [...puts.tag, ...puts.docLabel, ...puts.type, ...puts.condition, ...puts.entry, ...puts.filter, ...deletes.entry, ...deletes.condition, ...deletes.tag, ...deletes.filter];
   return { ops, report };
 }
 

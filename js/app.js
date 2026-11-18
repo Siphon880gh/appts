@@ -8,7 +8,7 @@ import { noteHTML } from './richText.js';
 import { imageURL } from './images.js';
 import { DEMO_USERNAME, DEMO_PASSWORD } from './demoAccount.js';
 import { store, save, notice, remove, put } from './store.js';
-import { esc, plural, searchBox, eventRow, entryRow, typeChip, tagFilterChip, tagChip, closeDialog, hhPanel } from './ui.js';
+import { esc, condNameHTML, condOptionAttrs, plural, searchBox, eventRow, entryRow, typeChip, tagFilterChip, tagChip, closeDialog, hhPanel } from './ui.js';
 import { openEntryForm, openEntryDetail, deleteEntry, openConditionForm, openViewer, openQuickUpload, attachmentsHTML } from './forms.js';
 import { renderTypes, openTypeEditor } from './typesPage.js';
 import * as offline from './offline.js';
@@ -63,7 +63,7 @@ function renderLogin() {
 // ---- overview -------------------------------------------------------------------------
 function conditionCard(c) {
   const stats = S.conditionStats(store.doc, c.id), next = stats.next;
-  return `<article class="condition-card" data-open-condition="${esc(c.id)}" style="--cond-color:${esc(c.color)}"><div><span class="badge ${esc(c.status)}">${esc(c.status)}</span>${c.diagnosedOn ? ` <small class="muted">since ${esc(S.formatDate(c.diagnosedOn, { month: 'short', year: 'numeric' }))}</small>` : ''}</div><h2><a href="#/c/${esc(c.id)}">${esc(c.name)}</a></h2>${c.summary ? `<p class="summary">${esc(c.summary)}</p>` : ''}
+  return `<article class="condition-card" data-open-condition="${esc(c.id)}" style="--cond-color:${esc(c.color)}"><div><span class="badge ${esc(c.status)}">${esc(c.status)}</span>${c.diagnosedOn ? ` <small class="muted">since ${esc(S.formatDate(c.diagnosedOn, { month: 'short', year: 'numeric' }))}</small>` : ''}</div><h2><a href="#/c/${esc(c.id)}">${condNameHTML(c)}</a></h2>${c.summary ? `<p class="summary">${esc(c.summary)}</p>` : ''}
     <ul class="type-counts" aria-label="Records">${stats.counts.map(x => `<li>${typeBadge(x.type, 'sm')}<span>${x.count} ${esc(x.count === 1 ? x.type.singular : x.type.name)}</span></li>`).join('') || '<li class="muted">No entries yet</li>'}</ul>
     <div class="card-next"><strong>Next up</strong>${next ? `${esc(next.primary ? S.typeById(store.doc, next.typeId).singular : next.label)}: ${esc(next.title)} · <b>${esc(S.formatDate(next.date, { month: 'short', day: 'numeric' }))}</b> (${esc(S.relativeDay(next.date))})` : '<span class="muted">Nothing scheduled</span>'}</div></article>`;
 }
@@ -82,7 +82,7 @@ function renderOverview() {
     const hhHTML = hh.length ? `<section class="hh-overview" aria-labelledby="hh-h"><h2 id="hh-h">Home health visits</h2><div class="hh-grid">${hh.map(a => hhPanel(a.entry, { compact: true })).join('')}</div></section>` : '';
     body = `${hhHTML}${next.length ? `<section class="next-up" aria-labelledby="next-up-h"><h2 id="next-up-h">Next up across your conditions</h2><ul class="event-list">${next.map(ev => eventRow(ev)).join('')}</ul><p class="fine" style="margin:10px 0 0"><a href="#/upcoming">See everything upcoming →</a></p></section>` : ''}
       <div class="section-heading"><h2>Your conditions</h2><span class="muted">${plural(conds.length, 'active condition')}</span></div><div class="condition-grid">${conds.map(conditionCard).join('')}</div>
-      ${others.length ? `<p class="fine" style="margin-top:20px">Archived: ${others.map(c => `<a href="#/c/${esc(c.id)}">${esc(c.name)}</a>`).join(', ')}</p>` : ''}`;
+      ${others.length ? `<p class="fine" style="margin-top:20px">Archived: ${others.map(c => `<a href="#/c/${esc(c.id)}">${condNameHTML(c)}</a>`).join(', ')}</p>` : ''}`;
   }
   app.innerHTML = `<div class="page-heading"><div><p class="eyebrow">Your care, by condition</p><h1>Every condition. Every visit. One clear record.</h1><p class="muted tagline"><b>Appointments and insurance getting out of hand?</b> Appts keeps the appointments, insurance, and progress for each condition in one place.</p></div><div class="actions"><button class="primary" type="button" data-action="add-condition">+ Add condition</button></div></div>
     <div style="margin:0 0 26px">${searchBox('overview-search', q, 'Search all records', 'Search doctors, visits, reference numbers, notes…')}</div><div id="overview-body">${body}</div>`;
@@ -110,7 +110,7 @@ function renderCondition(id) {
   const next = S.upcoming(doc, { conditionId: id, limit: 5, onePerEntry: true });
   const hhCond = S.homeHealthAuths(doc, { conditionId: id });
   app.innerHTML = `<nav class="breadcrumb" aria-label="Breadcrumb"><a href="#/">← All conditions</a></nav>
-    <div class="condition-head" style="border-bottom-color:${esc(c.color)}"><div><p class="eyebrow"><span class="badge ${esc(c.status)}">${esc(c.status)}</span>${c.diagnosedOn ? ` · Diagnosed ${esc(S.formatDate(c.diagnosedOn))}` : ''}</p><h1>${esc(c.name)}</h1>${c.summary ? `<p class="muted" style="margin:0">${esc(c.summary)}</p>` : ''}</div>
+    <div class="condition-head" style="border-bottom-color:${esc(c.color)}"><div><p class="eyebrow"><span class="badge ${esc(c.status)}">${esc(c.status)}</span>${c.diagnosedOn ? ` · Diagnosed ${esc(S.formatDate(c.diagnosedOn))}` : ''}</p><h1>${condNameHTML(c)}</h1>${c.summary ? `<p class="muted" style="margin:0">${esc(c.summary)}</p>` : ''}</div>
     <div class="actions"><label class="skip" for="add-type">Add entry of type</label><select id="add-type" style="width:auto;margin:0"><option value="">+ Add entry…</option>${S.activeTypes(doc).map(t => `<option value="${esc(t.id)}">${esc(t.singular)}</option>`).join('')}</select><button type="button" data-action="edit-condition" data-id="${esc(c.id)}">Edit condition</button><a class="button" href="#/timeline" data-action="timeline-for" data-id="${esc(c.id)}">Timeline</a></div></div>
     <div class="workspace"><div>
       <div class="filters" aria-label="Filter this condition"><div class="row">${searchBox('cond-search', f.query, 'Search this condition', 'Search this condition…')}<span class="filter-summary">${filtered ? `Showing ${shown.length} of ${all.length}` : plural(all.length, 'entry', 'entries')}</span>${filtered ? '<button type="button" class="link" data-action="clear-cond-filters">Clear filters</button>' : ''}</div>
@@ -166,9 +166,9 @@ function renderTimeline() {
   }).join('');
   const filtered = t.typeIds.size || t.tagIds.size || t.query.trim();
   const disCount = all.filter(disOf).length;
-  const presets = `<div class="row presets" id="tl-presets"><span class="chip-label">Built-in</span><button type="button" class="preset-chip" data-action="tl-disruptions" aria-pressed="${t.disruptions}" title="Insurance denials, missed and cancelled visits, delays, appeals, and other disruptions">⚠ Disruptions <span class="count">${disCount}</span></button>${t.disruptions ? `<button type="button" class="dis-edit" data-action="tl-dis-edit" aria-pressed="${t.disEdit}">${t.disEdit ? 'Done editing' : 'Edit Disruption mode'}</button>` : ''}</div>${t.disEdit ? '<p class="dis-banner" role="status"><b>Edit Disruption mode.</b> Grayed-out items are not in the Disruptions filter. Click one to add it, or click an item that is in to take it out. Changes save right away.</p>' : ''}`;
+  const presets = `<div class="row presets" id="tl-presets"><span class="chip-label">Built-in</span><button type="button" class="preset-chip" data-action="tl-disruptions" aria-pressed="${t.disruptions}" title="Insurance denials, missed and cancelled visits, delays, appeals, and other disruptions">⚠ Disruptions <span class="count">${disCount}</span></button>${t.disruptions ? `<button type="button" class="dis-edit" data-action="tl-dis-edit" aria-pressed="${t.disEdit}">${t.disEdit ? 'Done editing' : 'Edit Disruption mode'}</button>` : ''}</div>${savedViewsHTML(doc, t)}${t.disEdit ? '<p class="dis-banner" role="status"><b>Edit Disruption mode.</b> Grayed-out items are not in the Disruptions filter. Click one to add it, or click an item that is in to take it out. Changes save right away.</p>' : ''}`;
   app.innerHTML = `<div class="page-heading"><div><p class="eyebrow">Everything, in order</p><h1>Timeline</h1><p class="muted">Every dated field becomes an event: visits, follow-ups, authorization expirations, appeal deadlines, reorder dates, treatment courses.</p></div></div>
-    <div class="filters" aria-label="Timeline filters">${presets}<div class="row"><label class="skip" for="tl-cond">Condition</label><select id="tl-cond"><option value="">All conditions</option>${liveConditions().map(c => `<option value="${esc(c.id)}"${c.id === t.conditionId ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}</select>
+    <div class="filters" aria-label="Timeline filters">${presets}<div class="row"><label class="skip" for="tl-cond">Condition</label><select id="tl-cond"><option value="">All conditions</option>${liveConditions().map(c => `<option value="${esc(c.id)}"${condOptionAttrs(c)}${c.id === t.conditionId ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}</select>
       <div class="segmented" role="group" aria-label="Range">${[['all', 'All'], ['upcoming', 'Upcoming'], ['past', 'Past']].map(([v, l]) => `<button type="button" data-action="tl-range" data-id="${v}" aria-pressed="${t.range === v}">${l}</button>`).join('')}</div>
       ${searchBox('tl-search', t.query, 'Search the timeline', 'Search the timeline…')}</div>
       <div class="row chips" id="tl-types"><span class="chip-label">Types</span>${types.map(x => typeChip(x.type, x.count, t.typeIds.has(x.type.id), 'tl-type')).join('') || '<span class="muted">No dated entries yet.</span>'}</div>
@@ -177,6 +177,15 @@ function renderTimeline() {
     ${monthHTML || '<div class="empty"><p>No timeline items match.</p></div>'}`;
   document.querySelector('#tl-cond').onchange = e => { t.conditionId = e.target.value; renderTimeline(); };
   bindSearch('tl-search', v => { t.query = v; });
+}
+// Saved views (t27u): named filter sets on the Timeline. One click restores types, tags, the
+// Disruptions toggle, condition, and range; "Save current view" names what is showing now.
+function savedViewsHTML(doc, t) {
+  const views = S.savedViews(doc);
+  const changed = t.typeIds.size || t.tagIds.size || t.disruptions || t.conditionId || t.range !== 'all';
+  if (!views.length && !changed) return '';
+  const chip = v => { const on = S.viewIsActive(doc, v, t); return `<span class="view-chip-wrap"><button type="button" class="preset-chip view-chip" data-action="tl-view" data-id="${esc(v.id)}" aria-pressed="${on}" title="Show the saved view “${esc(v.name)}”">★ ${esc(v.name)}</button><button type="button" class="view-del" data-action="tl-view-del" data-id="${esc(v.id)}" aria-label="Delete saved view “${esc(v.name)}”" title="Delete this saved view">×</button></span>`; };
+  return `<div class="row presets" id="tl-views"><span class="chip-label">Saved views</span>${views.map(chip).join('')}${changed && !views.some(v => S.viewIsActive(doc, v, t)) ? '<button type="button" class="link" data-action="tl-view-save">+ Save current view</button>' : ''}</div>`;
 }
 function renderUpcoming() {
   const doc = store.doc, today = S.today(), events = S.upcoming(doc);
@@ -197,7 +206,7 @@ function renderDocuments() {
   const groups = D.groupDocuments(doc, shown, d.group);
   const filtered = d.kinds.size || d.labelIds.size || d.query.trim();
   app.innerHTML = `<div class="page-heading"><div><p class="eyebrow">Lab results, notes, letters, photos</p><h1>Documents</h1><p class="muted">Every PDF and image you've attached, across all conditions. Filter by file type and by label, then open one to view it or jump to the record it belongs to.</p></div><div class="actions"><button class="primary" type="button" data-action="quick-upload">+ Upload documents</button></div></div>
-    <div class="filters" aria-label="Document filters"><div class="row"><label class="skip" for="doc-cond">Condition</label><select id="doc-cond"><option value="">All conditions</option>${liveConditions().map(c => `<option value="${esc(c.id)}"${c.id === d.conditionId ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}</select>${searchBox('doc-search', d.query, 'Search documents', 'Search file names…')}<div class="segmented" role="group" aria-label="Group by">${[['label', 'Group by label'], ['kind', 'Group by file type']].map(([v, l]) => `<button type="button" data-action="doc-group" data-id="${v}" aria-pressed="${d.group === v}">${l}</button>`).join('')}</div></div>
+    <div class="filters" aria-label="Document filters"><div class="row"><label class="skip" for="doc-cond">Condition</label><select id="doc-cond"><option value="">All conditions</option>${liveConditions().map(c => `<option value="${esc(c.id)}"${condOptionAttrs(c)}${c.id === d.conditionId ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}</select>${searchBox('doc-search', d.query, 'Search documents', 'Search file names…')}<div class="segmented" role="group" aria-label="Group by">${[['label', 'Group by label'], ['kind', 'Group by file type']].map(([v, l]) => `<button type="button" data-action="doc-group" data-id="${v}" aria-pressed="${d.group === v}">${l}</button>`).join('')}</div></div>
       <div class="row chips" id="doc-kinds"><span class="chip-label">File type</span>${kinds.map(k => `<button type="button" class="chip text-only" data-action="doc-kind" data-id="${k.kind}" aria-pressed="${d.kinds.has(k.kind)}">${k.label}<span class="count">${k.count}</span></button>`).join('') || '<span class="muted">No uploads yet.</span>'}</div>
       ${labels.length ? `<div class="row chips" id="doc-labels"><span class="chip-label">Label</span>${labels.map(x => `<button type="button" class="chip text-only" data-action="doc-label" data-id="${esc(x.label.id)}" aria-pressed="${d.labelIds.has(x.label.id)}">${esc(x.label.label)}<span class="count">${x.count}</span></button>`).join('')}</div>` : ''}
       <div class="row"><span class="filter-summary" id="doc-count">${filtered ? `Showing ${shown.length} of ${inCondition.length}` : plural(inCondition.length, 'document')}</span>${filtered ? '<button type="button" class="link" data-action="doc-clear">Clear filters</button>' : ''}</div></div>
@@ -258,6 +267,19 @@ async function action(name, id, el) {
       await save([put('filter', f)], added ? 'Added to Disruptions.' : 'Removed from Disruptions.');
       document.querySelector(`[data-action="dis-toggle"][data-id="${CSS.escape(id)}"]`)?.focus();
       return;
+    }
+    case 'tl-view': {
+      const v = S.savedViews(store.doc).find(x => x.id === id); if (!v) return;
+      Object.assign(ui.timeline, S.stateFromView(store.doc, v), { query: '', disEdit: false }); return render();
+    }
+    case 'tl-view-save': {
+      const name = (prompt('Name this view (for example “Blocked / hiccups”):') || '').trim(); if (!name) return;
+      const v = S.viewFromState(store.doc, name, ui.timeline);
+      await save([put('filter', v)], `Saved view “${v.name}”.`); return;
+    }
+    case 'tl-view-del': {
+      const v = S.savedViews(store.doc).find(x => x.id === id); if (!v || !confirm(`Delete the saved view “${v.name}”? Entries are not affected.`)) return;
+      await save([remove('filter', id)], 'Saved view deleted.'); return;
     }
     case 'tl-clear': Object.assign(ui.timeline, { typeIds: new Set(), tagIds: new Set(), query: '' }); return render();
     case 'doc-kind': toggle(ui.docs.kinds, id); return render();

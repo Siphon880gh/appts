@@ -315,3 +315,43 @@ export function toggleDisruption(doc, entryId) {
   if (!inNow && !rule) f.include.push(entryId);
   return f;
 }
+
+// ---- Saved views (t27u) ----------------------------------------------------------------
+/** Named Timeline filter sets, stored as filter records with ids "view-…" (offline-sync safe:
+ *  they ride the same put/delete ops and three-way merge as every other record). */
+export const isViewId = id => /^view-[A-Za-z0-9_-]{1,59}$/.test(String(id || ''));
+export function savedViews(doc) {
+  return (doc.filters || []).filter(f => isViewId(f.id)).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || String(a.name).localeCompare(String(b.name)));
+}
+/** A view record from the Timeline's current filter state. */
+export function viewFromState(doc, name, state, id) {
+  const slug = String(name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'view';
+  return {
+    id: id || `view-${slug}-${Math.random().toString(36).slice(2, 8)}`, kind: 'view', name: String(name).trim().slice(0, 60),
+    typeIds: [...state.typeIds], tagIds: [...state.tagIds], disruptions: !!state.disruptions,
+    conditionId: state.conditionId || '', range: state.range || 'all', sortOrder: savedViews(doc).length,
+  };
+}
+/** The Timeline state a view restores. Ids that no longer exist are dropped. */
+export function stateFromView(doc, view) {
+  const typeOk = new Set((doc.types || []).map(t => t.id)), tagOk = new Set((doc.tags || []).map(t => t.id));
+  const condOk = (doc.conditions || []).some(c => c.id === view.conditionId);
+  return {
+    typeIds: new Set((view.typeIds || []).filter(id => typeOk.has(id))), tagIds: new Set((view.tagIds || []).filter(id => tagOk.has(id))),
+    disruptions: !!view.disruptions, conditionId: condOk ? view.conditionId : '', range: ['all', 'upcoming', 'past'].includes(view.range) ? view.range : 'all',
+  };
+}
+/** True when the Timeline currently shows exactly this view. */
+export function viewIsActive(doc, view, state) {
+  const v = stateFromView(doc, view), eq = (a, b) => a.size === b.size && [...a].every(x => b.has(x));
+  return eq(v.typeIds, state.typeIds) && eq(v.tagIds, state.tagIds) && v.disruptions === !!state.disruptions && v.conditionId === (state.conditionId || '') && v.range === (state.range || 'all');
+}
+
+// ---- Condition short name + description (t30u) ------------------------------------------
+export const conditionDescription = c => String(c?.description || '').trim();
+/** "Short name [longer description]" typed in the name box splits into the two parts. */
+export function splitConditionName(text) {
+  const m = /^\s*([^[\]]*?)\s*\[([^\]]*)\]\s*$/.exec(String(text || ''));
+  if (!m || !m[1].trim()) return { name: String(text || '').trim(), description: '' };
+  return { name: m[1].replace(/\*\s*\)/g, ')').replace(/\*$/, '').trim(), description: m[2].trim() };
+}

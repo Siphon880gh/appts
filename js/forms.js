@@ -6,7 +6,7 @@ import { typeBadge } from './icons.js';
 import { richEditor, bindEditor, editorValue, noteHTML } from './richText.js';
 import { uploadFile, documentFiles, fileURL, imageURL, DOCUMENT_ACCEPT } from './images.js';
 import { store, save, put, remove, notice } from './store.js';
-import { esc, openDialog, closeDialog, dialogHead, tagChip, tagsFor, conditionName, plural, relLabel, hhPanel } from './ui.js';
+import { esc, condOptionAttrs, openDialog, closeDialog, dialogHead, tagChip, tagsFor, conditionName, plural, relLabel, hhPanel } from './ui.js';
 
 // ---- tag picker: chips + type-ahead; Enter or "+ Create" makes a tag on the fly ----------
 export function tagPickerHTML(id) {
@@ -145,7 +145,7 @@ export function openEntryForm(entry, { typeId, conditionId } = {}) {
   const conditions = doc.conditions.filter(c => c.status !== 'archived' || c.id === condId);
   const html = `<form id="entry-form" novalidate>${dialogHead(entry ? `Edit ${type.singular.toLowerCase()}` : `Add ${type.singular.toLowerCase()}`, type.name, typeBadge(type, 'lg'))}<div class="dialog-body">
     <div class="field-grid"><div class="wide"><label for="entry-title">${esc(type.titleLabel || 'Title')} <span class="req" aria-hidden="true">*</span></label><input id="entry-title" name="title" required maxlength="200" value="${esc(entry?.title)}" autofocus></div>
-    <div class="wide"><label for="entry-condition">Condition</label><select id="entry-condition" name="conditionId">${conditions.map(c => `<option value="${esc(c.id)}"${c.id === condId ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>
+    <div class="wide"><label for="entry-condition">Condition</label><select id="entry-condition" name="conditionId">${conditions.map(c => `<option value="${esc(c.id)}"${condOptionAttrs(c)}${c.id === condId ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>
     ${type.fields.map(f => fieldInput(f, entry?.values?.[f.id], condId, type.id)).join('')}</div>
     ${S.retiredValues(type, entry || { values: {} }).length ? `<div class="retired"><h3>Kept from removed fields</h3><p class="fine">These values stay with the entry. Restore the field on the Entry types page to edit them.</p>${S.retiredValues(type, entry).map(r => `<div><b>${esc(r.field.label)}:</b> ${esc(S.displayValue(doc, r.field, r.value))}</div>`).join('')}</div>` : ''}
     <div class="form-section">${tagPickerHTML('entry-tags')}</div>
@@ -226,6 +226,7 @@ export async function deleteEntry(id) {
 export function openConditionForm(condition) {
   const doc = store.doc, color = condition?.color || S.TYPE_COLORS[doc.conditions.length % S.TYPE_COLORS.length];
   const html = `<form novalidate>${dialogHead(condition ? 'Edit condition' : 'Add a condition', 'Condition / diagnosis')}<div class="dialog-body"><div class="field-grid">
+    <div class="wide cond-desc-field"><label for="c-desc">Description <small class="muted">— shown when you hover the name in lists and pickers</small></label><textarea id="c-desc" name="description" rows="2" maxlength="1000" placeholder="e.g. the full diagnosis, stage, or what makes it urgent">${esc(condition?.description)}</textarea></div>
     <div class="wide"><label for="c-name">Condition name <span class="req" aria-hidden="true">*</span></label><input id="c-name" name="name" required maxlength="120" value="${esc(condition?.name)}" placeholder="e.g. Left knee osteoarthritis" autofocus></div>
     <div><label for="c-status">Status</label><select id="c-status" name="status">${['active', 'resolved', 'archived'].map(s => `<option value="${s}"${(condition?.status || 'active') === s ? ' selected' : ''}>${s[0].toUpperCase() + s.slice(1)}</option>`).join('')}</select></div>
     <div><label for="c-dx">Diagnosed</label><input id="c-dx" type="date" name="diagnosedOn" value="${esc(condition?.diagnosedOn)}"></div>
@@ -243,9 +244,12 @@ export function openConditionForm(condition) {
     form.onsubmit = async e => {
       e.preventDefault();
       try {
-        const name = form.elements.name.value.trim(); if (!name) throw Error('Give the condition a name.');
+        let name = form.elements.name.value.trim(), description = form.elements.description.value.trim();
+        // "Short name [description]" in the name box splits into the two parts when the description is empty.
+        if (!description) { const split = S.splitConditionName(name); if (split.description) ({ name, description } = split); }
+        if (!name) throw Error('Give the condition a name.');
         const { attachments, newLabels } = zone.value();
-        const value = { ...(condition || { id: S.newId('cond'), sortOrder: doc.conditions.length }), name, status: form.elements.status.value, diagnosedOn: form.elements.diagnosedOn.value, summary: form.elements.summary.value.trim(), color: form.elements.color.value, notes: editorValue(notesRoot, { optional: true }), attachments };
+        const value = { ...(condition || { id: S.newId('cond'), sortOrder: doc.conditions.length }), name, description, status: form.elements.status.value, diagnosedOn: form.elements.diagnosedOn.value, summary: form.elements.summary.value.trim(), color: form.elements.color.value, notes: editorValue(notesRoot, { optional: true }), attachments };
         await save([...newLabels.map(l => put('docLabel', l)), put('condition', value)], condition ? 'Condition updated.' : 'Condition added.');
         closeDialog(el);
         if (!condition) location.hash = `#/c/${value.id}`;
@@ -268,7 +272,7 @@ export function openQuickUpload(conditionId = '') {
   const cid = conditionId || conds[0].id;
   const entriesFor = c => doc.entries.filter(e => e.conditionId === c).sort((a, b) => a.title.localeCompare(b.title));
   const html = `<form novalidate>${dialogHead('Upload documents', 'Lab results, notes, letters, photos')}<div class="dialog-body"><div class="field-grid">
-    <div><label for="qu-cond">Condition</label><select id="qu-cond" name="conditionId">${conds.map(c => `<option value="${esc(c.id)}"${c.id === cid ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>
+    <div><label for="qu-cond">Condition</label><select id="qu-cond" name="conditionId">${conds.map(c => `<option value="${esc(c.id)}"${condOptionAttrs(c)}${c.id === cid ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>
     <div><label for="qu-entry">Attach to</label><select id="qu-entry" name="entryId"></select></div></div>
     ${docZoneHTML('quick-docs')}<p class="form-error" role="alert"></p></div><div class="dialog-foot"><button type="button" data-close>Cancel</button><button class="primary" type="submit">Save documents</button></div></form>`;
   openDialog(html, el => {

@@ -199,7 +199,7 @@ export async function sync() {
 function labelFor(kind, id) {
   const col = { condition: 'conditions', type: 'types', entry: 'entries', tag: 'tags', docLabel: 'docLabels', filter: 'filters' }[kind];
   const r = (store.doc?.[col] || []).find(x => x.id === id);
-  if (kind === 'filter') return 'Disruptions filter';
+  if (kind === 'filter') return /^view-/.test(id) ? `Saved view “${r?.name || id}”` : 'Disruptions filter';
   return `${kind === 'entry' ? 'Entry' : kind === 'type' ? 'Type' : kind === 'condition' ? 'Condition' : kind} “${r?.title || r?.name || id}”`;
 }
 
@@ -294,7 +294,7 @@ async function loadPlanInto(d) {
   catch (err) { box.innerHTML = `<p class="form-error">${esc(err.message)}</p>`; return; }
   if (!d.open || !d.contains(box)) return;
   const prev = O.readState().selection;
-  box.innerHTML = plan.conditions.map(c => `<label class="check"><input type="checkbox" name="offline-cond" value="${esc(c.id)}"${!prev || prev === 'all' || prev.includes(c.id) ? ' checked' : ''}> <span>${esc(c.name)}</span> <small class="muted">${c.uploads.length} document${c.uploads.length === 1 ? '' : 's'} · ${formatBytes(c.bytes)}</small></label>`).join('') || '<p class="muted">No conditions yet.</p>';
+  box.innerHTML = plan.conditions.map(c => `<label class="check"><input type="checkbox" name="offline-cond" value="${esc(c.id)}"${!prev || prev === 'all' || prev.includes(c.id) ? ' checked' : ''}> <span${c.description ? ` title="${esc(c.description)}"` : ''}>${esc(c.name)}</span> <small class="muted">${c.uploads.length} document${c.uploads.length === 1 ? '' : 's'} · ${formatBytes(c.bytes)}</small></label>`).join('') || '<p class="muted">No conditions yet.</p>';
   const storage = await navigator.storage?.estimate?.().catch(() => null);
   const update = () => {
     const ids = [...box.querySelectorAll('input:checked')].map(i => i.value);

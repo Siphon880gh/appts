@@ -61,4 +61,24 @@ ok(!plan.ops.some(o => o.key === 'k6'), 'sync: created then deleted offline send
 const plan2 = planSync([{ key: 'd', kind: 'entry', id: 'e3', base: entry({ id: 'e3', title: 'Changed on server' }), ours: null }], server);
 ok(plan2.ops.length === 1 && plan2.ops[0].op.op === 'delete', 'sync: an offline delete of an unchanged record is sent');
 ok(same(remapIds({ a: 'x'.repeat(3) + '.png', b: ['xxx.png'] }, { 'xxx.png': 'yyy.png' }), { a: 'yyy.png', b: ['yyy.png'] }), 'sync: a file id assigned differently by the server is remapped everywhere');
+// Saved views (t27u) and condition descriptions (t30u) ride the same offline sync.
+{
+  const view = { id: 'view-blocked-abc123', kind: 'view', name: 'Blocked', typeIds: [], tagIds: ['t1'], disruptions: false, conditionId: '', range: 'all' };
+  let v = applyLocal(doc(), [{ op: 'put', kind: 'filter', value: view }]);
+  ok(v.filters.length === 1 && v.filters[0].name === 'Blocked', 'views: a saved view put offline lands in filters');
+  v = applyLocal(v, [{ op: 'delete', kind: 'tag', id: 't1' }]);
+  ok(same(v.filters[0].tagIds, []), 'views: deleting a tag offline strips it from saved views too');
+  v = applyLocal(v, [{ op: 'delete', kind: 'filter', id: view.id }]);
+  ok(v.filters.length === 0, 'views: a saved view can be deleted offline');
+  let threw = false; try { applyLocal(doc(), [{ op: 'delete', kind: 'filter', id: 'disruptions' }]); } catch { threw = true; }
+  ok(threw, 'views: the built-in Disruptions filter cannot be deleted offline');
+  const srv = { ...doc(), filters: [view] };
+  const p = planSync([{ key: 'v1', kind: 'filter', id: view.id, base: view, ours: null }], srv);
+  ok(p.ops.length === 1 && p.ops[0].op.op === 'delete' && p.ops[0].op.kind === 'filter', 'views: an offline delete of an unchanged view is sent at sync');
+  const mv = mergeRecord('filter', view, { ...view, tagIds: ['t1', 't2'] }, { ...view, name: 'Blocked / hiccups' });
+  ok(mv.value.name === 'Blocked / hiccups' && same([...mv.value.tagIds].sort(), ['t1', 't2']), 'views: a rename on the server and a tag added offline both survive');
+  const c0 = { id: 'c1', name: 'Knee', description: '' };
+  const mc = mergeRecord('condition', c0, { ...c0, description: 'Left knee OA, grade 3' }, { ...c0, name: 'Left knee' });
+  ok(mc.value.name === 'Left knee' && mc.value.description === 'Left knee OA, grade 3', 'conditions: a description added offline merges with a rename on the server');
+}
 console.log(`merge.test.mjs: ${checks} checks passed`);

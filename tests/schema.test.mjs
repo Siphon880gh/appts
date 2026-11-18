@@ -229,3 +229,21 @@ console.log('PASS: document helpers (types, labels, filters, grouping).');
   ok(S.filterEvents(demo, S.allEvents(demo), { query: 'patient at clinic' }).some(e => e.entryId === 'hh-v6'), 'search finds a missed-visit reason');
   console.log('PASS: home health countdown.');
 }
+
+{ // Saved views (t27u) and condition short name + description (t30u)
+  const d = { ...demo, filters: [] };
+  const tag = d.tags[0], type = d.types[0];
+  const state = { typeIds: new Set([type.id]), tagIds: new Set([tag.id]), disruptions: false, conditionId: '', range: 'all' };
+  const v = S.viewFromState(d, 'Blocked / hiccups', state);
+  ok(S.isViewId(v.id) && v.name === 'Blocked / hiccups', 'a view gets a view-… id and its name');
+  d.filters.push(v, { ...v, id: 'view-gone', name: 'Old', tagIds: ['tag-missing'], typeIds: [], range: 'bogus' });
+  eq(S.savedViews(d).map(x => x.name), ['Blocked / hiccups', 'Old'], 'savedViews lists views (not the Disruptions record)');
+  ok(S.viewIsActive(d, v, state), 'a view is active when the Timeline shows exactly its filters');
+  ok(!S.viewIsActive(d, v, { ...state, disruptions: true }), 'turning Disruptions on means the view is no longer the one showing');
+  const restored = S.stateFromView(d, d.filters[1]);
+  ok(restored.tagIds.size === 0 && restored.range === 'all', 'ids that no longer exist and bad ranges are dropped when a view is applied');
+  eq(S.splitConditionName('Left Lateral Heel (ALM*)[Acral lentiginous melanoma, rare]'), { name: 'Left Lateral Heel (ALM)', description: 'Acral lentiginous melanoma, rare' }, 'Name[description] splits, and the * hint is dropped from the name');
+  eq(S.splitConditionName('Knee pain'), { name: 'Knee pain', description: '' }, 'a plain name stays whole');
+  eq(S.conditionDescription({ name: 'x' }), '', 'older conditions without a description read as empty');
+  console.log('PASS: saved views and condition descriptions.');
+}

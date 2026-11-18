@@ -24,6 +24,14 @@ export function dateBlock(date) {
   const d = new Date(`${date}T12:00:00`);
   return `<span class="date-block" aria-hidden="true"><span>${d.toLocaleDateString(undefined, { month: 'short' })}</span><b>${d.getDate()}</b><span>${d.toLocaleDateString(undefined, { weekday: 'short' })}</span></span>`;
 }
+/** A condition's short name; with a description it gets a hover title, a small * marker, and the
+ *  description as visually hidden text so screen readers hear it too (t30u). */
+export function condNameHTML(c) {
+  const d = S.conditionDescription(c);
+  return d ? `<span class="cond-name has-desc" title="${esc(d)}">${esc(c.name)}<span class="cond-desc-mark" aria-hidden="true">*</span><span class="skip"> — ${esc(d)}</span></span>` : esc(c?.name);
+}
+/** Attributes for an <option> naming a condition: the description as its hover title. */
+export const condOptionAttrs = c => { const d = S.conditionDescription(c); return d ? ` title="${esc(d)}"` : ''; };
 export function conditionName(id) { return store.doc.conditions.find(c => c.id === id)?.name || 'Unknown condition'; }
 
 /** One line that tells you the most about an entry: status, who, where. */
