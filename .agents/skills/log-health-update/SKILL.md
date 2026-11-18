@@ -110,6 +110,8 @@ Report what was saved, then tell the user to reload Appts and open the condition
 - **Attachments**: PDFs up to 20 MB, and PNG, JPEG, GIF, or WebP images up to 8 MB. Files are copied into `storage/uploads/<account>/` and the originals are left where they are. A file that's already attached is skipped.
 - **Notes** are plain text: a blank line starts a new paragraph. On updates, notes are appended to the existing notes.
 - `update` only fills fields that are **empty**, adds tags, appends notes, and adds documents. It refuses to change a filled-in value or a title. When something changed (a status went from Pending to Approved, say), record it as a new entry such as an insurance event, or as an appended note, and tell the user they can edit the old value in the app.
+- `conditionUpdate` may also carry `"rename": "Short name"` (an explicit rename) and `"description": "Longer description"`. A description is only filled when the condition has none; an existing one is left as is with a warning. The app shows the short name everywhere and the description on hover (and at the top of the edit form).
+- `views` (optional) creates or updates **Saved views** on the Timeline, matched by name (any case): `"views": [{"name": "Blocked / hiccups", "tags": ["blocked-hiccups"], "types": ["visit"], "disruptions": false, "condition": "this", "range": "all"}]`. `tags` reuse existing tags by name (new names become tags), `types` take type ids or names, `condition` is a condition id or `"this"` for the plan's condition, and `range` is `all`, `upcoming`, or `past`.
 - The whole plan is checked with the app's own rules first. If anything is wrong, nothing is written and the error names the entry and field.
 
 ## Command reference

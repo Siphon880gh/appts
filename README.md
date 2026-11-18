@@ -109,8 +109,16 @@ To change what it includes, turn it on and choose **Edit Disruption mode**. Ever
 ![Disruptions filter](docs/screenshots/timeline-disruptions.png)
 ![Edit Disruption mode](docs/screenshots/disruption-edit.png)
 
+### Saved views
+
+Turn on any mix of type chips, tag chips, Disruptions, a condition, and past/upcoming, then choose **+ Save current view** and give it a name. It appears as a ★ chip in the **Saved views** row; one click brings back exactly those filters, and **×** deletes the view (entries are not affected). Views are saved per account and sync like any other change, Offline mode included. Deleting a tag removes it from saved views.
+
 ![Timeline filtered to the Follow-up needed tag](docs/screenshots/timeline-filtered.png)
 ![Upcoming view](docs/screenshots/upcoming.png)
+
+### Condition descriptions
+
+A condition can have a short name plus an optional **description**. Lists, cards, the condition header, and every condition picker show the short name; hover it (or use a screen reader) to get the description. The description sits at the top of **Edit condition**. Typing `Short name [longer description]` into the name box, with the description empty, splits it for you.
 
 ## Tags
 
