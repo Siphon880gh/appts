@@ -26,3 +26,6 @@
 .playwright-mcp/
 /tests/.artifacts/
 __pycache__/
+
+# Local settings (APP_ENV, APP_BASE_URL); .example.env is the committed template.
+/.env

@@ -24,7 +24,7 @@ class Server:
         self.proc = None
     def start(self):
         env = dict(os.environ, APPTS_STORAGE_DIR=self.storage_dir, PHP_CLI_SERVER_WORKERS='4')
-        self.proc = subprocess.Popen([PHP, '-d', 'upload_max_filesize=20M', '-d', 'post_max_size=24M', '-S', f'127.0.0.1:{self.port}', '-t', str(ROOT)], cwd=ROOT, env=env,
+        self.proc = subprocess.Popen([PHP, '-d', 'upload_max_filesize=20M', '-d', 'post_max_size=24M', '-S', f'127.0.0.1:{self.port}', '-t', str(ROOT), str(ROOT / 'tools' / 'router.php')], cwd=ROOT, env=env,
                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
         for _ in range(100):
             try:

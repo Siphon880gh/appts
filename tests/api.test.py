@@ -18,6 +18,11 @@ server = Server(storage).start()
 pw = demo_password()
 try:
     anon = Client(server)
+    # t35u: dotfiles (.env with APP_BASE_URL, .example.env) are never served by php -S (tools/router.php).
+    for f in ['.env', '.example.env', '.htaccess', '.gitignore']:
+        st = anon.raw(f)[0]
+        ok(st == 403, f'{f} is not served by php -S ({st})')
+    ok(anon.raw('manifest.php')[0] == 200 and anon.raw('')[0] == 200, 'the app still serves through the router')
     ok(anon.api('session') == (200, {'account': None}), 'anonymous session is empty')
     ok(anon.api('data')[0] == 401, 'data requires sign-in')
     ok(anon.login('demo', pw + 'x')[0] == 401, 'wrong password rejected')
@@ -97,8 +102,8 @@ try:
     ok(any(p.name == 'wf.json.php' for p in files) and any(p.name == img + '.php' for p in files), 'data and image files exist on disk')
     for p in files:
         st, body, _ = anon.raw(str(p.relative_to(ROOT)))
-        if p.name == '.htaccess':  # php -S ignores .htaccess; it only holds the Apache rule
-            ok(body.strip() == b'Require all denied', '.htaccess holds no data'); continue
+        if p.name == '.htaccess':  # dotfiles are 403 through the router; the file only holds the Apache rule
+            ok(st == 403 and b'conditions' not in body, f'{p.relative_to(ROOT)} is 403 (dotfile)'); continue
         ok(st == 404 and b'conditions' not in body and PNG not in body and b'$2y$' not in body, f'{p.relative_to(ROOT)} not served (got {st})')
     for p in ['storage/', f'storage/{name}/', f'storage/{name}/data/']:
         st, body, _ = anon.raw(p); ok(st == 404 and b'conditions' not in body, f'{p} is 404')

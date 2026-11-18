@@ -21,12 +21,14 @@ if [ -x "$PHP74" ]; then
   find . -name '*.php' -not -path './storage/*' -print0 | xargs -0 -n1 "$PHP74" -l >/dev/null
   echo "ok - all PHP files lint clean on $("$PHP74" -r 'echo PHP_VERSION;')"
   step "storage (7.4)" 1 "$PHP74" tests/storage.test.php
+  step ".env (7.4)" 1 "$PHP74" tests/env.test.php
   step "intake CLI (7.4)" 1 env APPTS_PHP="$PHP74" "$PHP74" tests/intake.test.php
 else
   echo "FAIL: PHP 7.4 binary not found at $PHP74 (set APPTS_PHP74)"; exit 1
 fi
 step storage 1 "$PHP" tests/storage.test.php
 step "intake CLI" 1 env APPTS_PHP="$PHP" "$PHP" tests/intake.test.php
+step ".env" 1 "$PHP" tests/env.test.php
 step schema 3 node tests/schema.test.mjs
 step merge 1 node tests/merge.test.mjs
 step "disruptions + mentions (unit)" 1 node tests/disruptions-mentions.test.mjs

@@ -8,3 +8,14 @@
     php_value upload_max_filesize 20M
     php_value post_max_size 24M
 </IfModule>
+
+# .env (APP_ENV, APP_BASE_URL) and .example.env stay private; so do other dotfiles.
+<FilesMatch "^\.">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
