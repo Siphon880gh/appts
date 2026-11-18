@@ -4,6 +4,7 @@ require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/domain.php';
 require_once __DIR__ . '/includes/demo-seed.php';
 require_once __DIR__ . '/includes/uploads.php';
+require_once __DIR__ . '/includes/offline.php';
 
 if (!ini_get('date.timezone')) date_default_timezone_set('America/Los_Angeles');
 header('X-Content-Type-Options: nosniff');
@@ -46,6 +47,8 @@ try {
     // Writes must be POST with the custom header (blocks cross-site form posts); cookie is SameSite=Strict too.
     if ($method === 'POST' && ($_SERVER['HTTP_X_APPTS'] ?? '') !== '1') reply(['error' => 'Missing request header.'], 403);
 
+    // The one request Offline mode lets through to the network: is there a newer version of the app?
+    if ($action === 'version' && $method === 'GET') reply(['version' => app_version()]);
     if ($action === 'session' && $method === 'GET') {
         $account = current_account();
         session_write_close();
@@ -65,6 +68,8 @@ try {
     $user = $account['username'];
 
     if ($action === 'data' && $method === 'GET') reply(['doc' => load_doc($account), 'account' => $account]);
+    // What Offline mode saves for this account only: shell, views, data, and this account's uploads.
+    if ($action === 'offline-plan' && $method === 'GET') reply(offline_plan($user, load_doc($account)));
 
     if ($action === 'ops' && $method === 'POST') {
         $body = json_body();
