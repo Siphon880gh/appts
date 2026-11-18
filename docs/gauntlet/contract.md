@@ -36,6 +36,7 @@ A critic compares Appts screenshots with the reference blind and picks the clear
 | G24 | A custom document label created on the fly is saved and offered/reused on the next upload | api + browser tests PASS |
 | G25 | Documents page filters by file type and by label (chips derived from existing uploads) | node + browser tests PASS |
 | G26 | Cross-account access to an upload (PDF or image) is denied | api test PASS |
+| G27 | PHP 7.4 compatibility (MAMP mod_php 7.4.33) and 8.4: every PHP file lints on both; storage tests pass on 7.4; full suite passes with `APPTS_PHP=<7.4 binary>`; live MAMP check returns JSON | `tests/run-all.sh` + `APPTS_PHP=… sh tests/run-all.sh` |
 | G13 | Fresh critic reviews headless screenshots + live app and returns WIN | `state.json` verdict log |
 
 ## Hard boundaries

@@ -8,7 +8,7 @@ import { ICON_KEYS, iconSVG, typeBadge, hasIcon } from '../js/icons.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const TODAY = '2026-11-17';
-const php = code => JSON.parse(execFileSync('php', ['-r', `require "includes/demo-seed.php"; echo json_encode(${code});`], { cwd: root }).toString());
+const php = code => JSON.parse(execFileSync(process.env.APPTS_PHP || 'php', ['-r', `require "includes/demo-seed.php"; echo json_encode(${code});`], { cwd: root }).toString());
 const demo = php(`demo_doc("${TODAY}")`);
 const blank = php('new_doc()');
 let checks = 0;

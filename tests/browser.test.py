@@ -4,12 +4,12 @@ timeline type/tag filters, paste + drop images/PDFs, rich-text persistence, inje
 filters, 390px overflow, and README screenshots. Run: python3 tests/browser.test.py [--no-screens]"""
 import base64, json, os, pathlib, shutil, subprocess, sys, tempfile
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
-from serve import ROOT, Server, demo_password
+from serve import ROOT, Server, demo_password, PHP
 from playwright.sync_api import sync_playwright
 
 SCREENS = ROOT / 'docs' / 'screenshots'
 WANT_SCREENS = '--no-screens' not in sys.argv
-php = lambda code: subprocess.run(['php', '-r', f'require "includes/demo-seed.php"; {code}'], cwd=ROOT, capture_output=True, check=True).stdout
+php = lambda code: subprocess.run([PHP, '-r', f'require "includes/demo-seed.php"; {code}'], cwd=ROOT, capture_output=True, check=True).stdout
 PNG_B64 = base64.b64encode(php('echo synthetic_png("Pasted screenshot", [40, 90, 140]);')).decode()
 PDF_B64 = base64.b64encode(php('echo synthetic_pdf("Pasted lab PDF", ["CBC (test)"]);')).decode()
 checks = 0

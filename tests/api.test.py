@@ -2,9 +2,9 @@
 storage blocking, concurrency, data-preserving type edits. Run: python3 tests/api.test.py"""
 import concurrent.futures, json, pathlib, shutil, subprocess, sys, uuid
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
-from serve import ROOT, Server, Client, PNG, demo_password
+from serve import ROOT, Server, Client, PNG, demo_password, PHP
 import subprocess as sp
-PDF = sp.run(['php', '-r', 'require "includes/demo-seed.php"; echo synthetic_pdf("Test lab", ["value 1"]);'], cwd=ROOT, capture_output=True, check=True).stdout
+PDF = sp.run([PHP, '-r', 'require "includes/demo-seed.php"; echo synthetic_pdf("Test lab", ["value 1"]);'], cwd=ROOT, capture_output=True, check=True).stdout
 
 checks = 0
 def ok(cond, what):

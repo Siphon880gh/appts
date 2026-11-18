@@ -1,6 +1,9 @@
 """Shared helpers: start/stop php -S on a free port and talk to api.php with a cookie jar."""
 import base64, http.cookiejar, json, os, pathlib, re, signal, socket, subprocess, time, urllib.error, urllib.request
 
+# APPTS_PHP picks the PHP binary (e.g. MAMP's 7.4) for php -S and php -r; defaults to `php` on PATH.
+PHP = os.environ.get('APPTS_PHP') or 'php'
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 AVOID = {8099, 8416, 8500, 8505, 8518, 8554}
 
@@ -21,7 +24,7 @@ class Server:
         self.proc = None
     def start(self):
         env = dict(os.environ, APPTS_STORAGE_DIR=self.storage_dir, PHP_CLI_SERVER_WORKERS='4')
-        self.proc = subprocess.Popen(['php', '-d', 'upload_max_filesize=20M', '-d', 'post_max_size=24M', '-S', f'127.0.0.1:{self.port}', '-t', str(ROOT)], cwd=ROOT, env=env,
+        self.proc = subprocess.Popen([PHP, '-d', 'upload_max_filesize=20M', '-d', 'post_max_size=24M', '-S', f'127.0.0.1:{self.port}', '-t', str(ROOT)], cwd=ROOT, env=env,
                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
         for _ in range(100):
             try:
