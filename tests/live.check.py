@@ -120,6 +120,9 @@ with sync_playwright() as p:
     shown = ' '.join(page.locator('main .event-list').all_inner_texts())
     ok('MRI prior authorization denied' in shown and 'Radiation authorization approved' not in shown and page.locator('[data-action=tl-dis-edit]').count() == 1, 'Disruptions preset shows insurance denials, not approvals, through Apache (G52)')
     page.click('[data-action=tl-disruptions]'); page.evaluate("location.hash = '#/'"); page.wait_for_selector('.condition-card')
+    page.click('#more-btn'); page.wait_for_selector('#more-menu:not([hidden]) [data-action=logout]')
+    ok(page.locator('#more-btn').get_attribute('aria-expanded') == 'true' and 'Reset demo data' in page.locator('#more-menu').inner_text(), 'the "…" menu opens with the account and demo options through Apache (G58)')
+    page.keyboard.press('Escape'); page.wait_for_selector('#more-menu[hidden]', state='attached')
     shot = ROOT / 'docs' / 'screenshots' / 'mamp-overview.png'
     page.screenshot(path=str(shot), full_page=True)
     ok(errors == [], f'no page errors: {errors}')
