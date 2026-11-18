@@ -29,3 +29,6 @@ __pycache__/
 
 # Local settings (APP_ENV, APP_BASE_URL); .example.env is the committed template.
 /.env
+
+# PDF page-1 thumbnails are derived files; regenerate with php tools/thumbs.php <account>.
+/storage/uploads/*/*.thumb.jpg.php

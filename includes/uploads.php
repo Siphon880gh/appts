@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/storage.php';
 require_once __DIR__ . '/sanitize.php';
+require_once __DIR__ . '/thumbs.php';
 
 // Uploads: images (inline in notes, or documents) and PDFs (documents). Content-addressed
 // by SHA-256, validated by magic bytes + MIME, stored as guarded .php files per account.
@@ -37,6 +38,7 @@ function store_bytes(string $account, string $bytes): array {
     $file = inspect_file_bytes($bytes);
     $path = upload_file($account, $file['id']);
     if (!is_file($path)) atomic_write($path, guarded_encode($bytes));
+    if ($file['kind'] === 'pdf') make_pdf_thumb($account, $file['id'], $bytes); // page-1 preview when a generator exists; never fatal
     $file['createdAt'] = gmdate('c', (int) filemtime($path));
     return $file;
 }

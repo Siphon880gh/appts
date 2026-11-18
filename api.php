@@ -43,6 +43,7 @@ function load_doc(array $account): array {
 
 try {
     $action = (string) ($_GET['action'] ?? '');
+    if ($action === '' && isset($_GET['thumb'])) { $action = 'thumb'; $_GET['id'] = (string) $_GET['thumb']; } // api.php?thumb=<id>
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
     // Writes must be POST with the custom header (blocks cross-site form posts); cookie is SameSite=Strict too.
     if ($method === 'POST' && ($_SERVER['HTTP_X_APPTS'] ?? '') !== '1') reply(['error' => 'Missing request header.'], 403);
@@ -102,6 +103,19 @@ try {
     }
     if ($action === 'images' && $method === 'GET') reply(['images' => list_uploads($user, true)]);
     if ($action === 'files' && $method === 'GET') reply(['files' => list_uploads($user)]);
+    if ($action === 'thumb' && $method === 'GET') {
+        // Page-1 JPEG of a PDF (t64u): cached, or generated now if this server has a generator.
+        $id = (string) ($_GET['id'] ?? '');
+        if (!preg_match('/^[a-f0-9]{64}\.pdf$/D', $id) || read_upload($user, $id) === null) reply(['error' => 'File not found.'], 404);
+        $jpg = read_pdf_thumb($user, $id);
+        if ($jpg === null) reply(['error' => 'No thumbnail on this server.'], 404);
+        header('Content-Type: image/jpeg');
+        header('Content-Length: ' . strlen($jpg));
+        header('Cache-Control: private, max-age=86400');
+        header("Content-Security-Policy: default-src 'none'; sandbox");
+        echo $jpg;
+        exit;
+    }
     if (($action === 'image' || $action === 'file') && $method === 'GET') {
         $id = (string) ($_GET['id'] ?? '');
         $bytes = read_upload($user, $id);

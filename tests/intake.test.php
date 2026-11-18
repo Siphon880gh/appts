@@ -63,7 +63,7 @@ ok(in_array('hh-ev-case-mgr', array_column(json_decode($out, true), 'id'), true)
 $before = doc('demo');
 $beforeRaw = file_get_contents(doc_path('demo'));
 $backups0 = count(list_backups('demo'));
-$uploads0 = count(glob("$dir/uploads/demo/*") ?: []);
+$uploads0 = count(array_filter(glob("$dir/uploads/demo/*") ?: [], function ($f) { return substr($f, -14) !== '.thumb.jpg.php'; }));
 $p1 = plan([
     'condition' => 'cond-skin',
     'create' => [
@@ -79,7 +79,7 @@ ok($code === 0 && strpos($out, 'DRY RUN') === 0, 'dry run succeeds');
 ok(strpos($out, 'update[2] Visit "Ortho follow-up" is in another condition') !== false, 'updating an entry outside the chosen condition is flagged');
 ok(strpos($out, '+ new Home health authorization: "Wound care nursing: 6 more visits"') !== false && strpos($out, 'Authorization: Wound care nursing: 6 more visits') !== false && strpos($out, '~ update Home health visit') !== false, 'preview lists new entries, cross-links by title, and updates');
 ok(strpos($out, '+ new tag "Intake test"') !== false && strpos($out, '+ new document label "Authorization fax"') !== false && strpos($out, '[Progress Note]') !== false, 'preview shows new tags/labels and reuses existing ones (any case)');
-ok(file_get_contents(doc_path('demo')) === $beforeRaw && count(list_backups('demo')) === $backups0 && count(glob("$dir/uploads/demo/*") ?: []) === $uploads0, 'dry run writes no document, backup, or upload');
+ok(file_get_contents(doc_path('demo')) === $beforeRaw && count(list_backups('demo')) === $backups0 && count(array_filter(glob("$dir/uploads/demo/*") ?: [], function ($f) { return substr($f, -14) !== '.thumb.jpg.php'; })) === $uploads0, 'dry run writes no document, backup, or upload');
 
 // ---- apply (G37, G38)
 [$code, $out, $err] = cli(['apply', 'demo', $p1]);
@@ -89,7 +89,7 @@ ok(count(list_backups('demo')) === $backups0 + 1, 'one write, backed up first');
 $bfiles = glob(storage_root() . '/backups/demo/*.json.php') ?: [];
 sort($bfiles);
 ok(file_get_contents((string) end($bfiles)) === $beforeRaw, 'the backup holds the exact previous file');
-ok(count(glob("$dir/uploads/demo/*") ?: []) === $uploads0 + 2, 'two new files copied into uploads');
+ok(count(array_filter(glob("$dir/uploads/demo/*") ?: [], function ($f) { return substr($f, -14) !== '.thumb.jpg.php'; })) === $uploads0 + 2, 'two new files copied into uploads');
 $auth3 = by_title($after, 'Wound care nursing: 6 more visits');
 $ev = by_title($after, 'Asked agency to request more visits');
 $visit = by_title($after, 'Dressing change (intake)');
