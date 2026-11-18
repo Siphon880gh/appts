@@ -609,5 +609,181 @@
     "kind": "checkbox"
    }
   ]
+ },
+ {
+  "id": "hh_auth",
+  "name": "Home health authorizations",
+  "singular": "Home health authorization",
+  "icon": "clipboard",
+  "color": "#1f6f5c",
+  "titleLabel": "Authorization",
+  "primaryDateField": "start",
+  "fields": [
+   {
+    "id": "agency",
+    "label": "Agency",
+    "kind": "text"
+   },
+   {
+    "id": "discipline",
+    "label": "Nurse / discipline",
+    "kind": "select",
+    "allowCustom": true,
+    "options": [
+     "Skilled nursing",
+     "Wound care nurse",
+     "Physical therapy",
+     "Occupational therapy",
+     "Home health aide"
+    ]
+   },
+   {
+    "id": "visits_authorized",
+    "label": "Authorized visits",
+    "kind": "number",
+    "required": true
+   },
+   {
+    "id": "start",
+    "label": "Start date",
+    "kind": "date"
+   },
+   {
+    "id": "end",
+    "label": "End date",
+    "kind": "date"
+   },
+   {
+    "id": "reference",
+    "label": "Auth / reference #",
+    "kind": "text"
+   },
+   {
+    "id": "status",
+    "label": "Status",
+    "kind": "select",
+    "allowCustom": true,
+    "options": [
+     "Pending approval",
+     "Approved",
+     "Waiting for further approval",
+     "Used up",
+     "Expired",
+     "Denied"
+    ]
+   },
+   {
+    "id": "insurance_event",
+    "label": "Insurance event",
+    "kind": "link",
+    "target": "insurance_event"
+   },
+   {
+    "id": "letter",
+    "label": "Authorization letter",
+    "kind": "link",
+    "target": "letter"
+   },
+   {
+    "id": "previous",
+    "label": "Continues authorization",
+    "kind": "link",
+    "target": "hh_auth"
+   }
+  ]
+ },
+ {
+  "id": "hh_visit",
+  "name": "Home health visits",
+  "singular": "Home health visit",
+  "icon": "home",
+  "color": "#3d5a80",
+  "titleLabel": "Visit",
+  "primaryDateField": "date",
+  "fields": [
+   {
+    "id": "date",
+    "label": "Visit date",
+    "kind": "date",
+    "required": true
+   },
+   {
+    "id": "time",
+    "label": "Time",
+    "kind": "text"
+   },
+   {
+    "id": "nurse",
+    "label": "Nurse / clinician",
+    "kind": "text"
+   },
+   {
+    "id": "authorization",
+    "label": "Authorization",
+    "kind": "link",
+    "target": "hh_auth"
+   },
+   {
+    "id": "outcome",
+    "label": "Outcome",
+    "kind": "select",
+    "allowCustom": true,
+    "options": [
+     "Scheduled",
+     "Completed",
+     "Missed: waiting for insurance approval",
+     "Missed: nurse unavailable",
+     "Missed: patient at clinic",
+     "Rescheduled"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "hh_event",
+  "name": "Home health events",
+  "singular": "Home health event",
+  "icon": "phone",
+  "color": "#8a4f7d",
+  "titleLabel": "Event",
+  "primaryDateField": "date",
+  "fields": [
+   {
+    "id": "date",
+    "label": "Date",
+    "kind": "date",
+    "required": true
+   },
+   {
+    "id": "event_kind",
+    "label": "Event",
+    "kind": "select",
+    "allowCustom": true,
+    "options": [
+     "Waiting for further approval",
+     "Spoke to home health case manager",
+     "Re-authorization requested",
+     "New visits approved",
+     "Agency rescheduled",
+     "Nurse changed"
+    ]
+   },
+   {
+    "id": "contact",
+    "label": "Spoke with",
+    "kind": "text"
+   },
+   {
+    "id": "authorization",
+    "label": "Authorization",
+    "kind": "link",
+    "target": "hh_auth"
+   },
+   {
+    "id": "follow_up",
+    "label": "Follow up by",
+    "kind": "date"
+   }
+  ]
  }
 ]
