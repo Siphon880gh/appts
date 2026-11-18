@@ -1,4 +1,5 @@
 import { api } from './api.js';
+import { queueing, queueFile } from './outbox.js';
 export const IMAGE_ID = /^[a-f0-9]{64}\.(png|jpg|gif|webp)$/;
 export const FILE_ID = /^[a-f0-9]{64}\.(png|jpg|gif|webp|pdf)$/;
 export const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
@@ -15,6 +16,7 @@ function check(file, allowed) {
   if (file.size > max * 1024 * 1024) throw Error(`Choose a ${file.type === 'application/pdf' ? 'PDF' : 'image'} smaller than ${max} MB.`);
 }
 async function send(file) {
+  if (queueing()) return queueFile(file); // Offline mode: keep the file on this device until sync
   const form = new FormData(); form.append('file', file, file.name || (file.type === 'application/pdf' ? 'document.pdf' : 'pasted-image.png'));
   return (await api('upload', { form })).file;
 }
