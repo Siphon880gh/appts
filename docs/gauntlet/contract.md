@@ -49,6 +49,16 @@ A critic compares Appts screenshots with the reference blind and picks the clear
 | G37 | Dry run writes nothing; apply writes once, after a backup, with typed values, @ref links, tags/labels created or reused, attachments copied guarded and byte-identical; warns about likely duplicates, re-attachments, and other-condition updates | `tests/intake.test.php` PASS |
 | G38 | Intake never deletes or overwrites: filled values and titles refused, bad dates/selects/links/files refused with the entry and field named, nothing written on any error; tests never use `wf`, real `storage/` untouched | `tests/intake.test.php` PASS |
 | G39 | Entries written by the CLI show in the running app after reload (row, tag, value, document label, notes); SKILL.md frontmatter valid and its plan example dry-runs | browser + intake tests PASS |
+| G40 | Offline mode toggle in the header (fits at 390px); service worker registers with the app folder as scope under php -S and under MAMP's subpath | offline + browser + live tests PASS |
+| G41 | `offline-plan` is sign-in only, lists the shell, a URL per view (one per condition), the data JSON via the API, and the account's uploads with byte sizes, deduplicated, with an estimate; another account's conditions and uploads never appear | offline + live tests PASS |
+| G42 | (i) `<dialog>` explainer with an inline SVG (doctor, clinic without guest Wi-Fi, phone with the saved copy): "Turn this on first, while you're still online"; Escape closes it | offline test PASS + offline-info.png |
+| G43 | Turning on: choose conditions, estimate versus `storage.estimate()`, `storage.persist()`, fill with the fill header showing "n of N"; not enough space stops cleanly and the mode stays off | offline test PASS |
+| G44 | Status panel shows on/off, last saved, saved items, size, and changes waiting to sync | offline test PASS + offline-panel.png |
+| G45 | Version from the shell files in the worker and manifest URLs; `sw.php` not cached; manifest scoped to the app folder; `action=version` open | offline + live tests PASS |
+| G46 | When on, every same-origin GET comes from the copy even with the server running (only the version check reaches it): with the server stopped, dir/, index.php, index.php?anything, every view, a PDF, and an image open; unknown pages show "Not saved for offline use" | offline + live tests PASS |
+| G47 | While on, an entry edit, a new entry with a pasted image, and a type edit are queued on the device (IndexedDB), shown at once, and still shown after an offline reload | offline test PASS |
+| G48 | Sync is blocked while on; turning off offers it; sync merges three-way with a server edit made meanwhile and every change reaches the server (checked over the API); sign-out warns and waits while changes are unsynced, and afterwards removes the account copy | offline + merge tests PASS |
+| G49 | A new version while on re-saves the copy, installs the new worker, stays on, and reloads into it | offline test PASS |
 | G13 | Fresh critic reviews headless screenshots + live app and returns WIN | `state.json` verdict log |
 
 ## Hard boundaries

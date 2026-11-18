@@ -83,3 +83,12 @@ Source of truth for the request: `docs/gauntlet/request.md` (verbatim). Quality 
 - Decision: accounts are limited to `accounts.php` plus accounts that already have a stored document, so tests can use a temporary account without adding a login.
 - No Add-with-AI harness panel exists in Appts, so there's nothing to mention the skill in.
 
+## E14 — Offline mode (relayed from Weng via APP All Root, t17-appts)
+- Ported from Postop's Offline mode (OFFLINE_MODE.md "Reusing this in another PHP app"). Postop was read-only and untouched.
+- A header toggle plus (i) explainer (inline SVG of a doctor at a clinic without guest Wi-Fi: turn this on first, while you're still online), and a status panel (on/off, last saved, items, size, waiting changes).
+- `sw.php` worker: when on, every same-origin GET is answered from Cache Storage (exact, normalized, saved app page, friendly miss page). Only the version check reaches the network.
+- `api.php?action=offline-plan`: shell, views, data JSON, and the account's uploads with sizes, deduplicated, own account only.
+- Writes while on (or while unsynced) are queued in IndexedDB, including pasted images and PDFs. Sync after turning off is a three-way merge that never loses data (a clash keeps the server value and writes ours into the notes).
+- A new version re-saves the copy, keeps the mode on, and reloads. Sign-out waits for sync, then clears the account copy.
+- Decisions: records and app always saved, documents chosen per condition; the version covers every shell file (Appts is many modules); `sw.php` at the app root so the scope is right under MAMP and php -S.
+

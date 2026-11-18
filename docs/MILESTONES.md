@@ -17,3 +17,4 @@ Each milestone ends with its gates green and a small focused commit set. Gate id
 | M6 | Docs + screenshots: README, `.impeccable.md`, IMPLEMENTATION.md, headless screenshots; fresh critic review; loop until WIN | E6 | G13 critic WIN, all gates green |
 | M7 | Home health: authorization/visit/event types, countdown and warnings, v3 migration, demo story | E12 | G33, G34, G35 |
 | M8 | AI intake: log-health-update skill + tools/intake.php CLI + tests | E13 | G36–G39 |
+| M9 | Offline mode: version, manifest, sw.php, offline-plan, toggle/panel/explainer, IndexedDB queue, three-way sync, tests | E14 | G40–G49 |

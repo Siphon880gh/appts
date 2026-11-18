@@ -132,6 +132,13 @@ Removing a field or archiving a type **never deletes data**. Removed fields' val
 
 <img src="docs/screenshots/mobile-overview.png" width="260" alt="Overview at 390px"> <img src="docs/screenshots/mobile-condition.png" width="260" alt="Condition at 390px">
 
+## Offline mode
+For clinics that don't share their internet. **Turn it on first, while you're still online:** the **Offline Off/On** button in the header opens a panel. Choose which conditions' documents to keep (records and the app are always saved), check the size against the free space shown, and press **Turn on Offline mode** (it shows "Saving n of N…"). After that every page, including the front page URL, every view, and the saved documents open from the copy on the device, even with no connection. Changes made there (edits, new entries, pasted photos, entry type edits) stay on the device. Back online, turn the mode off and press **Sync**: Appts merges them with anything changed on the server meanwhile, and a clash keeps the server value and writes yours into the notes. Signing out waits until everything is synced, then removes the copy. The (i) button explains it with a picture.
+
+![Offline mode panel](docs/screenshots/offline-panel.png) ![What is Offline mode?](docs/screenshots/offline-info.png)
+
+Needs a browser with service workers on `http://localhost` (MAMP or php -S) or https. Design and rules: [docs/OFFLINE_MODE.md](docs/OFFLINE_MODE.md).
+
 ## Where data lives
 
 All data is stored on the server, per account, under `storage/` (or `APPTS_STORAGE_DIR`):
@@ -171,8 +178,10 @@ sh tests/run-all.sh --screens       # also regenerate docs/screenshots
 | `tests/schema.test.mjs` | Type, field, timeline, filter, tag, icon, contrast, and document helpers; home health countdown math |
 | `tests/api.test.py` | Real `php -S`: logins, account isolation, blocked storage URLs, concurrent writes, restart persistence, uploads, labels |
 | PHP 7.4 gate | `php -l` on every file with MAMP's 7.4 binary plus the storage tests on 7.4. Set `APPTS_PHP=<binary>` to run the whole suite on another PHP. |
-| `tests/live.check.py` | Against a running MAMP/Apache: JSON API, both logins, cookie path, uploads (including 17 MB), blocked storage and server-only dirs, isolation, paste, screenshot |
+| `tests/live.check.py` | Against a running MAMP/Apache: JSON API, both logins, cookie path, uploads (including 17 MB), blocked storage and server-only dirs, isolation, paste, service worker scope under the subpath and Offline mode, screenshot |
 | `tests/browser.test.py` | Playwright: sign-in, custom types and fields, paste and drag-drop uploads, tags, rich notes, XSS stripping, Documents filters, home health countdown and warnings, 390px layout |
+| `tests/offline.test.py` | Playwright + `php -S`: Offline mode on with the server up, then the server stopped (every view, a PDF, an image, miss page), queued edits and a pasted image, restart, sync merged with a server edit, version update, full-disk stop, sign-out cleanup; demo plus a temp account, never `wf` |
+| `tests/merge.test.mjs` | Offline sync merge rules: local apply, overlay, three-way merge, delete/restore cases, op order, id remap |
 
 The browser test needs Python Playwright with Chromium. `--screens` uses installed Google Chrome when it's present (`APPTS_BROWSER_CHANNEL=chrome`, temporary profile) because Playwright's headless shell can't render PDFs. Tests use temporary storage and never touch `storage/`.
 
@@ -185,6 +194,7 @@ The browser test needs Python Playwright with Chromium. `--screens` uses install
 - `includes/auth.php`, `includes/accounts.php`, `tools/set-password.php`: accounts.
 - `js/app.js` (views), `js/forms.js` (forms and detail), `js/typesPage.js`, `js/schema.js` (pure domain), `js/documents.js`, `js/icons.js`, `js/richText.js`, `js/store.js`, `js/api.js`, `js/images.js`, `js/ui.js`.
 - `tools/intake.php`, `.agents/skills/log-health-update/SKILL.md`: the AI intake helper and skill. `tools/migrate-dry-run.php`: preview a document migration on a copy.
+- `sw.php` + `includes/sw.js`, `manifest.php`, `assets/`, `includes/version.php`, `includes/offline.php`, `js/offline.js`, `js/outbox.js`, `js/merge.js`: Offline mode (see `docs/OFFLINE_MODE.md`).
 - `docs/`: epics, milestones, prompts, implementation notes, and the gauntlet contract and state.
 
 Appts is a personal record-keeper, not a medical device or an official health record. Demo data is fictional.
