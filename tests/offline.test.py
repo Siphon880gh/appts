@@ -233,6 +233,16 @@ try:
         # ---- G48: sign-out (nothing pending) clears this account's offline copy
         pg.click('#account-actions [data-action=logout]'); pg.wait_for_selector('#login-form')
         ok(not any(k.startswith('appts-offline-acct-') or k == 'appts-offline-shell' for k in pg.evaluate("caches.keys()")) and pg.evaluate("localStorage.getItem('appts-offline')") is None, 'sign-out removes the account copy and turns the mode off (G48)')
+        # ---- G40: the toggle fits a 390px phone
+        mob = browser.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2).new_page()
+        mob.on('pageerror', lambda e: errors.append(str(e)))
+        mob.goto(base); mob.click('#fill-demo'); mob.click('#login-form [type=submit]'); mob.wait_for_selector('.condition-card')
+        ok(mob.evaluate('document.documentElement.scrollWidth') <= 390 and mob.locator('#account-actions .offline-pill').is_visible(), 'the Offline toggle fits at 390px with no horizontal overflow (G40)')
+        if WANT_SCREENS: mob.screenshot(path=SCREENS / 'offline-mobile.png', clip={'x': 0, 'y': 0, 'width': 390, 'height': 260})
+        mob.click('#account-actions .offline-pill'); mob.wait_for_selector('#offline-dialog [data-offline=on]:not([disabled])')
+        ok(mob.evaluate("document.querySelector('#offline-dialog').scrollWidth <= document.querySelector('#offline-dialog').clientWidth"), 'the Offline panel fits at 390px')
+        if WANT_SCREENS: mob.screenshot(path=SCREENS / 'offline-mobile-panel.png')
+        mob.close()
         ok(not errors, f'no page errors ({errors[:2]})')
         browser.close()
     ok(len(json.loads(php('require "includes/domain.php"; echo json_encode(read_doc("otheracct"));', {'APPTS_STORAGE_DIR': str(tmp)}))['conditions']) == 1, 'the other temp account is untouched')
