@@ -6,7 +6,9 @@ By Weng (Weng Fei Fung)
 <a target="_blank" href="https://www.linkedin.com/in/weng-fung/" rel="nofollow"><img src="https://img.shields.io/badge/LinkedIn-blue?style=flat&logo=linkedin&labelColor=blue" alt="Linked-In" style="max-width:10ch;"></a>
 <a target="_blank" href="https://www.youtube.com/@WengTeachesCode/" rel="nofollow"><img src="https://img.shields.io/badge/Youtube-red?style=flat&logo=youtube&labelColor=red" alt="Youtube" style="max-width:10ch;"></a>
 
-A personal medical-visit tracker organized by **condition**. For each condition you keep the doctors and specialists, visits (including lab work), authorization and referral letters, insurance appeals, medical supplies, care routines, treatments, clinical events, insurance events, and other care disruptions, all linked together. A timeline and an upcoming view show everything that's dated, and a Documents area collects every uploaded PDF and image.
+**Appointments and insurance getting out of hand?** Some conditions mean many visits, scans, and insurance back-and-forth, for you or someone you care for. Appts keeps the appointments, insurance, and progress for each condition in one place.
+
+Appts is a personal medical-visit tracker organized by **condition**. For each condition you keep the doctors and specialists, visits (including lab work), authorization and referral letters, insurance appeals, medical supplies, care routines, treatments, clinical events, insurance events, and other care disruptions, all linked together. A timeline and an upcoming view show everything that's dated, and a Documents area collects every uploaded PDF and image.
 
 The design keeps the accountability app's training-log look (navy ink, warm paper, condensed headings) with a sky-blue accent. It aims for patient-portal clarity: what's next, who you're seeing, and whether referrals and appeals are on track. The design rules are in [.impeccable.md](.impeccable.md).
 
