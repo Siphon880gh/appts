@@ -145,6 +145,17 @@ All data is stored on the server, per account, under `storage/` (or `APPTS_STORA
 
 Every stored file is a `.php` file that starts with `<?php http_response_code(404); exit; ?>`, so even `php -S` without a router returns 404 instead of the bytes. Apache also gets `storage/.htaccess` (`Require all denied`). Writes are atomic (temp file plus rename) under an exclusive lock. Files are served only through `api.php` after the session check, with `nosniff`. Images also get a sandbox CSP.
 
+## Log updates with an AI agent
+
+`.agents/skills/log-health-update/SKILL.md` lets an AI coding agent working in this folder (Cursor, Claude Code, and similar) turn whatever you drop in, such as photos, screenshots, PDFs, or a few sentences about what happened, into Appts records:
+
+1. The agent asks which account (`demo` or `wf`) and which condition, or offers to create a new one. It never asks for a password, because it works on the files directly.
+2. It reads the files, extracts the facts, and maps them to that account's own entry types, custom ones included.
+3. It shows a short preview of the entries it will create or update and waits for you to confirm.
+4. It saves them through `tools/intake.php`, which uses the same storage code as the app: locked, atomic writes with a backup first. Files are copied into uploads with a document label, and tags and cross-links are added. The helper never deletes anything and never overwrites a value that's already filled in.
+
+Reload Appts to see the new entries. For the plan format and commands, see the skill, or run `php tools/intake.php help`.
+
 ## Tests
 
 ```sh
@@ -155,7 +166,8 @@ sh tests/run-all.sh --screens       # also regenerate docs/screenshots
 | Test | Covers |
 | --- | --- |
 | `php -l` | Every PHP file |
-| `tests/storage.test.php` | Guarded storage, atomic writes, locks, backups, sanitizer, domain ops |
+| `tests/storage.test.php` | Guarded storage, atomic writes, locks, backups, sanitizer, domain ops, migrations |
+| `tests/intake.test.php` | `tools/intake.php` on `demo` and a temporary account (never `wf`): listing, dry run, append-only apply, links, tags, labels, uploads, refusals, and the SKILL.md example. Runs on PHP 8 and 7.4. |
 | `tests/schema.test.mjs` | Type, field, timeline, filter, tag, icon, contrast, and document helpers; home health countdown math |
 | `tests/api.test.py` | Real `php -S`: logins, account isolation, blocked storage URLs, concurrent writes, restart persistence, uploads, labels |
 | PHP 7.4 gate | `php -l` on every file with MAMP's 7.4 binary plus the storage tests on 7.4. Set `APPTS_PHP=<binary>` to run the whole suite on another PHP. |
@@ -172,6 +184,7 @@ The browser test needs Python Playwright with Chromium. `--screens` uses install
 - `includes/domain.php`, `includes/seed-types.json`, `includes/demo-seed.php`: types, validation, operations, and synthetic demo data.
 - `includes/auth.php`, `includes/accounts.php`, `tools/set-password.php`: accounts.
 - `js/app.js` (views), `js/forms.js` (forms and detail), `js/typesPage.js`, `js/schema.js` (pure domain), `js/documents.js`, `js/icons.js`, `js/richText.js`, `js/store.js`, `js/api.js`, `js/images.js`, `js/ui.js`.
+- `tools/intake.php`, `.agents/skills/log-health-update/SKILL.md`: the AI intake helper and skill. `tools/migrate-dry-run.php`: preview a document migration on a copy.
 - `docs/`: epics, milestones, prompts, implementation notes, and the gauntlet contract and state.
 
 Appts is a personal record-keeper, not a medical device or an official health record. Demo data is fictional.

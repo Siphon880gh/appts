@@ -76,3 +76,10 @@ Source of truth for the request: `docs/gauntlet/request.md` (verbatim). Quality 
 - **Migration (document version 3):** appends the three types to accounts that don't have them, after the account's own types. Steps are gated by the version they start from, so a v2 account never re-runs the v2 rename. Records are never touched, and the normal pre-write backup runs first.
 - Demo: the scalp condition has a used-up first authorization, three missed visits (one per reason), a waiting-for-approval event, a case manager call, and a second authorization with 2 of 5 left.
 
+## E13 — AI intake skill (added by Weng, t15u-appts)
+- `.agents/skills/log-health-update/SKILL.md` is for AI coding agents working in the repo. It asks which account (listed from `includes/accounts.php`) and which condition (listed, or a new one), never asks for a password, extracts facts from images, PDFs, and text, maps them to the account's current entry types (custom included), shows a preview, and applies the plan on confirmation.
+- `tools/intake.php` (PHP 7.4+) provides `accounts`, `conditions`, `types`, `entries`, and `apply [--dry-run]`. It reuses `includes/storage.php` (lock, atomic write, backup first) and the app's own `apply_ops` validation, and the whole plan is checked before anything is written. Attachments go through the app's upload rules into `storage/uploads/<account>/` with reusable document labels. Tags are created on the fly and `@ref` links work within a plan.
+- Append-only by design: updates fill only empty fields, add tags, append notes, and add documents. Changing a filled value or a title is refused with a suggestion. Plans have no delete operation.
+- Decision: accounts are limited to `accounts.php` plus accounts that already have a stored document, so tests can use a temporary account without adding a login.
+- No Add-with-AI harness panel exists in Appts, so there's nothing to mention the skill in.
+

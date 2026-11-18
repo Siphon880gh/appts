@@ -45,6 +45,10 @@ A critic compares Appts screenshots with the reference blind and picks the clear
 | G33 | Home health countdown: "X of N authorized visits left" on the authorization, condition sidebar, and overview; low (2 or fewer), used-up, and awaiting-approval warnings; survives reload | node + browser + live tests PASS |
 | G34 | Only Completed visits count; each missed reason (insurance approval, nurse unavailable, patient at clinic, typed) is listed and never counted; home health events filter on the timeline | node + browser tests PASS |
 | G35 | Migration v2→v3 appends the home health types after existing ones, backs up first, is idempotent, leaves every existing type and record byte-identical, never re-runs v2 steps; dry run on a copy of `wf` shows only type changes | storage + api tests PASS + `tools/migrate-dry-run.php wf` |
+| G36 | Intake CLI lists accounts (no hashes), conditions, types (with options/allowCustom, custom types), and entries | `tests/intake.test.php` PASS (PHP 8.4 + 7.4) |
+| G37 | Dry run writes nothing; apply writes once, after a backup, with typed values, @ref links, tags/labels created or reused, attachments copied guarded and byte-identical; warns about likely duplicates, re-attachments, and other-condition updates | `tests/intake.test.php` PASS |
+| G38 | Intake never deletes or overwrites: filled values and titles refused, bad dates/selects/links/files refused with the entry and field named, nothing written on any error; tests never use `wf`, real `storage/` untouched | `tests/intake.test.php` PASS |
+| G39 | Entries written by the CLI show in the running app after reload (row, tag, value, document label, notes); SKILL.md frontmatter valid and its plan example dry-runs | browser + intake tests PASS |
 | G13 | Fresh critic reviews headless screenshots + live app and returns WIN | `state.json` verdict log |
 
 ## Hard boundaries
