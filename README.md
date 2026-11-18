@@ -120,6 +120,10 @@ Turn on any mix of type chips, tag chips, Disruptions, a condition, and past/upc
 
 A condition can have a short name plus an optional **description**. Lists, cards, the condition header, and every condition picker show the short name; hover it (or use a screen reader) to get the description. The description sits at the top of **Edit condition**. Typing `Short name [longer description]` into the name box, with the description empty, splits it for you.
 
+### Local settings (.env)
+
+Copy `.example.env` to `.env` and keep one block: `APP_ENV=local` with `APP_BASE_URL=http://localhost:8888/weng/app/healthcare/appts/` (MAMP), or `APP_ENV=production` with `APP_BASE_URL=https://wengindustries.com/app/healthcare/appts/`. `.env` is git-ignored and blocked from the web (`.htaccess` on Apache, `tools/router.php` on `php -S`). The base URL is used where an absolute URL helps: the manifest id, the service worker scope, the live check's default target, and the intake helper's links. Without a `.env`, everything uses relative paths.
+
 ## Tags
 
 Tags are optional. Type a new name in a record's tag picker and press Enter to create one on the fly. Records can have several tags.

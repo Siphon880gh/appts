@@ -69,7 +69,7 @@ Show the user a short, plain-language preview built from that output: each entry
 php tools/intake.php apply <account> /tmp/appts-plan.json
 ```
 
-Report what was saved, then tell the user to reload Appts and open the condition (the output ends with its `#/c/<id>` link). Delete the temporary plan file afterwards. Don't commit anything under `storage/`, since it's git-ignored real data.
+Report what was saved, then tell the user to reload Appts and open the condition (the output ends with its link: the full URL `APP_BASE_URL#/c/<id>` when `.env` sets `APP_BASE_URL`, for example http://localhost:8888/weng/app/healthcare/appts/#/c/<id> locally, otherwise just `#/c/<id>`). Delete the temporary plan file afterwards. Don't commit anything under `storage/`, since it's git-ignored real data.
 
 ## Plan format
 
