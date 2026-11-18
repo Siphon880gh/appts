@@ -1,0 +1,10 @@
+# Apache + mod_php (e.g. MAMP) ignores .user.ini, so set the upload limits here.
+# Wrapped in IfModule so servers without mod_php (php-fpm, php -S) are unaffected.
+<IfModule mod_php7.c>
+    php_value upload_max_filesize 20M
+    php_value post_max_size 24M
+</IfModule>
+<IfModule mod_php.c>
+    php_value upload_max_filesize 20M
+    php_value post_max_size 24M
+</IfModule>
