@@ -59,6 +59,8 @@ A critic compares Appts screenshots with the reference blind and picks the clear
 | G47 | While on, an entry edit, a new entry with a pasted image, and a type edit are queued on the device (IndexedDB), shown at once, and still shown after an offline reload | offline test PASS |
 | G48 | Sync is blocked while on; turning off offers it; sync merges three-way with a server edit made meanwhile and every change reaches the server (checked over the API); sign-out warns and waits while changes are unsynced, and afterwards removes the account copy | offline + merge tests PASS |
 | G49 | A new version while on re-saves the copy, installs the new worker, stays on, and reloads into it | offline test PASS |
+| G50 | Header: the Offline group (button + (i)) is the first child of the actions bar, followed by a thin `nav-sep` rule, then name, Reset demo, Sign out; on narrow screens (390/375px) the Offline group has its own row, the separator is hidden, and nothing overflows | offline test PASS + header-desktop.png, header-narrow.png |
+| G51 | The (i) explainer opens with the bold, brand-colored headline "Want to show clinical information to your doctor?" above the clinic picture | offline test PASS + offline-info.png |
 | G13 | Fresh critic reviews headless screenshots + live app and returns WIN | `state.json` verdict log |
 
 ## Hard boundaries
