@@ -1,8 +1,11 @@
 // Adapted from accountability's rich note editor: same toolbar, paste, drop, and expand behavior.
 import {IMAGE_ID,imageURL,uploadImage,listImages,imageFiles} from './images.js';
+import {bindMentions} from './mentions.js';
+import {store} from './store.js';
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const allowed=new Set(['P','BR','DIV','STRONG','B','EM','I','U','S','UL','OL','LI','BLOCKQUOTE','H3','A']);
-export function cleanHTML(html,{display=false}={}) {
+// display: image src filled in; interactive: @mention chips open their target (reading, not editing).
+export function cleanHTML(html,{display=false,interactive=false}={}) {
   const source=document.createElement('template');source.innerHTML=html;
   const output=document.createElement('div');
   function copy(node,parent){
@@ -16,6 +19,7 @@ export function cleanHTML(html,{display=false}={}) {
       if(display){image.src=imageURL(id);image.loading='lazy';image.referrerPolicy='no-referrer';}
       parent.append(image);return;
     }
+    if(node.tagName==='SPAN'&&node.hasAttribute('data-mention')){parent.append(mentionNode(node.getAttribute('data-mention'),node.getAttribute('data-ref'),node.textContent,interactive)||document.createTextNode(node.textContent));return;}
     if(!allowed.has(node.tagName)){node.childNodes.forEach(n=>copy(n,parent));return;}
     const element=document.createElement(node.tagName.toLowerCase());
     if(node.tagName==='A'){
@@ -25,10 +29,19 @@ export function cleanHTML(html,{display=false}={}) {
   }
   source.content.childNodes.forEach(n=>copy(n,output));return output.innerHTML;
 }
-export function noteHTML(note){return note.html?cleanHTML(note.html,{display:true}):escape(note.text||'').replace(/\n/g,'<br>');}
+const MENTION_REF={file:/^[a-f0-9]{64}\.(png|jpg|gif|webp|pdf)$/,entry:/^[A-Za-z0-9_-]{1,64}$/,condition:/^[A-Za-z0-9_-]{1,64}$/};
+/** @mention chip (same rules as sanitize_html): kind + id + plain label; clickable only when displayed. */
+export function mentionNode(kind,ref,label,interactive=false){
+  if(!MENTION_REF[kind]||!MENTION_REF[kind].test(ref||''))return null;
+  const span=document.createElement('span');span.className='mention';span.dataset.mention=kind;span.dataset.ref=ref;span.contentEditable='false';
+  span.textContent=(String(label||'').replace(/\s+/g,' ').trim()||'@item').slice(0,200);
+  if(interactive){span.setAttribute('role','link');span.tabIndex=0;span.dataset.action='open-mention';span.dataset.id=ref;}
+  return span;
+}
+export function noteHTML(note){return note.html?cleanHTML(note.html,{display:true,interactive:true}):escape(note.text||'').replace(/\n/g,'<br>');}
 export function imageIds(html){const t=document.createElement('template');t.innerHTML=cleanHTML(html);return [...new Set([...t.content.querySelectorAll('img')].map(i=>i.dataset.imageId))];}
 export function richEditor(id,label,html='',{placeholder='Write a note…'}={}) {
- return `<div class="rich-field"><span id="${id}-label" class="field-label">${label}</span><div class="rich-toolbar" role="toolbar" aria-label="Note formatting">${[['bold','Bold'],['italic','Italic'],['underline','Underline'],['insertUnorderedList','Bullet list'],['insertOrderedList','Numbered list']].map(([c,l])=>`<button type="button" data-command="${c}">${l}</button>`).join('')}<button type="button" data-link>Link</button><button type="button" data-upload>Add image</button><button type="button" data-reuse>My images</button><button type="button" data-expand aria-label="Expand note editor" title="Open a larger writing space">⤢ Expand editor</button><input type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple hidden></div><div class="rich-body" id="${id}" contenteditable="true" role="textbox" aria-multiline="true" aria-labelledby="${id}-label" data-placeholder="${escape(placeholder)}">${cleanHTML(html,{display:true})}</div><div class="rich-picker" hidden></div><p class="editor-help">Paste (Ctrl/⌘+V) or drop an image, or add one from your library. PNG, JPEG, GIF, WebP · up to 8 MB.</p><p class="upload-status" role="status"></p></div>`;
+ return `<div class="rich-field"><span id="${id}-label" class="field-label">${label}</span><div class="rich-toolbar" role="toolbar" aria-label="Note formatting">${[['bold','Bold'],['italic','Italic'],['underline','Underline'],['insertUnorderedList','Bullet list'],['insertOrderedList','Numbered list']].map(([c,l])=>`<button type="button" data-command="${c}">${l}</button>`).join('')}<button type="button" data-link>Link</button><button type="button" data-upload>Add image</button><button type="button" data-reuse>My images</button><button type="button" data-expand aria-label="Expand note editor" title="Open a larger writing space">⤢ Expand editor</button><input type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple hidden></div><div class="rich-body" id="${id}" contenteditable="true" role="textbox" aria-multiline="true" aria-labelledby="${id}-label" data-placeholder="${escape(placeholder)}">${cleanHTML(html,{display:true})}</div><div class="rich-picker" hidden></div><p class="editor-help">Type <b>@</b> to link a document, event, or note. Paste (Ctrl/⌘+V) or drop an image, or add one from your library. PNG, JPEG, GIF, WebP · up to 8 MB.</p><p class="upload-status" role="status"></p></div>`;
 }
 export function bindEditor(root) {
  const body=root.querySelector('.rich-body'),status=root.querySelector('.upload-status'),fileInput=root.querySelector('input[type=file]');
@@ -70,6 +83,7 @@ export function bindEditor(root) {
    const html=e.clipboardData.getData('text/html'),text=e.clipboardData.getData('text/plain');
    insert(html?cleanHTML(html,{display:true}):escape(text).replace(/\n/g,'<br>'));
  };
+ bindMentions(body,{getDoc:()=>store.doc,makeChip:item=>mentionNode(item.kind,item.ref,item.chip),onChange:capture});
  body.ondragover=e=>{e.preventDefault();e.stopPropagation();};body.ondrop=e=>{e.preventDefault();e.stopPropagation();const files=imageFiles(e.dataTransfer);if(files.length)upload(files);};
  root.querySelector('[data-reuse]').onclick=async()=>{
    capture();const picker=root.querySelector('.rich-picker');if(!picker.hidden){picker.hidden=true;return;}
