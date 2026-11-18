@@ -212,7 +212,7 @@ try:
             os.utime(f, (st.st_atime, st.st_mtime + 7))
             v2 = Client(server).api('version')[1]['version']
             ok(v2 != v1, 'touching a shell file changes the app version')
-            pg.goto(base); wait_js(pg, f"(JSON.parse(localStorage.getItem('appts-offline')) || {{}}).version === '{v2}'", 20000)
+            pg.goto(base); wait_js(pg, f"(JSON.parse(localStorage.getItem('appts-offline')) || {{}}).version === '{v2}' && document.querySelector('meta[name=appts-version]').content === '{v2}'", 20000)
             pg.wait_for_selector('.condition-card')
             ok(pg.evaluate("JSON.parse(localStorage.getItem('appts-offline')).on") and pg.evaluate("document.querySelector('meta[name=appts-version]').content") == v2, 'new version: the copy is re-saved, the mode stays on, and the page reloads into it (G49)')
             ok(wait_js(pg, f"navigator.serviceWorker.getRegistration().then(r => !!r.active && r.active.scriptURL.endsWith('sw.php?v={v2}'))"), 'the new worker (URL carries the new version) takes over (G49)')

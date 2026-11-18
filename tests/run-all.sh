@@ -5,6 +5,12 @@
 #   APPTS_PHP74=/path/to/php7.4 PHP 7.4 binary for the compatibility gate (default: MAMP's)
 set -e
 cd "$(dirname "$0")/.."
+# step NAME LINES CMD...: run CMD, show its last LINES lines, and stop the suite if it fails
+# (a plain `cmd | tail` would hide the exit status).
+step() {
+  name=$1; lines=$2; shift 2; echo "== $name"
+  if out=$("$@" 2>&1); then printf '%s\n' "$out" | tail -n "$lines"; else printf '%s\n' "$out" | tail -n 15; echo "FAIL: $name"; exit 1; fi
+}
 PHP="${APPTS_PHP:-php}"
 PHP74="${APPTS_PHP74:-/Applications/MAMP/bin/php/php7.4.33/bin/php}"
 echo "== php -l ($("$PHP" -r 'echo PHP_VERSION;'))"
@@ -14,18 +20,18 @@ echo "== PHP 7.4 compatibility (G27)"
 if [ -x "$PHP74" ]; then
   find . -name '*.php' -not -path './storage/*' -print0 | xargs -0 -n1 "$PHP74" -l >/dev/null
   echo "ok - all PHP files lint clean on $("$PHP74" -r 'echo PHP_VERSION;')"
-  "$PHP74" tests/storage.test.php | tail -1
-  APPTS_PHP="$PHP74" "$PHP74" tests/intake.test.php | tail -1
+  step "storage (7.4)" 1 "$PHP74" tests/storage.test.php
+  step "intake CLI (7.4)" 1 env APPTS_PHP="$PHP74" "$PHP74" tests/intake.test.php
 else
   echo "FAIL: PHP 7.4 binary not found at $PHP74 (set APPTS_PHP74)"; exit 1
 fi
-echo "== storage";  "$PHP" tests/storage.test.php | tail -1
-echo "== intake CLI"; APPTS_PHP="$PHP" "$PHP" tests/intake.test.php | tail -1
-echo "== schema";   node tests/schema.test.mjs | tail -3
-echo "== merge";    node tests/merge.test.mjs | tail -1
-echo "== api";      python3 tests/api.test.py | tail -1
+step storage 1 "$PHP" tests/storage.test.php
+step "intake CLI" 1 env APPTS_PHP="$PHP" "$PHP" tests/intake.test.php
+step schema 3 node tests/schema.test.mjs
+step merge 1 node tests/merge.test.mjs
+step api 1 python3 tests/api.test.py
 # Screenshot runs use installed Google Chrome (temporary profile) so the PDF viewer renders; headless-shell has none.
 if [ "$1" = "--screens" ] && [ -z "$APPTS_BROWSER_CHANNEL" ] && [ -d "/Applications/Google Chrome.app" ]; then export APPTS_BROWSER_CHANNEL=chrome; fi
-echo "== browser";  python3 tests/browser.test.py "${1:---no-screens}" | tail -1
-echo "== offline";  python3 tests/offline.test.py "${1:---no-screens}" | tail -1
+step browser 1 python3 tests/browser.test.py "${1:---no-screens}"
+step offline 1 python3 tests/offline.test.py "${1:---no-screens}"
 echo "ALL GATES PASS"
