@@ -16,7 +16,8 @@ const ID_PATTERN = '/^[A-Za-z0-9_-]{1,64}$/D';
 const IMAGE_TYPES_BY_EXT = ['image/png' => 'png', 'image/jpeg' => 'jpg', 'image/gif' => 'gif', 'image/webp' => 'webp'];
 const DOC_LABEL_SEEDS = ['lab' => 'Lab', 'consultation' => 'Consultation Note', 'pcp' => 'PCP Note', 'progress' => 'Progress Note', 'imaging' => 'Imaging', 'discharge' => 'Discharge Summary', 'insurance' => 'Insurance Letter', 'other' => 'Other'];
 /** Document format version. 2 = select fields may allow free text; disruption type renamed (t11u). */
-const DOC_VERSION = 2;
+const DOC_VERSION = 3;
+const HOME_HEALTH_TYPE_IDS = ['hh_auth', 'hh_visit', 'hh_event'];
 const DATE_PATTERN = '/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/D';
 
 function seed_types(): array {
@@ -55,13 +56,17 @@ function doc_needs_migration(array $doc): bool { return (int) ($doc['version'] ?
  *  - v2: the built-in "Care disruptions" type becomes "Other care disruptions", but only while its
  *    name/singular still equal the old defaults (a user's own rename is kept); built-in select fields
  *    that the seed marks allowCustom (the Status fields) get allowCustom=true unless already set.
+ *  - v3: the home health built-ins (authorizations, visits, events) are appended when missing.
+ *  Each step runs only for documents older than that step, so a later user rename is never undone.
  * Conditions, entries, tags, labels, and attachments are never read or changed.
  */
 function migrate_doc(array $doc): array {
     if (!doc_needs_migration($doc)) return $doc;
+    $from = (int) ($doc['version'] ?? 1);
     $seed = [];
     foreach (seed_types() as $t) $seed[$t['id']] = $t;
-    if (is_array($doc['types'] ?? null)) {
+    if (!is_array($doc['types'] ?? null)) $doc['types'] = [];
+    if ($from < 2) {
         foreach ($doc['types'] as &$type) {
             if (!is_array($type) || empty($type['builtin']) || !isset($seed[$type['id'] ?? ''])) continue;
             if ($type['id'] === 'disruption') {
@@ -77,6 +82,23 @@ function migrate_doc(array $doc): array {
             }
         }
         unset($type);
+    }
+    if ($from < 3) {
+        // v3: add the home health built-ins. Only types whose id is missing are appended, after the
+        // account's own ordering; an existing type with the same id is left exactly as it is.
+        $have = [];
+        $maxOrder = -1;
+        foreach ($doc['types'] as $type) {
+            if (!is_array($type)) continue;
+            $have[$type['id'] ?? ''] = true;
+            $maxOrder = max($maxOrder, (int) ($type['sortOrder'] ?? 0));
+        }
+        foreach (HOME_HEALTH_TYPE_IDS as $id) {
+            if (isset($have[$id]) || !isset($seed[$id])) continue;
+            $type = $seed[$id];
+            $type['sortOrder'] = ++$maxOrder;
+            $doc['types'][] = $type;
+        }
     }
     $doc['version'] = DOC_VERSION;
     return $doc;

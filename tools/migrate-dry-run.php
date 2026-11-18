@@ -50,10 +50,11 @@ foreach (array_keys($before) as $k) {
     $n = is_array($before[$k]) ? count($before[$k]) : 1;
     $line($enc($before[$k]) === $enc($after[$k] ?? null), "'$k' byte-identical ($n)");
 }
-$line(count($before['types'] ?? []) === count($after['types'] ?? []), 'same number of types');
+$oldIds = array_column($before['types'] ?? [], 'id');
+$line(array_slice(array_column($after['types'] ?? [], 'id'), 0, count($oldIds)) === $oldIds, 'every existing type kept, in its order (' . count($oldIds) . ' -> ' . count($after['types'] ?? []) . ' types; only new built-ins appended)');
 $line(count(glob($tmp . '/backups/' . $account . '/*.json.php') ?: []) === ($after === $before ? 0 : 1), 'copy was backed up before the migration write');
 $line(hash_file('sha256', $realPath) === $realHash && file_get_contents($realPath) === $rawBefore, 'real stored file untouched');
 $line(count(glob(dirname($realPath, 2) . '/backups/' . $account . '/*.json.php') ?: []) === count($realBackups), 'no backup added to the real account');
 exec('rm -rf ' . escapeshellarg($tmp));
-echo $fail ? "DRY RUN FOUND $fail PROBLEM(S)\n" : "DRY RUN OK: only type definitions (and version) would change.\n";
+echo $fail ? "DRY RUN FOUND $fail PROBLEM(S)\n" : "DRY RUN OK: only type definitions (and version) would change; no record is touched.\n";
 exit($fail ? 1 : 0);
