@@ -148,6 +148,7 @@ export function openEntryForm(entry, { typeId, conditionId } = {}) {
     <div class="wide"><label for="entry-condition">Condition</label><select id="entry-condition" name="conditionId">${conditions.map(c => `<option value="${esc(c.id)}"${condOptionAttrs(c)}${c.id === condId ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>
     ${type.fields.map(f => fieldInput(f, entry?.values?.[f.id], condId, type.id)).join('')}</div>
     ${S.retiredValues(type, entry || { values: {} }).length ? `<div class="retired"><h3>Kept from removed fields</h3><p class="fine">These values stay with the entry. Restore the field on the Entry types page to edit them.</p>${S.retiredValues(type, entry).map(r => `<div><b>${esc(r.field.label)}:</b> ${esc(S.displayValue(doc, r.field, r.value))}</div>`).join('')}</div>` : ''}
+    <div class="form-section key-hl-field"><label for="entry-highlight"><span class="hl-star" aria-hidden="true">★</span> Key highlight <small class="muted">— one line that stands out on this event in every list</small></label><textarea id="entry-highlight" name="highlight" rows="2" maxlength="2000" placeholder="The single most important fact about this event">${esc(entry?.highlight)}</textarea></div>
     <div class="form-section">${tagPickerHTML('entry-tags')}</div>
     <div class="form-section"><h3>Notes</h3>${richEditor('entry-notes', 'Rich-text notes', entry?.notes?.html ? noteHTML(entry.notes) : '', { placeholder: 'What happened, what was said, what to remember…' })}</div>
     <div class="form-section"><h3>Documents</h3>${docZoneHTML('entry-docs')}</div>
@@ -174,7 +175,7 @@ export function openEntryForm(entry, { typeId, conditionId } = {}) {
         if (problems.length) throw Error(problems.join(' '));
         const { tagIds, newTags } = tags(), { attachments, newLabels } = zone.value();
         submit.disabled = true;
-        await save([...newTags.map(t => put('tag', t)), ...newLabels.map(l => put('docLabel', l)), put('entry', { ...draft, tagIds, attachments, notes: editorValue(notesRoot, { optional: true }) })], entry ? 'Entry updated.' : `${type.singular} added.`);
+        await save([...newTags.map(t => put('tag', t)), ...newLabels.map(l => put('docLabel', l)), put('entry', { ...draft, highlight: form.elements.highlight.value.trim(), tagIds, attachments, notes: editorValue(notesRoot, { optional: true }) })], entry ? 'Entry updated.' : `${type.singular} added.`);
         closeDialog(el);
         openEntryDetail(draft.id);
       } catch (err) { error.textContent = err.message; submit.disabled = false; }
@@ -205,6 +206,7 @@ export function openEntryDetail(id) {
   }).join('');
   const retired = S.retiredValues(type, entry), backs = S.backlinks(doc, entry.id);
   const html = `${dialogHead(entry.title, `${type.singular} · ${conditionName(entry.conditionId)}`, typeBadge(type, 'lg'))}<div class="dialog-body">
+    ${String(entry.highlight || '').trim() ? `<div class="key-hl" role="note"><span class="hl-star" aria-hidden="true">★</span><div><b>Key highlight</b><p>${esc(entry.highlight)}</p></div></div>` : ''}
     ${entry.typeId === S.HH.auth ? hhPanel(entry) : ''}
     ${rows ? `<dl class="values">${rows}</dl>` : '<p class="muted">No details filled in yet.</p>'}
     ${retired.length ? `<div class="retired"><h3>Kept from removed fields</h3><dl class="values">${retired.map(r => `<dt>${esc(r.field.label)}</dt><dd>${esc(S.displayValue(doc, r.field, r.value))}</dd>`).join('')}</dl></div>` : ''}
@@ -290,6 +292,32 @@ export function openQuickUpload(conditionId = '') {
         await save([...newLabels.map(l => put('docLabel', l)), put(entrySel.value ? 'entry' : 'condition', { ...target, attachments: merged })], `${plural(attachments.length, 'document')} saved.`);
         closeDialog(el);
       } catch (err) { form.querySelector('.form-error').textContent = err.message; }
+    };
+  });
+}
+
+// ---- Memo (t61u): notes to self for one condition, plain text with its spacing kept ----------
+export function openMemo(conditionId) {
+  const c = store.doc.conditions.find(x => x.id === conditionId);
+  if (!c) return notice('That condition no longer exists.');
+  const html = `<form id="memo-form" class="memo-form" novalidate>${dialogHead('Memo', c.name)}<div class="dialog-body">
+    <p class="memo-explain">Memo is where you keep notes to yourself, such as documents you’ll incorporate here and to-dos.</p>
+    <label for="memo-text" class="skip">Memo for ${esc(c.name)}</label>
+    <textarea id="memo-text" name="memo" rows="14" maxlength="20000" placeholder="To add: …&#10;To do: …">${esc(c.memo || '')}</textarea>
+    <p class="fine muted">Only you see this. It is not part of the timeline.</p>
+    <p class="form-error" role="alert"></p></div>
+    <div class="dialog-foot"><button type="button" data-close>Cancel</button><button class="primary" type="submit">Save memo</button></div></form>`;
+  openDialog(html, el => {
+    const form = el.querySelector('form'), box = form.elements.memo;
+    box.focus(); box.setSelectionRange(box.value.length, box.value.length);
+    form.onsubmit = async e => {
+      e.preventDefault();
+      const submit = form.querySelector('[type=submit]'); submit.disabled = true;
+      try {
+        const latest = store.doc.conditions.find(x => x.id === conditionId) || c;
+        await save([put('condition', { ...latest, memo: box.value.replace(/\s+$/, '') })], 'Memo saved.');
+        el.dataset.dirty = ''; closeDialog(el);
+      } catch (err) { form.querySelector('.form-error').textContent = err.message; submit.disabled = false; }
     };
   });
 }
