@@ -34,7 +34,8 @@ function renderChrome() {
   if (!store.account) { nav.innerHTML = ''; actions.innerHTML = ''; return; }
   const { view } = route(), current = v => (view === v || (v === '' && view === 'c')) ? ' aria-current="page"' : '';
   nav.innerHTML = [['', 'Conditions'], ['upcoming', 'Upcoming'], ['timeline', 'Timeline'], ['documents', 'Documents'], ['types', 'Entry types']].map(([v, l]) => `<a href="#/${v}"${current(v)}>${l}</a>`).join('');
-  actions.innerHTML = `<span>${esc(store.account.displayName)}${store.account.isDemo ? ' · demo' : ''}</span>${store.account.isDemo ? '<button type="button" data-action="reset-demo">Reset demo</button>' : ''}<button type="button" data-action="logout">Sign out</button>${offline.chromeHTML()}`;
+  // Offline mode first, set apart by a thin rule, then the account controls.
+  actions.innerHTML = `${offline.chromeHTML()}<span class="nav-sep" aria-hidden="true"></span><span class="account-name">${esc(store.account.displayName)}${store.account.isDemo ? ' · demo' : ''}</span>${store.account.isDemo ? '<button type="button" data-action="reset-demo">Reset demo</button>' : ''}<button type="button" data-action="logout">Sign out</button>`;
 }
 
 // ---- login ----------------------------------------------------------------------------
