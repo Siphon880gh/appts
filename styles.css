@@ -244,9 +244,9 @@ dl.values dd{margin:0;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere
   #account-actions{margin-left:auto}
   .field-grid{grid-template-columns:1fr}
   .event{grid-template-columns:52px 28px minmax(0,1fr);gap:10px}
-  .event .rel{grid-column:3;justify-self:start}
+  .event .when{grid-column:3;justify-self:start;justify-items:start}
   .entry-row{grid-template-columns:28px minmax(0,1fr)}
-  .entry-row .rel{grid-column:2;justify-self:start}
+  .entry-row .when{grid-column:2;justify-self:start;justify-items:start}.entry-row .rel-wrap{grid-column:2;justify-self:start;justify-items:start}
   .doc-item{grid-template-columns:52px minmax(0,1fr)}
   .doc-item>*:nth-child(n+3){grid-column:1/-1}
   dl.values{grid-template-columns:1fr}
@@ -331,7 +331,7 @@ body.offline-on>header{border-bottom-color:#f0b44c}
 .dis-row.dis-out .event:hover,.dis-row.dis-out .event:focus-visible{opacity:.75}
 .dis-mark{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink)}
 .dis-row.dis-in .dis-mark{background:#8a4b00;border-color:#8a4b00;color:#fff}
-.dis-row .rel{display:none}
+.dis-row .when{display:none}
 @media (max-width:640px){.dis-row .event{padding-right:12px;padding-bottom:34px}.dis-mark{top:auto;bottom:8px;transform:none;left:auto}}
 
 /* @mentions (t18u): chips in notes and the caret popover */
@@ -393,3 +393,11 @@ header.offline-collapsed .more-offline{display:block;border-bottom:1px solid var
 .cond-desc-mark{font-size:.6em;vertical-align:super;margin-left:1px;opacity:.7}
 .cond-desc-field{background:var(--surface-2,#f6f7f9);border-left:4px solid var(--accent,#3b6ea5);padding:10px 12px;border-radius:8px}
 .cond-desc-field textarea{width:100%;font-size:1.02em}
+
+/* Dates (t36u): the date first, then how long ago / until in smaller muted text below it */
+.when{display:inline-grid;justify-items:end;gap:1px;line-height:1.2;text-align:right;white-space:nowrap}
+.when-date{font-size:13px;font-weight:700;color:var(--ink)}
+.when .rel{font-size:11px;font-weight:600;color:var(--muted)}
+.when .rel.soon{color:var(--ink);background:var(--accent);padding:1px 6px;border-radius:3px;justify-self:inherit}
+.card-next .when,.hh-used .when,.doc-card .when,dl.values .when{justify-items:start;text-align:left;vertical-align:top}
+.event.compact .when{grid-column:2;justify-self:start;justify-items:start;text-align:left;white-space:normal}

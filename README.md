@@ -229,3 +229,7 @@ The browser test needs Python Playwright with Chromium. `--screens` uses install
 - `docs/`: epics, milestones, prompts, implementation notes, and the gauntlet contract and state.
 
 Appts is a personal record-keeper, not a medical device or an official health record. Demo data is fictional.
+
+## Dates
+
+Every date that has a relative label (timeline, Next up, documents, condition cards, home health) shows the date first, e.g. "Sep 11, 2026 · 11:00 AM", with "68 days ago" / "In 14 days" / "Today" in smaller muted text below it, in one `<time datetime>` element.

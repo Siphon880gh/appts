@@ -323,6 +323,21 @@ try:
             go(mobile, '#/'); mobile.screenshot(path=SCREENS / 'mobile-overview.png', full_page=True)
             go(mobile, '#/c/cond-knee'); mobile.screenshot(path=SCREENS / 'mobile-condition.png', full_page=True)
             ok(True, f'screenshots written to {SCREENS.relative_to(ROOT)}')
+        # ---- Dates (t36u): the absolute date first, the relative label below it, in one <time datetime>
+        go(demo, '#/timeline'); demo.wait_for_selector('.event time.when')
+        w = demo.evaluate("""() => [...document.querySelectorAll('.event time.when')].map(t => {
+            const d = t.querySelector('.when-date'), r = t.querySelector('.rel');
+            return { dt: t.getAttribute('datetime'), d: d && d.textContent, r: r && r.textContent,
+                     below: !!(d && r) && r.getBoundingClientRect().top >= d.getBoundingClientRect().bottom - 1,
+                     smaller: !!(d && r) && parseFloat(getComputedStyle(r).fontSize) < parseFloat(getComputedStyle(d).fontSize) }; })""")
+        ok(len(w) > 0 and all(x['dt'] and __import__('re').match(r'^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$', x['dt']) for x in w), 'timeline dates are <time datetime="YYYY-MM-DD[THH:MM]">')
+        ok(all(__import__('re').match(r'^[A-Z][a-z]{2} \d{1,2}, \d{4}', x['d'] or '') for x in w), 'absolute date shown first, like "Sep 11, 2026"')
+        ok(all(__import__('re').match(r'^(Today|Tomorrow|Yesterday|In \d+ days?|\d+ days? ago)$', x['r'] or '') for x in w), 'relative label ("68 days ago" / "In 14 days" / "Today") under each date')
+        ok(all(x['below'] and x['smaller'] for x in w), 'relative label sits below the date in smaller text')
+        go(demo, '#/'); demo.wait_for_selector('.card-next')
+        ok(demo.locator('.card-next time.when .when-date').count() >= 1, 'condition card "Next up" shows the date, then the relative label')
+        go(demo, '#/documents'); demo.wait_for_selector('.doc-card')
+        ok(demo.locator('.doc-card time.when').count() == demo.locator('.doc-card').count(), 'each document shows its added date with the relative label')
         # ---- Saved views (t27u): save the current Timeline filters, restore them after a reload, delete
         go(demo, '#/timeline'); demo.wait_for_selector('#tl-tags')
         ok(demo.locator('[data-action=tl-view-save]').count() == 0, 'no "Save current view" until a filter is on')

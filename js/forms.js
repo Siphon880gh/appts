@@ -6,7 +6,7 @@ import { typeBadge } from './icons.js';
 import { richEditor, bindEditor, editorValue, noteHTML } from './richText.js';
 import { uploadFile, documentFiles, fileURL, imageURL, DOCUMENT_ACCEPT } from './images.js';
 import { store, save, put, remove, notice } from './store.js';
-import { esc, condOptionAttrs, openDialog, closeDialog, dialogHead, tagChip, tagsFor, conditionName, plural, relLabel, hhPanel } from './ui.js';
+import { esc, condOptionAttrs, openDialog, closeDialog, dialogHead, tagChip, tagsFor, conditionName, plural, relLabel, eventTime, hhPanel } from './ui.js';
 
 // ---- tag picker: chips + type-ahead; Enter or "+ Create" makes a tag on the fly ----------
 export function tagPickerHTML(id) {
@@ -201,7 +201,7 @@ export function openEntryDetail(id) {
     const v = entry.values?.[f.id];
     if (v === undefined || v === '' || v === null) return '';
     const shown = f.kind === 'link' && S.entryById(doc, v) ? `<button type="button" class="link" data-action="open-entry" data-id="${esc(v)}">${esc(S.displayValue(doc, f, v))}</button>` : esc(S.displayValue(doc, f, v));
-    return `<dt>${esc(f.label)}</dt><dd>${shown}${f.kind === 'date' ? ` ${relLabel(v)}` : ''}</dd>`;
+    return `<dt>${esc(f.label)}</dt><dd>${f.kind === 'date' && relLabel(v) ? relLabel(v, { time: f.id === type.primaryDateField ? eventTime(entry, { primary: true }) : '' }) : shown}</dd>`;
   }).join('');
   const retired = S.retiredValues(type, entry), backs = S.backlinks(doc, entry.id);
   const html = `${dialogHead(entry.title, `${type.singular} · ${conditionName(entry.conditionId)}`, typeBadge(type, 'lg'))}<div class="dialog-body">
