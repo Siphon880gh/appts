@@ -3,6 +3,7 @@ import * as S from './schema.js';
 import { typeBadge } from './icons.js';
 import { store } from './store.js';
 import { imageURL } from './images.js';
+import { pdfThumbHTML } from './pdfThumbs.js';
 
 export const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export const plural = (n, word, many = `${word}s`) => `${n} ${n === 1 ? word : many}`;
@@ -240,7 +241,7 @@ function agChevrons() {
 function showGallery(icon) {
   const files = galleryFiles(icon.dataset.gallery); if (!files.length) return;
   const el = agPanel(), more = files.length > 3;
-  el.innerHTML = `<div class="ag-head"><b>${esc(plural(files.length, 'attachment'))}</b>${more ? '<span class="ag-hint">scroll for more</span>' : ''}</div><div class="ag-body">${more ? '<button type="button" class="ag-nav" data-ag-dir="-1" aria-label="Previous attachments">‹</button>' : ''}<div class="ag-track">${files.map(a => `<button type="button" class="ag-item" data-action="view-file" data-id="${esc(a.id)}" data-name="${esc(a.name)}" data-kind="${isPdf(a) ? 'pdf' : 'image'}" title="Open ${esc(a.name)}">${isPdf(a) ? '<span class="ag-pdf" aria-hidden="true">PDF</span>' : `<img src="${esc(imageURL(a.id))}" alt="" loading="lazy">`}<span class="ag-name">${esc(a.name)}</span></button>`).join('')}</div>${more ? '<button type="button" class="ag-nav" data-ag-dir="1" aria-label="More attachments">›</button>' : ''}</div>`;
+  el.innerHTML = `<div class="ag-head"><b>${esc(plural(files.length, 'attachment'))}</b>${more ? '<span class="ag-hint">scroll for more</span>' : ''}</div><div class="ag-body">${more ? '<button type="button" class="ag-nav" data-ag-dir="-1" aria-label="Previous attachments">‹</button>' : ''}<div class="ag-track">${files.map(a => `<button type="button" class="ag-item" data-action="view-file" data-id="${esc(a.id)}" data-name="${esc(a.name)}" data-kind="${isPdf(a) ? 'pdf' : 'image'}" title="Open ${esc(a.name)}">${isPdf(a) ? pdfThumbHTML(a.id, '<span class="ag-pdf" aria-hidden="true">PDF</span>') : `<img src="${esc(imageURL(a.id))}" alt="" loading="lazy">`}<span class="ag-name">${esc(a.name)}</span></button>`).join('')}</div>${more ? '<button type="button" class="ag-nav" data-ag-dir="1" aria-label="More attachments">›</button>' : ''}</div>`;
   el.hidden = false; agFor = icon;
   el.querySelector('.ag-track').addEventListener('scroll', agChevrons, { passive: true }); agChevrons();
   const r = icon.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;

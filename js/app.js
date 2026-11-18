@@ -6,6 +6,7 @@ import * as D from './documents.js';
 import { typeBadge } from './icons.js';
 import { noteHTML } from './richText.js';
 import { imageURL } from './images.js';
+import { pdfThumbHTML, clearPdfThumbs } from './pdfThumbs.js';
 import { DEMO_USERNAME, DEMO_PASSWORD } from './demoAccount.js';
 import { store, save, notice, remove, put } from './store.js';
 import { esc, condNameHTML, condOptionAttrs, relLabel, eventTime, itemIcons, quickPreviewToggle, setQuickPreview, quickPreviewOn, plural, searchBox, eventRow, entryRow, typeChip, tagFilterChip, tagChip, closeDialog, hhPanel } from './ui.js';
@@ -211,7 +212,7 @@ function renderDocuments() {
   for (const k of d.kinds) if (!kinds.some(x => x.kind === k)) d.kinds.delete(k);
   for (const l of d.labelIds) if (!labels.some(x => x.label.id === l)) d.labelIds.delete(l);
   const shown = D.filterDocuments(all, { kinds: [...d.kinds], labelIds: [...d.labelIds], conditionId: d.conditionId, query: d.query });
-  const card = x => `<li class="doc-card" data-doc-kind="${x.kind}" data-doc-label="${esc(x.labelId)}"><button type="button" class="preview" data-action="view-file" data-id="${esc(x.file.id)}" data-name="${esc(x.file.name)}" data-kind="${x.kind}" aria-label="View ${esc(x.file.name)}">${x.kind === 'pdf' ? '<span class="pdf-tile" aria-hidden="true">PDF</span>' : `<img src="${esc(imageURL(x.file.id))}" alt="" loading="lazy">`}</button><div class="info"><strong>${esc(x.file.name)}</strong><span><span class="badge">${esc(D.labelById(doc, x.labelId).label)}</span> <small class="muted">${D.KIND_NAMES[x.kind]}${x.file.bytes ? ` · ${D.formatBytes(x.file.bytes)}` : ''}</small></span><span class="owner">${x.owner.kind === 'entry' ? `<button type="button" class="link" data-action="open-entry" data-id="${esc(x.owner.id)}">${esc(S.typeById(doc, x.owner.typeId)?.singular || 'Entry')}: ${esc(x.owner.title)}</button>${(() => { const ic = itemIcons({ highlight: S.entryById(doc, x.owner.id)?.highlight }); return ic.html; })()}` : `<a href="#/c/${esc(x.owner.id)}">Condition record</a>`}<br>${esc(x.conditionName)}${x.file.addedAt ? ` · Added ${relLabel(String(x.file.addedAt).slice(0, 10))}` : ''}</span></div></li>`;
+  const card = x => `<li class="doc-card" data-doc-kind="${x.kind}" data-doc-label="${esc(x.labelId)}"><button type="button" class="preview" data-action="view-file" data-id="${esc(x.file.id)}" data-name="${esc(x.file.name)}" data-kind="${x.kind}" aria-label="View ${esc(x.file.name)}">${x.kind === 'pdf' ? pdfThumbHTML(x.file.id, '<span class="pdf-tile" aria-hidden="true">PDF</span>') : `<img src="${esc(imageURL(x.file.id))}" alt="" loading="lazy">`}</button><div class="info"><strong>${esc(x.file.name)}</strong><span><span class="badge">${esc(D.labelById(doc, x.labelId).label)}</span> <small class="muted">${D.KIND_NAMES[x.kind]}${x.file.bytes ? ` · ${D.formatBytes(x.file.bytes)}` : ''}</small></span><span class="owner">${x.owner.kind === 'entry' ? `<button type="button" class="link" data-action="open-entry" data-id="${esc(x.owner.id)}">${esc(S.typeById(doc, x.owner.typeId)?.singular || 'Entry')}: ${esc(x.owner.title)}</button>${(() => { const ic = itemIcons({ highlight: S.entryById(doc, x.owner.id)?.highlight }); return ic.html; })()}` : `<a href="#/c/${esc(x.owner.id)}">Condition record</a>`}<br>${esc(x.conditionName)}${x.file.addedAt ? ` · Added ${relLabel(String(x.file.addedAt).slice(0, 10))}` : ''}</span></div></li>`;
   const groups = D.groupDocuments(doc, shown, d.group);
   const filtered = d.kinds.size || d.labelIds.size || d.query.trim();
   app.innerHTML = `<div class="page-heading"><div><p class="eyebrow">Lab results, notes, letters, photos</p><h1>Documents</h1><p class="muted">Every PDF and image you've attached, across all conditions. Filter by file type and by label, then open one to view it or jump to the record it belongs to.</p></div><div class="actions"><button class="primary" type="button" data-action="quick-upload">+ Upload documents</button></div></div>
@@ -315,7 +316,7 @@ async function action(name, id, el) {
     case 'logout': {
       if (!(await offline.beforeLogout())) return;
       const username = store.account.username;
-      await api('logout', { body: {} }); await offline.afterLogout(username);
+      await api('logout', { body: {} }); await offline.afterLogout(username); await clearPdfThumbs();
       store.account = null; store.doc = null; closeDialog(); location.hash = '#/'; return render();
     }
   }

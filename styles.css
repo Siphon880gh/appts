@@ -516,3 +516,12 @@ dialog.drawer .dialog-body{flex:1;overflow:auto}
 .memo-btn{position:relative}.memo-dot{display:inline-block;width:8px;height:8px;margin-left:6px;border-radius:50%;background:#b8860b;vertical-align:middle}
 .memo-explain{margin:0 0 12px;padding:10px 12px;background:#fff8e1;border-left:4px solid #b8860b;font-size:14px}
 .memo-form textarea{width:100%;min-height:260px;font:15px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;tab-size:4}
+.pdf-thumb{position:relative;display:block;overflow:hidden;background:#fff}
+.pdf-thumb>.pdf-tile,.pdf-thumb>.ag-pdf{width:100%;height:100%}
+.pdf-thumb-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center;background:#fff;opacity:0;transition:opacity .15s}
+.pdf-thumb-img.ready{opacity:1}
+.doc-card .preview .pdf-thumb{width:100%;height:100%}
+.attachments .pdf-thumb{width:136px;height:96px;border:1px solid var(--line)}
+.ag-item .pdf-thumb{width:100%;height:96px;border-radius:4px}
+.ag-item .pdf-thumb .pdf-thumb-img{border-radius:4px}
+.doc-item .pdf-thumb{width:52px;height:52px;flex:none}

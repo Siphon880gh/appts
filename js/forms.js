@@ -4,6 +4,7 @@ import * as S from './schema.js';
 import * as D from './documents.js';
 import { typeBadge } from './icons.js';
 import { richEditor, bindEditor, editorValue, noteHTML } from './richText.js';
+import { pdfThumbHTML } from './pdfThumbs.js';
 import { uploadFile, documentFiles, fileURL, imageURL, DOCUMENT_ACCEPT } from './images.js';
 import { store, save, put, remove, notice } from './store.js';
 import { esc, condOptionAttrs, openDialog, closeDialog, dialogHead, tagChip, tagsFor, conditionName, plural, relLabel, eventTime, hhPanel } from './ui.js';
@@ -46,7 +47,7 @@ export function docZoneHTML(id) {
   return `<div class="doc-zone" id="${id}" data-uploading="false"><div class="zone-head"><span><strong>Documents &amp; photos</strong> · Drop PDFs or images here, paste with Ctrl/⌘+V, or</span><button type="button" data-pick>Choose files…</button><input type="file" accept="${DOCUMENT_ACCEPT}" multiple hidden></div><ul class="doc-items"></ul><p class="upload-status" role="status"></p><datalist id="${id}-labels"></datalist></div>`;
 }
 function previewHTML(a, cls = 'thumb') {
-  return D.fileKind(a) === 'pdf' ? `<span class="pdf-tile" aria-hidden="true">PDF</span>` : `<img class="${cls}" src="${esc(imageURL(a.id))}" alt="" loading="lazy">`;
+  return D.fileKind(a) === 'pdf' ? pdfThumbHTML(a.id, `<span class="pdf-tile" aria-hidden="true">PDF</span>`) : `<img class="${cls}" src="${esc(imageURL(a.id))}" alt="" loading="lazy">`;
 }
 export function bindDocZone(root, attachments = [], defaultLabel = () => 'other') {
   const doc = store.doc, list = root.querySelector('.doc-items'), status = root.querySelector('.upload-status'), file = root.querySelector('input[type=file]');
