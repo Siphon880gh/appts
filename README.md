@@ -17,7 +17,9 @@ sh tools/serve.sh          # http://127.0.0.1:8631
 sh tools/serve.sh 8700     # or pick a port
 ```
 
-`tools/serve.sh` runs `php -S` with `upload_max_filesize=20M` and `post_max_size=24M` so PDF uploads up to 20 MB work. Plain `php -S` uses PHP's default 2 MB limit. Requires PHP 8.1+ with the `fileinfo`, `dom`, and `gd` extensions. There's no database, Composer, npm, or router: `index.php` is the page and `api.php` is the only endpoint.
+**MAMP / Apache:** open http://localhost:8888/weng/app/healthcare/appts/ (MAMP's DocumentRoot is `~/dev/web`). The code runs on PHP **7.4** (MAMP's mod_php 7.4.33) and PHP 8.x. Apache needs `AllowOverride All`, which MAMP already sets: the root `.htaccess` raises the upload limits to 20 MB / 24 MB for mod_php (it ignores `.user.ini`), and `storage/`, `includes/`, `tools/`, and `tests/` each carry `Require all denied`. Check a live install with `python3 tests/live.check.py [url]`. It writes only to the demo account.
+
+**php -S:** `tools/serve.sh` runs `php -S` with `upload_max_filesize=20M` and `post_max_size=24M` so PDF uploads up to 20 MB work. Plain `php -S` uses PHP's default 2 MB limit. Requires PHP 7.4+ with the `fileinfo`, `dom`, and `gd` extensions. There's no database, Composer, npm, or router: `index.php` is the page and `api.php` is the only endpoint.
 
 ## Accounts
 
@@ -133,6 +135,8 @@ sh tests/run-all.sh --screens       # also regenerate docs/screenshots
 | `tests/storage.test.php` | Guarded storage, atomic writes, locks, backups, sanitizer, domain ops |
 | `tests/schema.test.mjs` | Type, field, timeline, filter, tag, icon, contrast, and document helpers |
 | `tests/api.test.py` | Real `php -S`: logins, account isolation, blocked storage URLs, concurrent writes, restart persistence, uploads, labels |
+| PHP 7.4 gate | `php -l` on every file with MAMP's 7.4 binary plus the storage tests on 7.4. Set `APPTS_PHP=<binary>` to run the whole suite on another PHP. |
+| `tests/live.check.py` | Against a running MAMP/Apache: JSON API, both logins, cookie path, uploads (including 17 MB), blocked storage and server-only dirs, isolation, paste, screenshot |
 | `tests/browser.test.py` | Playwright: sign-in, custom types and fields, paste and drag-drop uploads, tags, rich notes, XSS stripping, Documents filters, 390px layout |
 
 The browser test needs Python Playwright with Chromium. `--screens` uses installed Google Chrome when it's present (`APPTS_BROWSER_CHANNEL=chrome`, temporary profile) because Playwright's headless shell can't render PDFs. Tests use temporary storage and never touch `storage/`.

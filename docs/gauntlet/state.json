@@ -45,6 +45,17 @@
       "role": "critic",
       "verdict": "WIN",
       "note": "All gates G1-G26 pass; overview/condition/timeline/documents/types readable at a glance; remaining items are documented gaps, not contract failures"
+    },
+    {
+      "round": 4,
+      "role": "builder",
+      "summary": "Bug t10u: under MAMP (Apache mod_php 7.4.33) api.php returned a PHP parse error page instead of JSON. Replaced match/mixed/never/variable-less catch with PHP 7.4 syntax, added str_* polyfills (includes/compat.php), mod_php upload limits in .htaccess, and Require all denied for includes/tools/tests. Added gate G27 and tests/live.check.py"
+    },
+    {
+      "round": 4,
+      "role": "verify",
+      "verdict": "pass",
+      "note": "run-all PASS on PHP 8.4.14 and with APPTS_PHP=7.4.33; live.check.py 26/26 against http://localhost:8888/weng/app/healthcare/appts/ (X-Powered-By PHP/7.4.33)"
     }
   ],
   "gates": {
@@ -73,7 +84,8 @@
     "G23": "pass",
     "G24": "pass",
     "G25": "pass",
-    "G26": "pass"
+    "G26": "pass",
+    "G27": "pass"
   },
   "openGaps": [
     "Critic is a self-run fresh-context pass, not an independent subagent",
